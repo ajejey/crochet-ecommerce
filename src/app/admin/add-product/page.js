@@ -1,30 +1,24 @@
 'use client';
 import React, { useState } from 'react';
 import { Camera as CameraIcon, X, ChevronLeft, ChevronRight, Upload, Check } from 'lucide-react';
-import Camera from '@/app/components/Camera';
+import ProductCamera from '@/app/components/Camera';
 
 const AddProduct = () => {
-  const [step, setStep] = useState(1);
-  const [photos, setPhotos] = useState([]);
-  const [isUsingCamera, setIsUsingCamera] = useState(false);
+    const [step, setStep] = useState(1);
+    const [photos, setPhotos] = useState([]);
+    const [isUsingCamera, setIsUsingCamera] = useState(false);
+    
+    const steps = [
+      { number: 1, name: 'Photos' },
+      { number: 2, name: 'Basic Info' },
+      { number: 3, name: 'Details' },
+      { number: 4, name: 'Review' }
+    ];
   
-  // Progress steps
-  const steps = [
-    { number: 1, name: 'Photos' },
-    { number: 2, name: 'Basic Info' },
-    { number: 3, name: 'Details' },
-    { number: 4, name: 'Review' }
-  ];
-
-  const handlePhotoCapture = () => {
-    // In real implementation, this would handle camera capture
-    setIsUsingCamera(true);
-    // Simulating photo capture
-    setTimeout(() => {
-      setPhotos([...photos, '/api/placeholder/400/400']);
+    const handleImageCapture = (imageData) => {
+      setPhotos([...photos, imageData]);
       setIsUsingCamera(false);
-    }, 500);
-  };
+    };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -86,16 +80,15 @@ const AddProduct = () => {
               ))}
               
               {photos.length < 4 && (
-                // <div className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center">
-                //   <button 
-                //     onClick={handlePhotoCapture}
-                //     className="flex flex-col items-center text-gray-600 p-4"
-                //   >
-                //     <CameraIcon className="w-12 h-12 mb-2" />
-                //     <span className="text-lg">Take Photo</span>
-                //   </button>
-                // </div>
-                <Camera />
+                <div className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center">
+                  <button 
+                    onClick={() => setIsUsingCamera(true)}
+                    className="flex flex-col items-center text-gray-600 p-4"
+                  >
+                    <CameraIcon className="w-12 h-12 mb-2" />
+                    <span className="text-lg">Take Photo</span>
+                  </button>
+                </div>
               )}
             </div>
 
@@ -248,26 +241,12 @@ const AddProduct = () => {
         </button>
       </div>
 
-      {/* Camera Interface Overlay */}
+      {/* Camera Component */}
       {isUsingCamera && (
-        <div className="fixed inset-0 bg-black z-50">
-          <div className="h-full flex flex-col">
-            <div className="flex-1 bg-gray-900 relative">
-              {/* Camera preview would go here */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <CameraIcon className="w-16 h-16 text-white opacity-50" />
-              </div>
-            </div>
-            <div className="bg-black p-6">
-              <button 
-                onClick={() => setIsUsingCamera(false)}
-                className="w-full bg-white text-black text-xl py-4 rounded-lg"
-              >
-                Take Photo
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProductCamera
+          onImageCapture={handleImageCapture}
+          onClose={() => setIsUsingCamera(false)}
+        />
       )}
     </div>
   );
