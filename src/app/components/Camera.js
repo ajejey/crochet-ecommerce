@@ -1,122 +1,190 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Camera, X, RotateCcw, CheckCircle2 } from 'lucide-react';
 
-export default function Camera() {
+const ProductCamera = ({ onImageCapture, onClose }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const [image, setImage] = useState(null);
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch available video devices (cameras)
-    const getCameras = async () => {
+    initializeCamera();
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  const initializeCamera = async () => {
+    try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       setDevices(videoDevices);
-      if (videoDevices.length > 0) setSelectedDevice(videoDevices[0].deviceId); // Default to the first camera
-    };
-    getCameras();
-  }, []);
+      
+      if (videoDevices.length > 0) {
+        setSelectedDevice(videoDevices[0].deviceId);
+        startCamera(videoDevices[0].deviceId);
+      } else {
+        setError('No cameras found');
+      }
+    } catch (err) {
+      setError('Failed to access camera. Please ensure camera permissions are granted.');
+    }
+  };
 
-  const startCamera = async () => {
-    if (!selectedDevice) return;
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { deviceId: selectedDevice },
-    });
-    videoRef.current.srcObject = stream;
-    setIsCameraActive(true);
+  const startCamera = async (deviceId) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          deviceId,
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      videoRef.current.srcObject = stream;
+      setIsCameraActive(true);
+      setError(null);
+    } catch (err) {
+      setError('Failed to start camera');
+    }
   };
 
   const stopCamera = () => {
-    const stream = videoRef.current.srcObject;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
     }
     setIsCameraActive(false);
+  };
+
+  const handleDeviceChange = (e) => {
+    const deviceId = e.target.value;
+    setSelectedDevice(deviceId);
+    if (isCameraActive) {
+      stopCamera();
+      startCamera(deviceId);
+    }
   };
 
   const captureImage = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    // Adjust canvas size to match video
+    
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
+    
+    const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/png');
-    setImage(dataUrl);
+    
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    setCapturedImage(dataUrl);
+    stopCamera();
   };
 
-  const handleDeviceChange = (e) => {
-    setSelectedDevice(e.target.value);
-    if (isCameraActive) {
-      stopCamera();
-      startCamera();
-    }
+  const retakePhoto = () => {
+    setCapturedImage(null);
+    startCamera(selectedDevice);
+  };
+
+  const confirmImage = () => {
+    onImageCapture(capturedImage);
+    onClose();
   };
 
   return (
-    <div className="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Camera App</h1>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+        {/* Camera Container */}
+        <div className="relative">
+          <div className="relative aspect-[4/3] bg-black rounded-t-lg overflow-hidden">
+            {!capturedImage ? (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={capturedImage}
+                alt="Captured product"
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
 
-      {/* Camera Selection */}
-      <div className="flex items-center mb-4">
-        <label className="mr-2 font-medium">Choose Camera:</label>
-        <select
-          value={selectedDevice}
-          onChange={handleDeviceChange}
-          className="p-2 border rounded"
-        >
-          {devices.map((device) => (
-            <option key={device.deviceId} value={device.deviceId}>
-              {device.label || `Camera ${devices.indexOf(device) + 1}`}
-            </option>
-          ))}
-        </select>
-      </div>
+          {/* Hidden Canvas */}
+          <canvas ref={canvasRef} className="hidden" />
 
-      {/* Video Stream */}
-      <div className="relative mb-4">
-        <video ref={videoRef} autoPlay playsInline className="w-full max-w-md border rounded" />
-        <canvas ref={canvasRef} className="hidden"></canvas>
-      </div>
-
-      {/* Control Buttons */}
-      <div className="flex gap-2 mb-4">
-        {!isCameraActive ? (
+          {/* Close Button */}
           <button
-            onClick={startCamera}
-            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+            onClick={onClose}
+            className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full"
           >
-            Start Camera
+            <X className="w-6 h-6" />
           </button>
-        ) : (
-          <button
-            onClick={stopCamera}
-            className="bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
-          >
-            Stop Camera
-          </button>
-        )}
-        <button
-          onClick={captureImage}
-          className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-          disabled={!isCameraActive}
-        >
-          Capture Image
-        </button>
-      </div>
-
-      {/* Display Captured Image */}
-      {image && (
-        <div className="w-full max-w-md">
-          <h2 className="text-xl font-medium mb-2">Captured Image:</h2>
-          <img src={image} alt="Captured" className="border rounded w-full" />
         </div>
-      )}
+
+        {/* Controls */}
+        <div className="p-4 bg-white rounded-b-lg">
+          {/* Camera Selection */}
+          {devices.length > 1 && (
+            <select
+              value={selectedDevice}
+              onChange={handleDeviceChange}
+              className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
+            >
+              {devices.map((device) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Camera ${devices.indexOf(device) + 1}`}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-4">
+            {!capturedImage ? (
+              <button
+                onClick={captureImage}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              >
+                <Camera className="w-5 h-5" />
+                Take Photo
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={retakePhoto}
+                  className="flex items-center gap-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                  Retake
+                </button>
+                <button
+                  onClick={confirmImage}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                >
+                  <CheckCircle2 className="w-5 h-5" />
+                  Use Photo
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default ProductCamera;
