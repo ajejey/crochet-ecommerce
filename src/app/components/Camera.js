@@ -1,6 +1,6 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, X, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Camera, X, RotateCcw, CheckCircle2, FlipHorizontal } from 'lucide-react';
 
 const ProductCamera = ({ onImageCapture, onClose }) => {
   const videoRef = useRef(null);
@@ -10,14 +10,8 @@ const ProductCamera = ({ onImageCapture, onClose }) => {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const [error, setError] = useState(null);
-
-  useEffect(() => {
-    initializeCamera();
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+  
   const initializeCamera = async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -25,8 +19,17 @@ const ProductCamera = ({ onImageCapture, onClose }) => {
       setDevices(videoDevices);
       
       if (videoDevices.length > 0) {
-        setSelectedDevice(videoDevices[0].deviceId);
-        startCamera(videoDevices[0].deviceId);
+        // Find back camera
+        const backCamera = videoDevices.find(device => 
+          device.label.toLowerCase().includes('back') || 
+          device.label.toLowerCase().includes('rear')
+        );
+        
+        // Use back camera if found, otherwise use first camera
+        const defaultDevice = backCamera || videoDevices[0];
+        setSelectedDevice(defaultDevice.deviceId);
+        setCurrentCameraIndex(videoDevices.indexOf(defaultDevice));
+        startCamera(defaultDevice.deviceId);
       } else {
         setError('No cameras found');
       }
@@ -35,10 +38,46 @@ const ProductCamera = ({ onImageCapture, onClose }) => {
     }
   };
 
+  const handleFlipCamera = () => {
+    if (devices.length <= 1) return;
+    
+    const nextIndex = (currentCameraIndex + 1) % devices.length;
+    const nextDevice = devices[nextIndex];
+    
+    setCurrentCameraIndex(nextIndex);
+    setSelectedDevice(nextDevice.deviceId);
+    stopCamera();
+    startCamera(nextDevice.deviceId);
+  };
+
+  useEffect(() => {
+    initializeCamera();
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  // const initializeCamera = async () => {
+  //   try {
+  //     const devices = await navigator.mediaDevices.enumerateDevices();
+  //     const videoDevices = devices.filter(device => device.kind === 'videoinput');
+  //     setDevices(videoDevices);
+
+  //     if (videoDevices.length > 0) {
+  //       setSelectedDevice(videoDevices[0].deviceId);
+  //       startCamera(videoDevices[0].deviceId);
+  //     } else {
+  //       setError('No cameras found');
+  //     }
+  //   } catch (err) {
+  //     setError('Failed to access camera. Please ensure camera permissions are granted.');
+  //   }
+  // };
+
   const startCamera = async (deviceId) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: {
           deviceId,
           facingMode: 'environment',
           width: { ideal: 1920 },
@@ -72,13 +111,13 @@ const ProductCamera = ({ onImageCapture, onClose }) => {
   const captureImage = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const context = canvas.getContext('2d');
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
     setCapturedImage(dataUrl);
     stopCamera();
@@ -130,19 +169,13 @@ const ProductCamera = ({ onImageCapture, onClose }) => {
 
         {/* Controls */}
         <div className="p-4 bg-white rounded-b-lg">
-          {/* Camera Selection */}
           {devices.length > 1 && (
-            <select
-              value={selectedDevice}
-              onChange={handleDeviceChange}
-              className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
+            <button
+              onClick={handleFlipCamera}
+              className="absolute top-2 left-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full"
             >
-              {devices.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Camera ${devices.indexOf(device) + 1}`}
-                </option>
-              ))}
-            </select>
+              <FlipHorizontal className="w-6 h-6" />
+            </button>
           )}
 
           {/* Error Message */}
