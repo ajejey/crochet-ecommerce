@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Heart, ShoppingCart, Menu, Search, X } from 'lucide-react';
+import Link from 'next/link';
 
 const HomePage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,9 +37,10 @@ const HomePage = () => {
             </div>
             
             <div className="hidden lg:flex space-x-8">
-              <a href="/shop" className="text-gray-700 hover:text-indigo-600">Shop</a>
-              <a href="/about" className="text-gray-700 hover:text-indigo-600">About</a>
-              <a href="/contact" className="text-gray-700 hover:text-indigo-600">Contact</a>
+              <Link href="/shop" className="text-gray-700 hover:text-indigo-600">Shop</Link>
+              <Link href="/about" className="text-gray-700 hover:text-indigo-600">About</Link>
+              <Link href="/contact" className="text-gray-700 hover:text-indigo-600">Contact</Link>
+              <Link href="/admin" className="text-gray-700 hover:text-indigo-600">Admin</Link>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -53,9 +55,10 @@ const HomePage = () => {
         {isMenuOpen && (
           <div className="lg:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <a href="/shop" className="block px-3 py-2 text-gray-700">Shop</a>
-              <a href="/about" className="block px-3 py-2 text-gray-700">About</a>
-              <a href="/contact" className="block px-3 py-2 text-gray-700">Contact</a>
+              <Link href="/shop" className="block px-3 py-2 text-gray-700">Shop</Link>
+              <Link href="/about" className="block px-3 py-2 text-gray-700">About</Link>
+              <Link href="/contact" className="block px-3 py-2 text-gray-700">Contact</Link>
+              <Link href="/admin" className="block px-3 py-2 text-gray-700">Admin</Link>
             </div>
           </div>
         )}
