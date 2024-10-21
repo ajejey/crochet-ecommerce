@@ -84,14 +84,17 @@ const AddProduct = () => {
       const blob = await response.blob();
       const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
 
+      setIsLoading(true);
       // Upload to Firebase
       const imageUrl = await uploadImage(file);
 
       // Update state
       setPhotos([...photos, imageUrl]);
       setIsUsingCamera(false);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error handling image capture: ', error);
+      setIsLoading(false);
     }
   };
 
