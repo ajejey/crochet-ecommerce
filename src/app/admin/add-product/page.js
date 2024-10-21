@@ -7,84 +7,120 @@ import { storage } from '@/firebase/config';
 import { addProduct } from '@/actions/actions';
 
 const AddProduct = () => {
-    const [step, setStep] = useState(1);
-    const [photos, setPhotos] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isUsingCamera, setIsUsingCamera] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    
-    // Input states
-    const [name, setName] = useState('');
-    const [price, setPrice] = useState(0);
-    const [category, setCategory] = useState('');
-    const [materials, setMaterials] = useState('');
-    const [size, setSize] = useState('');
-    const [description, setDescription] = useState('');
-    const [careInstructions, setCareInstructions] = useState('');
-  
+  const [step, setStep] = useState(1);
+  const [photos, setPhotos] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUsingCamera, setIsUsingCamera] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Input states
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState(0);
+  const [category, setCategory] = useState('');
+  const [materials, setMaterials] = useState('');
+  const [size, setSize] = useState('');
+  const [description, setDescription] = useState('');
+  const [careInstructions, setCareInstructions] = useState('');
+
   const uploadImage = async (imageFile) => {
+    if (!imageFile) {
+      console.error('No image file provided');
+      return null;
+    }
+  
     const storageRef = ref(storage, 'products/' + Date.now() + '_' + imageFile.name);
+    console.log('Uploading image to ', storageRef.fullPath);
+    
     try {
       const snapshot = await uploadBytes(storageRef, imageFile);
+      console.log('Image uploaded successfully');
       const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('Download URL for image: ', downloadURL);
       return downloadURL;
     } catch (error) {
       console.error('Error uploading image: ', error);
-      throw error;
+      // You might want to show an error message to the user here
+      return null;
     }
   };
 
-    const steps = [
-      { number: 1, name: 'Photos' },
-      { number: 2, name: 'Basic Info' },
-      { number: 3, name: 'Details' },
-      { number: 4, name: 'Review' }
-    ];
-  
-    const handleImageCapture = async (imageData) => {
-      try {
-        // Convert base64 to blob
-        const response = await fetch(imageData);
-        const blob = await response.blob();
-        const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-    
-        // Upload to Firebase
-        const imageUrl = await uploadImage(file);
-    
-        // Update state
-        setPhotos([...photos, imageUrl]);
-        setIsUsingCamera(false);
-      } catch (error) {
-        console.error('Error handling image capture: ', error);
-      }
-    };
+  const steps = [
+    { number: 1, name: 'Photos' },
+    { number: 2, name: 'Basic Info' },
+    { number: 3, name: 'Details' },
+    { number: 4, name: 'Review' }
+  ];
 
-    const handleSubmit = async () => {
-      // Handle form submission
+  const handleImageUploadChange = async (event) => {
+    console.log('handleImageUploadChange called');
+    const files = event.target.files;
+    if (files && files.length > 0) {
       setIsLoading(true);
       try {
-        const newProduct = await addProduct({
-          name,
-          description,
-          price,
-          images: photos,
-          category,
-        })
-        console.log("newProduct submitted", newProduct)
-        // router.push('/admin/products')
+        const uploadPromises = Array.from(files).map(async (file) => {
+          console.log('Uploading file:', file.name);
+          const imageUrl = await uploadImage(file);
+          return imageUrl;
+        });
+  
+        const uploadedUrls = await Promise.all(uploadPromises);
+        const validUrls = uploadedUrls.filter(url => url !== null);
+  
+        setPhotos(prevPhotos => [...prevPhotos, ...validUrls]);
+        console.log('All images uploaded successfully');
       } catch (error) {
-        console.error('Error adding product: ', error)
+        console.error('Error uploading images: ', error);
+        // You might want to show an error message to the user here
       } finally {
         setIsLoading(false);
       }
-    };
+    }
+  };
+
+  const handleImageCapture = async (imageData) => {
+    try {
+      // Convert base64 to blob
+      const response = await fetch(imageData);
+      const blob = await response.blob();
+      const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+
+      // Upload to Firebase
+      const imageUrl = await uploadImage(file);
+
+      // Update state
+      setPhotos([...photos, imageUrl]);
+      setIsUsingCamera(false);
+    } catch (error) {
+      console.error('Error handling image capture: ', error);
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Handle form submission
+    setIsLoading(true);
+    try {
+      const newProduct = await addProduct({
+        name,
+        description,
+        price,
+        images: photos,
+        category,
+      })
+      console.log("newProduct submitted", newProduct)
+      // router.push('/admin/products')
+    } catch (error) {
+      console.error('Error adding product: ', error)
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
         <div className="flex items-center justify-between p-4">
-          <button 
+          <button
             onClick={() => step > 1 ? setStep(step - 1) : null}
             className="text-gray-600 hover:text-gray-900"
           >
@@ -93,7 +129,7 @@ const AddProduct = () => {
           <h1 className="text-xl font-bold text-gray-900">Add New Product</h1>
           <div className="w-8" /> {/* Spacer for alignment */}
         </div>
-        
+
         {/* Progress bar */}
         <div className="flex justify-between px-4 pb-4">
           {steps.map((s) => (
@@ -120,16 +156,25 @@ const AddProduct = () => {
               <p className="text-gray-600 text-lg">Take clear photos in good lighting</p>
             </div>
 
+            {/* Image file input */}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 p-2.5"
+              onChange={handleImageUploadChange}
+            />
+
             {/* Photo Grid */}
             <div className="grid grid-cols-2 gap-4">
               {photos.map((photo, index) => (
                 <div key={index} className="relative aspect-square">
-                  <img 
-                    src={photo} 
+                  <img
+                    src={photo}
                     alt={`Product ${index + 1}`}
                     className="w-full h-full object-cover rounded-lg"
                   />
-                  <button 
+                  <button
                     onClick={() => setPhotos(photos.filter((_, i) => i !== index))}
                     className="absolute top-2 right-2 bg-white rounded-full p-1 shadow"
                   >
@@ -137,10 +182,10 @@ const AddProduct = () => {
                   </button>
                 </div>
               ))}
-              
+
               {photos.length < 4 && (
                 <div className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center">
-                  <button 
+                  <button
                     onClick={() => setIsUsingCamera(true)}
                     className="flex flex-col items-center text-gray-600 p-4"
                   >
@@ -267,9 +312,9 @@ const AddProduct = () => {
             <div className="bg-white rounded-lg p-6 space-y-6">
               {/* Preview content would go here */}
               <div className="flex items-center space-x-4 mb-4">
-                <img 
-                  src={photos[0]} 
-                  alt="Product preview" 
+                <img
+                  src={photos[0]}
+                  alt="Product preview"
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div>
