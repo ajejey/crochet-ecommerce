@@ -110,9 +110,12 @@ const AddProduct = () => {
         category,
       })
       console.log("newProduct submitted", newProduct)
+      alert('Product added successfully!')
       // router.push('/admin/products')
+
     } catch (error) {
       console.error('Error adding product: ', error)
+      alert('Error adding product. Please try again.')
     } finally {
       setIsLoading(false);
     }
@@ -353,9 +356,18 @@ const AddProduct = () => {
               console.log('Product submitted');
             }
           }}
-          className="w-full bg-blue-500 text-white text-xl py-4 rounded-lg hover:bg-blue-600 transition-colors"
+          disabled={isLoading}
+          className={`w-full text-white text-xl py-4 rounded-lg transition-colors ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
+            }`}
         >
-          {step < 4 ? 'Continue' : 'Publish Product'}
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+              <span>Publishing...</span>
+            </div>
+          ) : (
+            step < 4 ? 'Continue' : 'Publish Product'
+          )}
         </button>
       </div>
 
