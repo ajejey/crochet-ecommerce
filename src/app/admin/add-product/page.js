@@ -5,7 +5,6 @@ import ProductCamera from '@/app/components/Camera';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/firebase/config';
 import { addProduct } from '@/actions/actions';
-import Image from 'next/image';
 
 const AddProduct = () => {
   const [step, setStep] = useState(1);
@@ -161,12 +160,10 @@ const AddProduct = () => {
             <div className="grid grid-cols-2 gap-4">
               {photos.map((photo, index) => (
                 <div key={index} className="relative aspect-square">
-                  <Image
+                  <img
                     src={photo}
                     alt={`Product ${index + 1}`}
-                    layout="fill"
-                    objectFit="cover"
-                    className="rounded-lg"
+                    className="w-full h-full object-cover rounded-lg"
                   />
                   <button
                     onClick={() => setPhotos(photos.filter((_, i) => i !== index))}
