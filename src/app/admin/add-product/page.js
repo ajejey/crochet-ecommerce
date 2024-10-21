@@ -2,12 +2,38 @@
 import React, { useState } from 'react';
 import { Camera as CameraIcon, X, ChevronLeft, ChevronRight, Upload, Check } from 'lucide-react';
 import ProductCamera from '@/app/components/Camera';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/firebase/config';
+import { addProduct } from '@/actions/actions';
 
 const AddProduct = () => {
     const [step, setStep] = useState(1);
     const [photos, setPhotos] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const [isUsingCamera, setIsUsingCamera] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     
+    // Input states
+    const [name, setName] = useState('');
+    const [price, setPrice] = useState(0);
+    const [category, setCategory] = useState('');
+    const [materials, setMaterials] = useState('');
+    const [size, setSize] = useState('');
+    const [description, setDescription] = useState('');
+    const [careInstructions, setCareInstructions] = useState('');
+  
+  const uploadImage = async (imageFile) => {
+    const storageRef = ref(storage, 'products/' + Date.now() + '_' + imageFile.name);
+    try {
+      const snapshot = await uploadBytes(storageRef, imageFile);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading image: ', error);
+      throw error;
+    }
+  };
+
     const steps = [
       { number: 1, name: 'Photos' },
       { number: 2, name: 'Basic Info' },
@@ -15,9 +41,42 @@ const AddProduct = () => {
       { number: 4, name: 'Review' }
     ];
   
-    const handleImageCapture = (imageData) => {
-      setPhotos([...photos, imageData]);
-      setIsUsingCamera(false);
+    const handleImageCapture = async (imageData) => {
+      try {
+        // Convert base64 to blob
+        const response = await fetch(imageData);
+        const blob = await response.blob();
+        const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+    
+        // Upload to Firebase
+        const imageUrl = await uploadImage(file);
+    
+        // Update state
+        setPhotos([...photos, imageUrl]);
+        setIsUsingCamera(false);
+      } catch (error) {
+        console.error('Error handling image capture: ', error);
+      }
+    };
+
+    const handleSubmit = async () => {
+      // Handle form submission
+      setIsLoading(true);
+      try {
+        const newProduct = await addProduct({
+          name,
+          description,
+          price,
+          images: photos,
+          category,
+        })
+        console.log("newProduct submitted", newProduct)
+        // router.push('/admin/products')
+      } catch (error) {
+        console.error('Error adding product: ', error)
+      } finally {
+        setIsLoading(false);
+      }
     };
 
   return (
@@ -111,6 +170,8 @@ const AddProduct = () => {
                 <label className="block text-xl text-gray-700 mb-2">Product Name</label>
                 <input
                   type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Cozy Winter Scarf"
                   className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -120,6 +181,8 @@ const AddProduct = () => {
                 <label className="block text-xl text-gray-700 mb-2">Price ($)</label>
                 <input
                   type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
                   placeholder="29.99"
                   className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -127,7 +190,11 @@ const AddProduct = () => {
 
               <div>
                 <label className="block text-xl text-gray-700 mb-2">Category</label>
-                <select className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
                   <option value="">Select a category</option>
                   <option value="scarves">Scarves</option>
                   <option value="blankets">Blankets</option>
@@ -152,6 +219,8 @@ const AddProduct = () => {
                 <label className="block text-xl text-gray-700 mb-2">Materials Used</label>
                 <input
                   type="text"
+                  value={materials}
+                  onChange={(e) => setMaterials(e.target.value)}
                   placeholder="e.g., 100% Merino Wool"
                   className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -232,6 +301,7 @@ const AddProduct = () => {
             if (step < 4) setStep(step + 1);
             else {
               // Handle product submission
+              handleSubmit();
               console.log('Product submitted');
             }
           }}
