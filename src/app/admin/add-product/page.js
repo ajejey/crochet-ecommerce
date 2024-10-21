@@ -5,6 +5,7 @@ import ProductCamera from '@/app/components/Camera';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/firebase/config';
 import { addProduct } from '@/actions/actions';
+import Image from 'next/image';
 
 const AddProduct = () => {
   const [step, setStep] = useState(1);
@@ -27,10 +28,10 @@ const AddProduct = () => {
       console.error('No image file provided');
       return null;
     }
-  
+
     const storageRef = ref(storage, 'products/' + Date.now() + '_' + imageFile.name);
     console.log('Uploading image to ', storageRef.fullPath);
-    
+
     try {
       const snapshot = await uploadBytes(storageRef, imageFile);
       console.log('Image uploaded successfully');
@@ -62,10 +63,10 @@ const AddProduct = () => {
           const imageUrl = await uploadImage(file);
           return imageUrl;
         });
-  
+
         const uploadedUrls = await Promise.all(uploadPromises);
         const validUrls = uploadedUrls.filter(url => url !== null);
-  
+
         setPhotos(prevPhotos => [...prevPhotos, ...validUrls]);
         console.log('All images uploaded successfully');
       } catch (error) {
@@ -156,23 +157,16 @@ const AddProduct = () => {
               <p className="text-gray-600 text-lg">Take clear photos in good lighting</p>
             </div>
 
-            {/* Image file input */}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 p-2.5"
-              onChange={handleImageUploadChange}
-            />
-
             {/* Photo Grid */}
             <div className="grid grid-cols-2 gap-4">
               {photos.map((photo, index) => (
                 <div key={index} className="relative aspect-square">
-                  <img
+                  <Image
                     src={photo}
                     alt={`Product ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
+                    layout="fill"
+                    objectFit="cover"
+                    className="rounded-lg"
                   />
                   <button
                     onClick={() => setPhotos(photos.filter((_, i) => i !== index))}
@@ -185,13 +179,22 @@ const AddProduct = () => {
 
               {photos.length < 4 && (
                 <div className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center">
-                  <button
-                    onClick={() => setIsUsingCamera(true)}
-                    className="flex flex-col items-center text-gray-600 p-4"
-                  >
-                    <CameraIcon className="w-12 h-12 mb-2" />
-                    <span className="text-lg">Take Photo</span>
-                  </button>
+                  {isLoading ? (
+                    // Loader
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                      <span className="mt-2 text-gray-600">Uploading...</span>
+                    </div>
+                  ) : (
+                    // Take Photo button
+                    <button
+                      onClick={() => setIsUsingCamera(true)}
+                      className="flex flex-col items-center text-gray-600 p-4"
+                    >
+                      <CameraIcon className="w-12 h-12 mb-2" />
+                      <span className="text-lg">Take Photo</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
