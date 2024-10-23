@@ -1,6 +1,7 @@
 "use server";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { revalidatePath } from "next/cache";
 
 export async function getProducts(query = {}) {
     "use server";
@@ -8,6 +9,7 @@ export async function getProducts(query = {}) {
     try {
       const products = await Product.find(query);
       // Convert _id to string and handle dates for serialization
+      revalidatePath('/shop');
       return JSON.parse(JSON.stringify(products));
     } catch (error) {
       console.error('Failed to fetch products:', error);
