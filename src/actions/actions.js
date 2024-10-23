@@ -5,7 +5,7 @@ import Product from "@/models/Product";
 export async function addProduct(product) {
     "use server";
     await dbConnect()
-    console.log("connected to mongodb db...")
+    console.log("connected to mongodb db...", product)
     try {
         const newProduct = new Product(product)
         const createdProduct = await newProduct.save()

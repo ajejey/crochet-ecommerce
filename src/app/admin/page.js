@@ -22,8 +22,8 @@ const AdminDashboard = () => {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome Back, Martha!</h1>
-          <p className="mt-2 text-lg text-gray-600">Today is Sunday, October 20, 2024</p>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome Back!</h1>
+          <p className="mt-2 text-lg text-gray-600">Today is {new Intl.DateTimeFormat('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).format(new Date())}</p>
         </div>
       </header>
 
@@ -48,16 +48,16 @@ const AdminDashboard = () => {
           )}
 
           {/* Add New Product Card */}
-          <Link href="/admin/add-product" >
-          <button className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left">
+          {/* <Link href="/admin/add-product" > */}
+          <Link  href="/admin/add-product" className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left">
             <div className="flex items-center justify-between mb-4">
               <Plus className="w-10 h-10 text-green-500" />
               <ChevronRight className="w-6 h-6 text-gray-400" />
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Add New Product</h3>
             <p className="text-gray-600 text-lg">Create a new product listing</p>
-          </button>
           </Link>
+          {/* </Link> */}
 
           {/* Manage Products Card */}
           <button className="bg-white p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow text-left">

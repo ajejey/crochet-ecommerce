@@ -5,6 +5,7 @@ import ProductCamera from '@/app/components/Camera';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/firebase/config';
 import { addProduct } from '@/actions/actions';
+import Image from 'next/image';
 
 const AddProduct = () => {
   const [step, setStep] = useState(1);
@@ -17,9 +18,12 @@ const AddProduct = () => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState(0);
   const [category, setCategory] = useState('');
-  const [materials, setMaterials] = useState('');
+  const [tags, setTags] = useState([]);
   const [size, setSize] = useState('');
+  const [material, setMaterial] = useState('');
+  const [stockCount, setStockCount] = useState(0);
   const [description, setDescription] = useState('');
+
   const [careInstructions, setCareInstructions] = useState('');
 
   const uploadImage = async (imageFile) => {
@@ -98,6 +102,8 @@ const AddProduct = () => {
     }
   };
 
+  console.log("tags ", tags)
+
   const handleSubmit = async () => {
     // Handle form submission
     setIsLoading(true);
@@ -108,6 +114,10 @@ const AddProduct = () => {
         price,
         images: photos,
         category,
+        tags,
+        size,
+        material,
+        stockCount,
       })
       console.log("newProduct submitted", newProduct)
       alert('Product added successfully!')
@@ -253,6 +263,50 @@ const AddProduct = () => {
                   <option value="baby">Baby Items</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-xl text-gray-700 mb-2">Size</label>
+                <input
+                  type="text"
+                  value={size}
+                  onChange={(e) => setSize(e.target.value)}
+                  placeholder="e.g., One Size Fits Most"
+                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xl text-gray-700 mb-2">Material</label>
+                <input
+                  type="text"
+                  value={material}
+                  onChange={(e) => setMaterial(e.target.value)}
+                  placeholder="e.g., Cotton, Wool, Acrylic"
+                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* <div>
+                <label className="block text-xl text-gray-700 mb-2">Rating</label>
+                <input
+                  type="number"
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  placeholder="0"
+                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xl text-gray-700 mb-2">Reviews</label>
+                <input
+                  type="number"
+                  value={reviews}
+                  onChange={(e) => setReviews(e.target.value)}
+                  placeholder="0"
+                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div> */}
             </div>
           </div>
         )}
@@ -267,21 +321,12 @@ const AddProduct = () => {
 
             <div className="space-y-6">
               <div>
-                <label className="block text-xl text-gray-700 mb-2">Materials Used</label>
+                <label className="block text-xl text-gray-700 mb-2">Tags</label>
                 <input
                   type="text"
-                  value={materials}
-                  onChange={(e) => setMaterials(e.target.value)}
-                  placeholder="e.g., 100% Merino Wool"
-                  className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xl text-gray-700 mb-2">Size/Dimensions</label>
-                <input
-                  type="text"
-                  placeholder="e.g., 60 inches x 6 inches"
+                  value={tags.join(', ')}
+                  onChange={(e) => setTags(e.target.value.split(', '))}
+                  placeholder="e.g., winter, cozy, scarf"
                   className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -290,18 +335,22 @@ const AddProduct = () => {
                 <label className="block text-xl text-gray-700 mb-2">Description</label>
                 <textarea
                   rows="4"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe your product..."
                   className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 ></textarea>
               </div>
 
               <div>
-                <label className="block text-xl text-gray-700 mb-2">Care Instructions</label>
-                <textarea
-                  rows="3"
-                  placeholder="e.g., Hand wash in cold water..."
+                <label className="block text-xl text-gray-700 mb-2">Stock Count</label>
+                <input
+                  type="number"
+                  value={stockCount}
+                  onChange={(e) => setStockCount(e.target.value)}
+                  placeholder="0"
                   className="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                ></textarea>
+                />
               </div>
             </div>
           </div>
@@ -318,25 +367,33 @@ const AddProduct = () => {
             <div className="bg-white rounded-lg p-6 space-y-6">
               {/* Preview content would go here */}
               <div className="flex items-center space-x-4 mb-4">
-                <img
+                <Image
                   src={photos[0]}
                   alt="Product preview"
                   className="w-24 h-24 object-cover rounded-lg"
+                  width={96}
+                  height={96}
                 />
                 <div>
-                  <h3 className="text-xl font-bold">Cozy Winter Scarf</h3>
-                  <p className="text-gray-600">$29.99</p>
+                  <h3 className="text-xl font-bold">{name}</h3>
+                  <p className="text-gray-600">${price}</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
                   <h4 className="text-lg font-medium text-gray-700">Category</h4>
-                  <p>Scarves</p>
+                  <p>{category}</p>
                 </div>
                 <div>
-                  <h4 className="text-lg font-medium text-gray-700">Materials</h4>
-                  <p>100% Merino Wool</p>
+                  <h4 className="text-lg font-medium text-gray-700">Tags</h4>
+                  <ul className="flex flex-wrap space-x-2">
+                    {tags.map(tag => (
+                      <li key={tag} className="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 {/* More review details would go here */}
               </div>
