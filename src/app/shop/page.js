@@ -1,6 +1,18 @@
+export const dynamic = 'auto';
+export const revalidate = 3600; // revalidate every hour
 import { getProducts } from './actions';
 import FilterSection from './Components/FilterSection';
 import ProductGrid from './Components/ProductGrid';
+
+// Generate static params for categories
+export async function generateStaticParams() {
+  return [
+    { category: 'all' },
+    { category: 'blankets' },
+    { category: 'scarves' },
+    { category: 'hats' },
+  ];
+}
 
 
 export default async function ShopPage() {
