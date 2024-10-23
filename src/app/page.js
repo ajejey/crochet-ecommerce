@@ -2,71 +2,36 @@
 import React, { useState } from 'react';
 import { Heart, ShoppingCart, Menu, Search, X } from 'lucide-react';
 import Link from 'next/link';
+import HeaderSection from './HeaderSection';
 
 const HomePage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
+
   // Sample data - in production, this would come from your database
   const featuredProducts = [
-    { id: 1, name: 'Hand-knitted Winter Scarf', price: 45.99, image: '/api/placeholder/300/400' },
-    { id: 2, name: 'Crochet Baby Blanket', price: 89.99, image: '/api/placeholder/300/400' },
-    { id: 3, name: 'Wool Beanie Hat', price: 29.99, image: '/api/placeholder/300/400' },
+    { id: 1, name: 'Hand-knitted Winter Scarf', price: 45.99, image: 'https://images.unsplash.com/photo-1457545195570-67f207084966?q=80&w=2092&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+    { id: 2, name: 'Crochet Baby Blanket', price: 89.99, image: 'https://images.unsplash.com/photo-1675269605936-d57a395a23b2?q=80&w=1132&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+    { id: 3, name: 'Wool Beanie Hat', price: 29.99, image: 'https://images.unsplash.com/photo-1629447108360-c4d184f33579?q=80&w=987&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
   ];
 
   const categories = [
-    { name: 'Scarves', image: '/api/placeholder/200/200' },
-    { name: 'Blankets', image: '/api/placeholder/200/200' },
-    { name: 'Baby Items', image: '/api/placeholder/200/200' },
-    { name: 'Accessories', image: '/api/placeholder/200/200' },
+    { name: 'Scarves', image: 'https://images.unsplash.com/photo-1517496267011-39d56c54984d?q=80&w=1074&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+    { name: 'Blankets', image: 'https://images.unsplash.com/photo-1531414264812-7b5838eb2dfc?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+    { name: 'Baby Items', image: 'https://images.unsplash.com/photo-1619704685668-5570c998688a?q=80&w=1473&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
+    { name: 'Accessories', image: 'https://images.unsplash.com/photo-1716400128984-3681f2005d22?q=80&w=1469&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm fixed w-full top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center">
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-md lg:hidden"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              <span className="text-2xl font-serif ml-2 text-indigo-900">CraftedWithLove</span>
-            </div>
-            
-            <div className="hidden lg:flex space-x-8">
-              <Link href="/shop" className="text-gray-700 hover:text-indigo-600">Shop</Link>
-              <Link href="/about" className="text-gray-700 hover:text-indigo-600">About</Link>
-              <Link href="/contact" className="text-gray-700 hover:text-indigo-600">Contact</Link>
-              <Link href="/admin" className="text-gray-700 hover:text-indigo-600">Admin</Link>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <Search className="w-6 h-6 text-gray-600 cursor-pointer" />
-              <Heart className="w-6 h-6 text-gray-600 cursor-pointer" />
-              <ShoppingCart className="w-6 h-6 text-gray-600 cursor-pointer" />
-            </div>
-          </div>
-        </div>
-        
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="lg:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              <Link href="/shop" className="block px-3 py-2 text-gray-700">Shop</Link>
-              <Link href="/about" className="block px-3 py-2 text-gray-700">About</Link>
-              <Link href="/contact" className="block px-3 py-2 text-gray-700">Contact</Link>
-              <Link href="/admin" className="block px-3 py-2 text-gray-700">Admin</Link>
-            </div>
-          </div>
-        )}
-      </nav>
+      <HeaderSection />
 
       {/* Hero Section */}
       <div className="relative pt-16">
-        <div className="h-[70vh] bg-cover bg-center relative" style={{ backgroundImage: `url('/api/placeholder/1920/1080')` }}>
+        <div
+          className="h-[70vh] bg-cover bg-center relative"
+          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1530396333989-24c5b8f805dd?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')` }}
+        >
           <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
             <div className="text-center text-white px-4">
               <h1 className="text-4xl md:text-6xl font-serif mb-4">Handcrafted with Love</h1>
@@ -86,8 +51,8 @@ const HomePage = () => {
           {featuredProducts.map((product) => (
             <div key={product.id} className="group">
               <div className="relative overflow-hidden rounded-lg">
-                <img 
-                  src={product.image} 
+                <img
+                  src={product.image}
                   alt={product.name}
                   className="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-300"
                 />
@@ -112,8 +77,8 @@ const HomePage = () => {
             {categories.map((category) => (
               <div key={category.name} className="relative group cursor-pointer">
                 <div className="aspect-square relative overflow-hidden rounded-lg">
-                  <img 
-                    src={category.image} 
+                  <img
+                    src={category.image}
                     alt={category.name}
                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
                   />
