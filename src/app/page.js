@@ -36,9 +36,9 @@ const HomePage = () => {
             <div className="text-center text-white px-4">
               <h1 className="text-4xl md:text-6xl font-serif mb-4">Handcrafted with Love</h1>
               <p className="text-xl mb-8">Unique, handmade knitted & crochet creations</p>
-              <button className="bg-white text-gray-900 px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-100 transition-colors">
+              <Link href="/products" className="bg-white text-gray-900 px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-100 transition-colors">
                 Shop Now
-              </button>
+              </Link>
             </div>
           </div>
         </div>

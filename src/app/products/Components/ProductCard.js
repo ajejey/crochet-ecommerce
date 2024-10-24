@@ -6,7 +6,7 @@ export default function ProductCard({ product }) {
   console.log("product", product)
   return (
     <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-      <Link href={`/product/${product._id}`}>
+      <Link href={`/products/${product._id}`}>
         <div className="relative pb-[100%]">
           <Image
             src={product.images.length && product.images[0]}
@@ -16,15 +16,6 @@ export default function ProductCard({ product }) {
             layout="fill"
             objectFit="cover"
           />
-          {/* {product.tags?.map((tag) => (
-              <span
-                key={tag}
-                className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 
-                  rounded-full text-xs font-medium"
-              >
-                {tag}
-              </span>
-            ))} */}
         </div>
         <div className="p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-1">{product.name}</h3>
