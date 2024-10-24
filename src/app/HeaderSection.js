@@ -20,7 +20,7 @@ const HeaderSection = () => {
             </div>
 
             <div className="hidden lg:flex space-x-8">
-              <Link href="/shop" className="text-gray-700 hover:text-indigo-600">Shop</Link>
+              <Link href="/products" className="text-gray-700 hover:text-indigo-600">Shop</Link>
               <Link href="/about" className="text-gray-700 hover:text-indigo-600">About</Link>
               <Link href="/contact" className="text-gray-700 hover:text-indigo-600">Contact</Link>
               <Link href="/admin" className="text-gray-700 hover:text-indigo-600">Admin</Link>
