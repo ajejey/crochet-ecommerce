@@ -1,5 +1,8 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import database from "@/appwrite/database";
+import { CartProvider } from './components/CartProvider';
+import { Toaster } from 'sonner';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -91,13 +94,19 @@ export const viewport = {
   themeColor: "#4A90E2",
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+   // Add this line temporarily
+  //  const dbInit = await database.initialize()
+  //  console.log('Database initialization: --------------------------------------------------', dbInit)
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <CartProvider>
+          {children}
+          <Toaster richColors position="top-center" />
+        </CartProvider>
       </body>
     </html>
   );
