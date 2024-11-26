@@ -1,27 +1,3 @@
 {
-    "extends": [
-      "next/core-web-vitals",
-      "eslint:recommended"
-    ],
-    "plugins": [
-      "import"
-    ],
-    "rules": {
-      "import/no-unresolved": "error",
-      "import/named": "error",
-      "import/default": "error",
-      "import/namespace": "error",
-      "import/no-named-as-default": "warn",
-      "import/no-named-as-default-member": "warn",
-      "import/no-duplicates": "error",
-      "no-unused-vars": "warn",
-      "no-console": ["warn", { "allow": ["warn", "error"] }]
-    },
-    "settings": {
-      "import/resolver": {
-        "node": {
-          "extensions": [".js", ".jsx", ".ts", ".tsx"]
-        }
-      }
-    }
-  }
+  "extends": ["next/babel","next/core-web-vitals"]
+}
