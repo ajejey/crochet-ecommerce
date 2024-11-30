@@ -1,286 +1,308 @@
 'use server';
 
+import { getAuthUser } from '@/lib/auth-context';
+import { Product } from '@/models/Product';
+import { SellerProfile } from '@/models/SellerProfile';
+import dbConnect from '@/lib/mongodb';
+import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/appwrite/config';
-import auth from '@/auth';
-import { ID, Query } from 'node-appwrite';
-
-async function getSellerProfile(userId) {
-  const { databases } = createAdminClient();
-  
-  try {
-    const sellerProfiles = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_SELLER_PROFILES,
-      [
-        Query.equal('user_id', userId)
-      ]
-    );
-
-    return sellerProfiles.documents[0];
-  } catch (error) {
-    console.error('Error fetching seller profile:', error);
-    return null;
-  }
-}
+import { ID } from 'node-appwrite';
 
 export async function getProduct(productId) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const sellerProfile = await getSellerProfile(user.$id);
+    await dbConnect();
+    const product = await Product.findOne({ _id: productId, sellerId: user.$id });
+
+    if (!product) {
+      return { error: 'Product not found' };
+    }
+
+    // Convert to plain object and pick only necessary fields
+    const plainProduct = {
+      _id: product._id.toString(),
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      salePrice: product.salePrice,
+      category: product.category,
+      material: product.material,
+      size: product.size,
+      status: product.status,
+      images: product.images?.map(img => ({
+        url: img.url,
+        id: img.id,
+        isMain: img.isMain
+      })) || [],
+      inventory: {
+        stockCount: product.inventory?.stockCount || 0,
+        sku: product.inventory?.sku
+      },
+      rating: {
+        average: product.rating?.average || 0,
+        count: product.rating?.count || 0
+      },
+      createdAt: product.createdAt?.toISOString(),
+      updatedAt: product.updatedAt?.toISOString()
+    };
+
+    return { success: true, product: plainProduct };
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    return { error: 'Failed to fetch product' };
+  }
+}
+
+export async function createProduct(formData) {
+  console.log("formData ", formData)
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    console.log("Found user ", user)
+    await dbConnect();
+
+    console.log("dbConnected")
+
+    // Get seller profile to ensure user is a seller
+    const sellerProfile = await SellerProfile.findOne({ userId: user.$id });
     if (!sellerProfile) {
       return { error: 'Seller profile not found' };
     }
 
-    const { databases } = createAdminClient();
-    
-    const product = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId
-    );
+    console.log("Found sellerProfile ", sellerProfile)
 
-    // Verify that the product belongs to this seller
-    if (product.seller_id !== sellerProfile.$id) {
-      return { error: 'Not authorized to view this product' };
+    // Parse image URLs and IDs
+    const imageUrls = JSON.parse(formData.get('imageUrls') || '[]');
+    const imageIds = JSON.parse(formData.get('imageIds') || '[]');
+
+    console.log("imageUrls ", imageUrls)
+    console.log("imageIds ", imageIds)
+
+    if (imageUrls.length === 0) {
+      return { error: 'At least one product image is required' };
     }
 
-    return { success: true, product };
-  } catch (error) {
-    console.error('Error fetching product:', error);
-    return { error: error.message };
-  }
-}
-
-export async function updateProductStatus(productId, status) {
-  try {
-    const user = await auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const { databases } = createAdminClient();
-    
-    // Update product status with a single database call
-    // Using permission system to handle authorization instead of explicit checks
-    const product = await databases.updateDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId,
-      {
-        status,
-        updated_at: new Date().toISOString()
+    // Create the product
+    const productData = {
+      sellerId: user.$id,
+      name: formData.get('name'),
+      description: formData.get('description'),
+      price: parseFloat(formData.get('price')),
+      category: formData.get('category'),
+      material: formData.get('material'),
+      size: formData.get('size'),
+      images: imageUrls.map((url, index) => ({
+        url,
+        id: imageIds[index],
+        isMain: index === 0
+      })),
+      status: 'active',
+      inventory: {
+        stockCount: parseInt(formData.get('stockCount'), 10) || 0,
+        sku: formData.get('sku') || undefined
       }
+    };
+
+    console.log("productData ", productData)
+
+    // Validate required fields
+    if (!productData.name || !productData.price || !productData.category || 
+        !productData.material || !productData.size) {
+      return { error: 'Please fill in all required fields' };
+    }
+    console.log("Creating product in DB")
+    const product = await Product.create(productData);
+
+    console.log("Created product in DB ", product) 
+
+    // Update seller's product count
+    await SellerProfile.findOneAndUpdate(
+      { userId: user.$id },
+      { $inc: { 'metadata.productsCount': 1 } }
     );
 
-    return { success: true, product };
+    console.log("Updated seller's product count")
+
+    // Instead of revalidating the path, we'll return the product data
+    // and handle the navigation client-side
+    return { 
+      success: true, 
+      product: {
+        _id: product._id.toString(),
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        status: product.status
+      }
+    };
   } catch (error) {
-    console.error('Error updating product status:', error);
-    return { error: error.message };
+    console.error('Error creating product:', error);
+    return { error: error.message || 'Error creating product' };
   }
 }
 
 export async function updateProduct(productId, formData) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const sellerProfile = await getSellerProfile(user.$id);
-    if (!sellerProfile) {
-      return { error: 'Seller profile not found' };
-    }
-
-    const { databases, storage } = createAdminClient();
-
-    // If it's just a status update, use the optimized function
-    const status = formData.get('status');
-    if (status && Object.keys(formData).length === 1) {
-      return updateProductStatus(productId, status);
-    }
-
-    // First verify that the product belongs to this seller
-    const existingProduct = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId
-    );
-
-    if (existingProduct.seller_id !== sellerProfile.$id) {
-      return { error: 'Not authorized to edit this product' };
-    }
-
-    // Prepare update data
-    const updateData = {
-      updated_at: new Date().toISOString()
-    };
-
-    // Handle image upload if new image is provided
-    const imageFile = formData.get('image');
-    if (imageFile && imageFile.size > 0) {
-      try {
-        // Delete old image if it exists
-        if (existingProduct.image_urls?.[0]) {
-          const oldFileId = existingProduct.image_urls[0].split('/').pop().split('?')[0];
-          try {
-            await storage.deleteFile(
-              process.env.NEXT_PUBLIC_STORAGE_ID,
-              oldFileId
-            );
-          } catch (error) {
-            console.error('Error deleting old image:', error);
-          }
-        }
-
-        // Upload new image
-        const file = await storage.createFile(
-          process.env.NEXT_PUBLIC_STORAGE_ID,
-          ID.unique(),
-          imageFile
-        );
-        
-        updateData.image_urls = [`${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_STORAGE_ID}/files/${file.$id}/view?project=${process.env.NEXT_PUBLIC_PROJECT_ID}`];
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        return { error: 'Failed to upload image. Please try again.' };
-      }
-    }
-
-    // Add other fields if they exist in formData
-    const fields = ['name', 'description', 'price', 'sale_price', 'category', 'stock'];
-    fields.forEach(field => {
-      const value = formData.get(field);
-      if (value !== null && value !== undefined) {
-        if (field === 'price' || field === 'stock') {
-          updateData[field] = parseFloat(value);
-        } else if (field === 'sale_price') {
-          updateData[field] = value ? parseFloat(value) : null;
-        } else {
-          updateData[field] = value;
-        }
-      }
-    });
-
-    // Update product
-    const product = await databases.updateDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId,
-      updateData
-    );
-
-    return { success: true, product };
-  } catch (error) {
-    console.error('Error updating product:', error);
-    return { error: error.message };
-  }
-}
-
-export async function createProduct(formData) {
-  try {
-    const user = await auth.getUser();
-    if (!user) {
-      return { error: 'Not authenticated' };
-    }
-
-    const sellerProfile = await getSellerProfile(user.$id);
-    if (!sellerProfile) {
-      return { error: 'Seller profile not found' };
-    }
-
-    const { databases, storage } = createAdminClient();
-
-    // Handle image upload
-    const imageFile = formData.get('image');
-    let imageUrl = '';
+    await dbConnect();
     
-    if (imageFile && imageFile.size > 0) {
-      try {
-        const file = await storage.createFile(
-          process.env.NEXT_PUBLIC_STORAGE_ID,
-          ID.unique(),
-          imageFile
-        );
-        
-        // Get the file view URL
-        imageUrl = `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_STORAGE_ID}/files/${file.$id}/view?project=${process.env.NEXT_PUBLIC_PROJECT_ID}`;
-      } catch (error) {
-        console.error('Error uploading image:', error);
-        return { error: 'Failed to upload image. Please try again.' };
-      }
+    const product = await Product.findOne({ _id: productId, sellerId: user.$id });
+    if (!product) {
+      return { error: 'Product not found or unauthorized' };
     }
 
-    // Create product
-    const product = await databases.createDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      ID.unique(),
+    // Parse image URLs and IDs
+    const imageUrls = JSON.parse(formData.get('imageUrls') || '[]');
+    const imageIds = JSON.parse(formData.get('imageIds') || '[]');
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
       {
-        seller_id: sellerProfile.$id,
         name: formData.get('name'),
         description: formData.get('description'),
         price: parseFloat(formData.get('price')),
-        sale_price: formData.get('sale_price') ? parseFloat(formData.get('sale_price')) : null,
+        salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
         category: formData.get('category'),
-        stock: parseInt(formData.get('stock')),
-        image_urls: imageUrl ? [imageUrl] : [], // Changed from images to image_urls
-        status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
+        material: formData.get('material'),
+        size: formData.get('size'),
+        images: imageUrls.map((url, index) => ({
+          url,
+          id: imageIds[index],
+          isMain: index === 0
+        })),
+        inventory: {
+          stockCount: parseInt(formData.get('stockCount'), 10) || 0,
+          sku: formData.get('sku')
+        }
+      },
+      { new: true }
     );
 
-    return { success: true, product };
+    // Convert to plain object with only necessary fields
+    const plainProduct = {
+      _id: updatedProduct._id.toString(),
+      name: updatedProduct.name,
+      description: updatedProduct.description,
+      price: updatedProduct.price,
+      salePrice: updatedProduct.salePrice,
+      category: updatedProduct.category,
+      material: updatedProduct.material,
+      size: updatedProduct.size,
+      status: updatedProduct.status,
+      images: updatedProduct.images?.map(img => ({
+        url: img.url,
+        id: img.id,
+        isMain: img.isMain
+      })) || [],
+      inventory: {
+        stockCount: updatedProduct.inventory?.stockCount || 0,
+        sku: updatedProduct.inventory?.sku
+      },
+      rating: {
+        average: updatedProduct.rating?.average || 0,
+        count: updatedProduct.rating?.count || 0
+      },
+      createdAt: updatedProduct.createdAt?.toISOString(),
+      updatedAt: updatedProduct.updatedAt?.toISOString()
+    };
+
+    revalidatePath('/seller/products');
+    revalidatePath(`/shop/product/${productId}`);
+    
+    return { success: true, product: plainProduct };
   } catch (error) {
-    console.error('Error creating product:', error);
-    return { error: error.message };
+    console.error('Error updating product:', error);
+    return { error: 'Failed to update product' };
   }
 }
 
 export async function deleteProduct(productId) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const { databases } = createAdminClient();
-    
-    await databases.deleteDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId
+    await dbConnect();
+
+    // Find the product first to ensure it exists and belongs to the seller
+    const product = await Product.findOne({ _id: productId, sellerId: user.$id });
+    if (!product) {
+      return { error: 'Product not found' };
+    }
+
+    // Delete the product
+    await Product.findByIdAndDelete(productId);
+
+    // Update seller's product count
+    await SellerProfile.findOneAndUpdate(
+      { userId: user.$id },
+      { $inc: { 'metadata.productsCount': -1 } }
     );
 
     return { success: true };
   } catch (error) {
     console.error('Error deleting product:', error);
-    return { error: error.message };
+    return { error: 'Failed to delete product' };
+  }
+}
+
+export async function updateProductStatus(productId, newStatus) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    await dbConnect();
+
+    // Find and update the product
+    const product = await Product.findOneAndUpdate(
+      { _id: productId, sellerId: user.$id },
+      { $set: { status: newStatus } },
+      { new: true }
+    );
+
+    if (!product) {
+      return { error: 'Product not found' };
+    }
+
+    return { 
+      success: true,
+      product: {
+        _id: product._id.toString(),
+        status: product.status
+      }
+    };
+  } catch (error) {
+    console.error('Error updating product status:', error);
+    return { error: 'Failed to update product status' };
   }
 }
 
 export async function getProductVariants(productId) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const { databases } = createAdminClient();
+    await dbConnect();
       
-    const variants = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      'product_variants',
-      [
-        Query.equal('product_id', productId)
-      ]
-    );
+    const variants = await Product.find({ productId: productId });
 
-    return { success: true, variants: variants.documents };
+    return { success: true, variants: variants };
   } catch (error) {
     console.error('Error fetching variants:', error);
     return { error: error.message };
@@ -289,43 +311,29 @@ export async function getProductVariants(productId) {
 
 export async function createVariant(productId, variantData) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const sellerProfile = await getSellerProfile(user.$id);
-    if (!sellerProfile) {
-      return { error: 'Seller profile not found' };
-    }
+    await dbConnect();
 
     // Verify product ownership
-    const { databases } = createAdminClient();
-    const product = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId
-    );
-
-    if (product.seller_id !== sellerProfile.$id) {
+    const product = await Product.findOne({ _id: productId, sellerId: user.$id });
+    if (!product) {
       return { error: 'Not authorized to add variants to this product' };
     }
 
     // Create variant
-    const variant = await databases.createDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      'product_variants',
-      ID.unique(),
-      {
-        product_id: productId,
-        name: variantData.name,
-        options: variantData.options,
-        price_adjustment: parseFloat(variantData.price_adjustment || 0),
-        stock: parseInt(variantData.stock || 0),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    );
+    const variant = await Product.create({
+      productId: productId,
+      name: variantData.name,
+      options: variantData.options,
+      priceAdjustment: parseFloat(variantData.priceAdjustment || 0),
+      stock: parseInt(variantData.stock || 0),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
 
     return { success: true, variant };
   } catch (error) {
@@ -336,48 +344,36 @@ export async function createVariant(productId, variantData) {
 
 export async function updateVariant(variantId, variantData) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const sellerProfile = await getSellerProfile(user.$id);
-    if (!sellerProfile) {
-      return { error: 'Seller profile not found' };
-    }
-
-    const { databases } = createAdminClient();
+    await dbConnect();
 
     // Get variant to verify ownership
-    const variant = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      'product_variants',
-      variantId
-    );
+    const variant = await Product.findOne({ _id: variantId });
+    if (!variant) {
+      return { error: 'Variant not found' };
+    }
 
     // Get product to verify ownership
-    const product = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      variant.product_id
-    );
-
-    if (product.seller_id !== sellerProfile.$id) {
+    const product = await Product.findOne({ _id: variant.productId, sellerId: user.$id });
+    if (!product) {
       return { error: 'Not authorized to edit this variant' };
     }
 
     // Update variant
-    const updatedVariant = await databases.updateDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      'product_variants',
+    const updatedVariant = await Product.findByIdAndUpdate(
       variantId,
       {
         name: variantData.name,
         options: variantData.options,
-        price_adjustment: parseFloat(variantData.price_adjustment || 0),
+        priceAdjustment: parseFloat(variantData.priceAdjustment || 0),
         stock: parseInt(variantData.stock || 0),
         updated_at: new Date().toISOString()
-      }
+      },
+      { new: true }
     );
 
     return { success: true, variant: updatedVariant };
@@ -389,46 +385,62 @@ export async function updateVariant(variantId, variantData) {
 
 export async function deleteVariant(variantId) {
   try {
-    const user = await auth.getUser();
+    const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    const sellerProfile = await getSellerProfile(user.$id);
-    if (!sellerProfile) {
-      return { error: 'Seller profile not found' };
-    }
-
-    const { databases } = createAdminClient();
+    await dbConnect();
 
     // Get variant to verify ownership
-    const variant = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      'product_variants',
-      variantId
-    );
+    const variant = await Product.findOne({ _id: variantId });
+    if (!variant) {
+      return { error: 'Variant not found' };
+    }
 
     // Get product to verify ownership
-    const product = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      variant.product_id
-    );
-
-    if (product.seller_id !== sellerProfile.$id) {
+    const product = await Product.findOne({ _id: variant.productId, sellerId: user.$id });
+    if (!product) {
       return { error: 'Not authorized to delete this variant' };
     }
 
     // Delete variant
-    await databases.deleteDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      'product_variants',
-      variantId
-    );
+    await Product.findByIdAndDelete(variantId);
 
     return { success: true };
   } catch (error) {
     console.error('Error deleting variant:', error);
     return { error: error.message };
+  }
+}
+
+export async function uploadProductImage(formData) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const file = formData.get('image');
+    if (!file || !file.size) {
+      return { error: 'No image provided' };
+    }
+
+    const { storage } = createAdminClient();
+
+    // Upload image to Appwrite storage
+    const uploadedFile = await storage.createFile(
+      process.env.NEXT_PUBLIC_STORAGE_ID,
+      ID.unique(),
+      file
+    );
+
+    // Generate the file URL
+    const fileUrl = `${process.env.NEXT_PUBLIC_ENDPOINT}/storage/buckets/${process.env.NEXT_PUBLIC_STORAGE_ID}/files/${uploadedFile.$id}/view?project=${process.env.NEXT_PUBLIC_PROJECT_ID}`;
+
+    return { success: true, fileUrl, fileId: uploadedFile.$id };
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    return { error: 'Failed to upload image' };
   }
 }

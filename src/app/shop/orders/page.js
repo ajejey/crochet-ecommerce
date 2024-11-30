@@ -2,10 +2,23 @@
 
 import useSWR from 'swr';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getOrders } from './actions';
+// import { formatDistance } from 'date-fns';
+import { Loader2 } from 'lucide-react';
 
 // SWR fetcher function that wraps our getOrders action
 const fetcher = () => getOrders();
+
+// Add the price formatter at the top of the file
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0
+  }).format(price);
+};
 
 export default function OrdersPage() {
   const { data: result, error, isLoading } = useSWR('orders', fetcher, {
@@ -49,9 +62,9 @@ export default function OrdersPage() {
     );
   }
 
-  const orders = result.orders || [];
+  const { orders } = result;
 
-  if (orders.length === 0) {
+  if (!orders || orders.length === 0) {
     return (
       <div className="min-h-screen p-4">
         <div className="text-center py-8">
@@ -61,7 +74,7 @@ export default function OrdersPage() {
             href="/shop"
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            Continue Shopping
+            Start Shopping
           </Link>
         </div>
       </div>
@@ -69,40 +82,60 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-6">My Orders</h1>
-      
+    <div className="min-h-screen p-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Your Orders</h1>
       <div className="space-y-4">
         {orders.map((order) => (
           <Link 
-            key={order.$id} 
-            href={`/shop/orders/${order.$id}`}
-            className="block p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+            key={order._id} 
+            href={`/shop/orders/${order._id}`}
+            className="block"
           >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="font-medium">Order #{order.$id}</p>
-                <p className="text-sm text-gray-600">
-                  {new Date(order.$createdAt).toLocaleDateString()}
-                </p>
+            <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Order placed {new Date(order.createdAt).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Order #{order._id.slice(-8)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">
+                    Total: {formatPrice(order.total)}
+                  </p>
+                  <p className={`text-sm ${
+                    order.status === 'completed' ? 'text-green-600' :
+                    order.status === 'cancelled' ? 'text-red-600' :
+                    'text-blue-600'
+                  }`}>
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  </p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-medium">₹{order.total_amount}</p>
-                <span className={`
-                  inline-block px-2 py-1 text-xs rounded-full
-                  ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                    order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
-                    order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'}
-                `}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {order.items.map((item) => (
+                  <div key={item._id} className="flex space-x-3">
+                    <div className="relative w-20 h-20 flex-shrink-0">
+                      <Image
+                        src={item.product.mainImage}
+                        alt={item.product.name}
+                        fill
+                        sizes="80px"
+                        className="object-cover rounded-md"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium line-clamp-2">{item.product.name}</p>
+                      <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                      <p className="text-sm text-gray-500">
+                        {formatPrice(item.price * item.quantity)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="flex justify-between items-center text-sm text-gray-600">
-              <p>Payment Status: {order.payment_status}</p>
-              <span className="text-blue-600">View Details →</span>
             </div>
           </Link>
         ))}

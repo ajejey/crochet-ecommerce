@@ -1,80 +1,50 @@
-import { createAdminClient } from '@/appwrite/config';
-import auth from '@/auth';
-import { AlertCircle } from 'lucide-react';
-import { redirect } from 'next/navigation';
-import { Query } from 'node-appwrite';
+import { requireSeller } from '@/lib/auth-context';
+import { Product } from '@/models/Product';
+import dbConnect from '@/lib/mongodb';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import ProductList from './ProductList';
 
-async function getSellerProducts(userId) {
-  if (!userId) return null;
-  
-  const { databases } = createAdminClient();
-  
-  try {
-    // Get seller profile first
-    const sellerProfiles = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_SELLER_PROFILES,
-      [
-        Query.equal('user_id', userId)
-      ]
-    );
-
-    if (!sellerProfiles.documents.length) {
-      return null;
-    }
-
-    const sellerProfile = sellerProfiles.documents[0];
-
-    // Get products
-    const products = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      [
-        Query.equal('seller_id', sellerProfile.$id)
-      ]
-    );
-
-    return {
-      products: products.documents,
-      sellerId: sellerProfile.$id
-    };
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return null;
-  }
-}
-
 export default async function ProductsPage() {
-  const user = await auth.getUser();
+  // This will redirect if not a seller
+  const user = await requireSeller();
+  await dbConnect();
   
-  if (!user) {
-    redirect('/login');
-  }
+  // Get products
+  const products = await Product.find({ sellerId: user.$id })
+    .sort({ createdAt: -1 })
+    .lean();
 
-  const data = await getSellerProducts(user.$id);
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Products</h1>
+        <Link
+          href="/seller/products/add"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Add Product
+        </Link>
+      </div>
 
-  if (!data) {
-    return (
-      <div className="text-center">
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 max-w-2xl mx-auto">
-          <div className="flex">
-            <AlertCircle className="h-5 w-5 text-yellow-400" />
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                Your seller profile is not set up yet. Please complete your registration.
-              </p>
-              <p className="mt-2">
-                <a href="/become-seller" className="text-yellow-700 font-medium hover:text-yellow-600 underline">
-                  Complete Seller Registration
-                </a>
-              </p>
-            </div>
+      {products.length === 0 ? (
+        <div className="text-center py-12">
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
+          <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
+          <div className="mt-6">
+            <Link
+              href="/seller/products/add"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Add Product
+            </Link>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return <ProductList initialProducts={data.products} />;
+      ) : (
+        <ProductList initialProducts={products} />
+      )}
+    </div>
+  );
 }

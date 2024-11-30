@@ -1,25 +1,103 @@
 'use server';
 
-import { createAdminClient } from '@/appwrite/config';
-import { Query } from 'node-appwrite';
-import { cookies } from 'next/headers';
-import { ID } from 'node-appwrite';
-import auth from '@/auth';
+import dbConnect from '@/lib/mongodb';
+import { Product } from '@/models/Product';
+import { Review } from '@/models/Review';
+import { SellerProfile } from '@/models/SellerProfile';
+import { getAuthUser } from '@/lib/auth-context';
+import { revalidatePath } from 'next/cache';
 
-export async function getActiveProducts() {
-  const { databases } = createAdminClient();
-  
+const PRODUCTS_PER_PAGE = 12;
+
+export async function getActiveProducts({ 
+  page = 1, 
+  category = null, 
+  sort = 'latest',
+  minPrice = null,
+  maxPrice = null,
+  search = null
+}) {
   try {
-    const products = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      [
-        Query.equal('status', 'active'),
-        Query.orderDesc('$createdAt')
-      ]
+    await dbConnect();
+
+    // Build query
+    const query = { status: 'active' };
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+    if (minPrice !== null || maxPrice !== null) {
+      query.price = {};
+      if (minPrice !== null) query.price.$gte = minPrice;
+      if (maxPrice !== null) query.price.$lte = maxPrice;
+    }
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Build sort
+    const sortQuery = {};
+    switch (sort) {
+      case 'price-asc':
+        sortQuery.price = 1;
+        break;
+      case 'price-desc':
+        sortQuery.price = -1;
+        break;
+      case 'popular':
+        sortQuery['metadata.salesCount'] = -1;
+        break;
+      case 'rating':
+        sortQuery['rating.average'] = -1;
+        break;
+      default: // latest
+        sortQuery.createdAt = -1;
+    }
+
+    // Execute query with pagination
+    const skip = (page - 1) * PRODUCTS_PER_PAGE;
+    
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .select('name description price images category status rating metadata createdAt sellerId')
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(PRODUCTS_PER_PAGE)
+        .lean(),
+      Product.countDocuments(query)
+    ]);
+
+    // Get seller profiles for all products
+    const sellerIds = [...new Set(products.map(p => p.sellerId))];
+    const sellerProfiles = await SellerProfile.find({ userId: { $in: sellerIds } }).lean();
+    const sellerMap = Object.fromEntries(
+      sellerProfiles.map(seller => [seller.userId, seller])
     );
 
-    return products.documents;
+    // Transform products for optimal client usage
+    const transformedProducts = products.map(product => ({
+      ...product,
+      mainImage: product.images?.find(img => img.isMain)?.url || 
+                product.images?.[0]?.url || 
+                '/placeholder-product.jpg',
+      _id: product._id.toString(),
+      sellerId: product.sellerId,
+      sellerName: sellerMap[product.sellerId]?.businessName || 'Unknown Seller',
+      averageRating: product.rating?.average || 0,
+      totalReviews: product.rating?.count || 0
+    }));
+
+    return {
+      products: transformedProducts,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / PRODUCTS_PER_PAGE),
+        hasMore: skip + products.length < total,
+        total
+      }
+    };
   } catch (error) {
     console.error('Error fetching active products:', error);
     throw new Error('Failed to fetch products');
@@ -27,103 +105,138 @@ export async function getActiveProducts() {
 }
 
 export async function getProduct(productId) {
-  const { databases } = createAdminClient();
-  
   try {
-    const product = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      productId
-    );
+    await dbConnect();
 
-    return product;
+    const product = await Product.findById(productId).lean();
+
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Get seller profile
+    const sellerProfile = await SellerProfile.findOne({ userId: product.sellerId }).lean();
+
+    // Transform for client
+    return {
+      ...product,
+      _id: product._id.toString(),
+      sellerId: product.sellerId,
+      sellerName: sellerProfile?.businessName || 'Unknown Seller',
+      sellerEmail: sellerProfile?.contactEmail,
+      averageRating: product.rating?.average || 0,
+      totalReviews: product.rating?.count || 0,
+      inventory: {
+        stockCount: product.inventory?.stockCount || 0,
+        lowStockThreshold: product.inventory?.lowStockThreshold || 5,
+        sku: product.inventory?.sku || '',
+        allowBackorder: product.inventory?.allowBackorder || false
+      }
+    };
   } catch (error) {
     console.error('Error fetching product:', error);
-    return null;
+    throw new Error('Failed to fetch product');
   }
 }
 
-export async function getProductReviews(productId) {
-  const { databases } = createAdminClient();
-  
+export async function getProductReviews(productId, page = 1) {
   try {
-    const reviews = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_REVIEWS,
-      [
-        Query.equal('product_id', productId),
-        Query.orderDesc('$createdAt')
-      ]
-    );
+    await dbConnect();
+    
+    const REVIEWS_PER_PAGE = 10;
+    const skip = (page - 1) * REVIEWS_PER_PAGE;
 
-    return reviews.documents;
+    const [reviews, total] = await Promise.all([
+      Review.find({ productId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(REVIEWS_PER_PAGE)
+        .lean(),
+      Review.countDocuments({ productId })
+    ]);
+
+    return {
+      reviews: reviews.map(review => ({
+        ...review,
+        _id: review._id.toString(),
+        user: {
+          id: review.userId,
+          name: review.userName
+        }
+      })),
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / REVIEWS_PER_PAGE),
+        hasMore: skip + reviews.length < total,
+        total
+      }
+    };
   } catch (error) {
     console.error('Error fetching reviews:', error);
-    return [];
-  }
-}
-
-export async function getProductsByCategory(category) {
-  const { databases } = createAdminClient();
-  
-  try {
-    const products = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      [
-        Query.equal('status', 'active'),
-        Query.equal('category', category),
-        Query.orderDesc('$createdAt')
-      ]
-    );
-
-    return products.documents;
-  } catch (error) {
-    console.error('Error fetching products by category:', error);
-    return [];
+    throw new Error('Failed to fetch reviews');
   }
 }
 
 export async function createReview(productId, rating, comment) {
-  const { databases } = createAdminClient();
-  
   try {
-    // Get current user
-    const user = await auth.getUser();
+    await dbConnect();
+    const user = await getAuthUser();
+    
     if (!user) {
-      throw new Error('Not authenticated');
+      throw new Error('You must be logged in to leave a review');
     }
 
-    const review = await databases.createDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_REVIEWS,
-      ID.unique(),
-      {
-        product_id: productId,
-        buyer_id: user.$id,
-        rating,
-        comment,
-        created_at: new Date().toISOString(),
-      }
-    );
-
-    // Update product rating and review count
-    const reviews = await getProductReviews(productId);
-    const averageRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
-    
-    await databases.updateDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
+    // Check if user has already reviewed this product
+    const existingReview = await Review.findOne({
       productId,
-      {
-        rating: averageRating,
-        reviews_count: reviews.length
-      }
-    );
+      userId: user.$id // Use Appwrite user ID
+    });
 
-    return review;
+    if (existingReview) {
+      throw new Error('You have already reviewed this product');
+    }
+
+    // Create the review
+    const review = await Review.create({
+      productId,
+      userId: user.$id, // Use Appwrite user ID
+      userName: user.name || 'Anonymous User',
+      rating,
+      comment,
+      status: 'approved'
+    });
+
+    // Update product rating
+    await updateProductRating(productId);
+
+    // Revalidate the product page
+    revalidatePath(`/shop/product/${productId}`);
+
+    return {
+      ...review.toObject(),
+      _id: review._id.toString(),
+      user: {
+        id: user.$id, // Use Appwrite user ID
+        name: user.name || 'Anonymous User'
+      }
+    };
   } catch (error) {
     console.error('Error creating review:', error);
-    throw new Error('Failed to create review');
+    throw error;
   }
+}
+
+async function updateProductRating(productId) {
+  const reviews = await Review.find({ productId });
+  if (reviews.length === 0) return;
+
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  const averageRating = totalRating / reviews.length;
+
+  await Product.findByIdAndUpdate(productId, {
+    $set: {
+      'rating.average': averageRating,
+      'rating.count': reviews.length
+    }
+  });
 }

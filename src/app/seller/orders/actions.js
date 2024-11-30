@@ -1,9 +1,11 @@
 'use server';
 
-import { createAdminClient } from '@/appwrite/config';
-import { Query } from 'node-appwrite';
-import { cookies } from 'next/headers';
-import auth from '@/auth';
+import { getAuthUser } from '@/lib/auth-context';
+import Order from '@/models/Order';
+import OrderItem from '@/models/OrderItem';
+import { Product } from '@/models/Product';
+import { SellerProfile } from '@/models/SellerProfile';
+import dbConnect from '@/lib/mongodb';
 
 // Cache seller profile to avoid repeated lookups
 let cachedSellerProfile = null;
@@ -11,213 +13,277 @@ let cachedSellerProfile = null;
 async function getSellerProfile() {
   if (cachedSellerProfile) return cachedSellerProfile;
 
-  const user = await auth.getUser();
+  const user = await getAuthUser();
   if (!user) {
     throw new Error('Not authenticated');
   }
 
-  const { databases } = createAdminClient();
-  const sellerProfiles = await databases.listDocuments(
-    process.env.NEXT_PUBLIC_DATABASE_ID,
-    process.env.NEXT_PUBLIC_COLLECTION_SELLER_PROFILES,
-    [Query.equal('user_id', user.$id)]
-  );
+  await dbConnect();
 
-  if (!sellerProfiles.documents.length) {
+  // Get seller profile
+  const sellerProfile = await SellerProfile.findOne({ userId: user.$id }).lean();
+  if (!sellerProfile) {
     throw new Error('Seller profile not found');
   }
 
-  cachedSellerProfile = sellerProfiles.documents[0];
+  // Transform the data
+  cachedSellerProfile = {
+    ...sellerProfile,
+    _id: sellerProfile._id.toString(),
+    userId: sellerProfile.userId
+  };
+  
   return cachedSellerProfile;
 }
 
 export async function getSellerOrders({ status, search, page = 1, limit = 10 } = {}) {
   try {
+    await dbConnect();
     const seller = await getSellerProfile();
-    const { databases } = createAdminClient();
+    console.log('Seller profile:', seller); // Debug log
+    
+    if (!seller) {
+      return { 
+        success: false, 
+        message: 'Seller profile not found' 
+      };
+    }
 
     // Build query
-    const queries = [
-      Query.equal('seller_id', seller.$id),
-      Query.orderDesc('$createdAt'),
-      Query.limit(limit),
-      Query.offset((page - 1) * limit)
-    ];
-
+    const query = { sellerId: seller.userId };
     if (status && status !== 'all') {
-      queries.push(Query.equal('status', status));
+      query.status = status;
     }
-
     if (search) {
-      queries.push(Query.search('buyer_name', search));
+      query.$or = [
+        { buyerName: { $regex: search, $options: 'i' } },
+        { buyerEmail: { $regex: search, $options: 'i' } },
+        { _id: { $regex: search, $options: 'i' } }
+      ];
     }
-
-    // Get orders
-    const orders = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      queries
-    );
 
     // Get total count for pagination
-    const totalQueries = [Query.equal('seller_id', seller.$id)];
-    if (status && status !== 'all') {
-      totalQueries.push(Query.equal('status', status));
-    }
-    if (search) {
-      totalQueries.push(Query.search('buyer_name', search));
-    }
+    const total = await Order.countDocuments(query);
+    console.log('Query:', query); // Debug log
+    console.log('Total orders found:', total); // Debug log
 
-    const totalOrders = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      totalQueries
-    );
+    // Get orders with pagination
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    // Get all order items for these orders
+    const orderItems = await OrderItem.find({
+      orderId: { $in: orders.map(order => order._id) }
+    })
+      .populate({
+        path: 'productId',
+        model: Product,
+        select: 'name description price images status'
+      })
+      .lean();
+
+    // Group order items by order ID
+    const orderItemsMap = orderItems.reduce((acc, item) => {
+      if (!acc[item.orderId.toString()]) {
+        acc[item.orderId.toString()] = [];
+      }
+      acc[item.orderId.toString()].push(item);
+      return acc;
+    }, {});
+
+    // Transform orders data
+    const transformedOrders = orders.map(order => {
+      const items = orderItemsMap[order._id.toString()] || [];
+      
+      // Calculate totals
+      const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const tax = order.tax || 0;
+      const shipping = order.shipping || 0;
+      const total = subtotal + tax + shipping;
+
+      // Transform items to include product details
+      const transformedItems = items.map(item => ({
+        ...item,
+        product: {
+          ...item.productId,
+          mainImage: item.productId.images?.find(img => img.isMain)?.url || 
+                    item.productId.images?.[0]?.url || 
+                    '/placeholder-product.jpg'
+        }
+      }));
+
+      // Transform shipping address
+      const shippingAddress = {
+        name: order.buyerName,
+        phone: order.buyerPhone,
+        street: order.shippingAddress,
+        city: order.shippingCity,
+        state: order.shippingState,
+        pincode: order.shippingPincode
+      };
+
+      return {
+        ...order,
+        _id: order._id.toString(),
+        items: transformedItems,
+        subtotal,
+        tax,
+        shipping,
+        total,
+        shippingAddress,
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString()
+      };
+    });
 
     return {
       success: true,
-      orders: orders.documents,
-      total: totalOrders.total,
+      orders: transformedOrders,
+      total,
       page,
-      totalPages: Math.ceil(totalOrders.total / limit)
+      totalPages: Math.ceil(total / limit)
     };
+
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Error fetching seller orders:', error);
+    return {
+      success: false,
+      message: 'Failed to load orders. Please try again.'
+    };
   }
 }
 
 export async function getOrderBasicDetails(orderId) {
   try {
+    await dbConnect();
+    const order = await Order.findById(orderId).lean();
+    
+    if (!order) {
+      return { success: false, message: 'Order not found' };
+    }
+
+    // Verify seller ownership
     const seller = await getSellerProfile();
-    const { databases } = createAdminClient();
-
-    // Get order and verify ownership
-    const order = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      orderId
-    );
-
-    if (order.seller_id !== seller.$id) {
-      throw new Error('Order not found');
+    if (order.sellerId !== seller.userId) {
+      return { success: false, message: 'Order not found' };
     }
 
     return {
       success: true,
-      order
+      order: {
+        ...order,
+        _id: order._id.toString(),
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString()
+      }
     };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Error fetching order details:', error);
+    return { success: false, message: 'Failed to load order details' };
   }
 }
 
 export async function getOrderItems(orderId) {
   try {
-    const seller = await getSellerProfile();
-    const { databases } = createAdminClient();
-
-    // Verify ownership first
-    const order = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      orderId
-    );
-
-    if (order.seller_id !== seller.$id) {
-      throw new Error('Order not found');
+    await dbConnect();
+    
+    // First verify seller ownership
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return { success: false, message: 'Order not found' };
     }
 
-    // Get order items in a single query
-    const orderItems = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDER_ITEMS,
-      [Query.equal('order_id', orderId)]
-    );
+    const seller = await getSellerProfile();
+    if (order.sellerId !== seller.userId) {
+      return { success: false, message: 'Order not found' };
+    }
 
-    // Get product details for each order item
-    const itemsWithDetails = await Promise.all(
-      orderItems.documents.map(async (item) => {
-        const product = await databases.getDocument(
-          process.env.NEXT_PUBLIC_DATABASE_ID,
-          process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-          item.product_id
-        );
-
-        let variantDetails = null;
-        if (item.variant_id) {
-          try {
-            variantDetails = await databases.getDocument(
-              process.env.NEXT_PUBLIC_DATABASE_ID,
-              process.env.NEXT_PUBLIC_COLLECTION_PRODUCT_VARIANTS,
-              item.variant_id
-            );
-          } catch (error) {
-            console.error('Error fetching variant:', error);
-          }
-        }
-
-        return {
-          ...item,
-          product_name: product.name,
-          product_image: product.images?.[0] || product.image_urls?.[0],
-          variant_name: variantDetails?.name
-        };
+    // Get order items with product details
+    const items = await OrderItem.find({ orderId })
+      .populate({
+        path: 'productId',
+        model: Product,
+        select: 'name description price images'
       })
-    );
+      .lean();
+
+    const transformedItems = items.map(item => ({
+      ...item,
+      _id: item._id.toString(),
+      productId: item.productId._id.toString(),
+      product: {
+        ...item.productId,
+        mainImage: item.productId.images?.find(img => img.isMain)?.url || 
+                  item.productId.images?.[0]?.url || 
+                  '/placeholder-product.jpg'
+      }
+    }));
 
     return {
       success: true,
-      items: itemsWithDetails
+      items: transformedItems
     };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Error fetching order items:', error);
+    return { success: false, message: 'Failed to load order items' };
   }
 }
 
 export async function getBuyerDetails(orderId) {
   try {
-    const seller = await getSellerProfile();
-    const { databases } = createAdminClient();
-
+    await dbConnect();
+    
     // Get order and verify ownership
-    const order = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      orderId
-    );
+    const order = await Order.findById(orderId).lean();
+    if (!order) {
+      return { success: false, message: 'Order not found' };
+    }
 
-    if (order.seller_id !== seller.$id) {
-      throw new Error('Order not found');
+    const seller = await getSellerProfile();
+    if (order.sellerId !== seller.userId) {
+      return { success: false, message: 'Order not found' };
     }
 
     return {
       success: true,
       buyer: {
-        name: order.buyer_name,
-        email: order.buyer_email,
-        phone: order.buyer_phone,
-        shipping_address: order.shipping_address
+        name: order.buyerName,
+        email: order.buyerEmail,
+        phone: order.buyerPhone,
+        address: {
+          street: order.shippingAddress,
+          city: order.shippingCity,
+          state: order.shippingState,
+          pincode: order.shippingPincode
+        }
       }
     };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Error fetching buyer details:', error);
+    return { success: false, message: 'Failed to load buyer details' };
   }
 }
 
 export async function getOrderStatus(orderId) {
   try {
     const seller = await getSellerProfile();
-    const { databases } = createAdminClient();
+    if (!seller) {
+      return { 
+        success: false, 
+        message: 'Seller profile not found' 
+      };
+    }
 
     // Get order and verify ownership
-    const order = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      orderId
-    );
-
-    if (order.seller_id !== seller.$id) {
-      throw new Error('Order not found');
+    const order = await Order.findOne({ _id: orderId, sellerId: seller.userId });
+    if (!order) {
+      return {
+        success: false,
+        message: 'Order not found'
+      };
     }
 
     return {
@@ -229,35 +295,71 @@ export async function getOrderStatus(orderId) {
   }
 }
 
-export async function updateOrderStatus(orderId, status) {
+export async function updateOrderStatus(orderId, newStatus) {
   try {
+    await dbConnect();
+    
     const seller = await getSellerProfile();
-    const { databases } = createAdminClient();
-
-    // Verify ownership
-    const order = await databases.getDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
-      orderId
-    );
-
-    if (order.seller_id !== seller.$id) {
-      throw new Error('Order not found');
+    console.log('Seller:', { userId: seller?.userId });
+    
+    if (!seller) {
+      return { 
+        success: false, 
+        message: 'Seller profile not found' 
+      };
     }
 
-    // Update status
-    await databases.updateDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_ORDERS,
+    // Find and update the order
+    const existingOrder = await Order.findById(orderId).lean();
+    console.log('Existing Order:', { 
       orderId,
-      {
-        status,
-        updated_at: new Date().toISOString()
-      }
-    );
+      sellerId: existingOrder?.sellerId,
+      status: existingOrder?.status 
+    });
 
-    return { success: true };
+    const order = await Order.findOneAndUpdate(
+      { 
+        _id: orderId,
+        sellerId: seller.userId
+      },
+      { 
+        $set: { 
+          status: newStatus,
+          updatedAt: new Date()
+        }
+      },
+      { new: true }
+    ).lean();
+
+    console.log('Update Result:', { 
+      success: !!order,
+      newStatus,
+      updatedStatus: order?.status 
+    });
+
+    if (!order) {
+      return {
+        success: false,
+        message: 'Order not found or you do not have permission to update it'
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Order status updated successfully',
+      order: {
+        ...order,
+        _id: order._id.toString(),
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString()
+      }
+    };
+
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('Error updating order status:', error);
+    return {
+      success: false,
+      message: 'Failed to update order status. Please try again.'
+    };
   }
 }

@@ -4,24 +4,25 @@ import { useState } from 'react';
 import { Building2 } from 'lucide-react';
 import { registerSeller } from './actions';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
 export default function SellerRegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
-  async function handleSubmit(formData) {
+  async function handleSubmit(e) {
+    e.preventDefault();
     setIsSubmitting(true);
     setError('');
 
     try {
+      const formData = new FormData(e.target);
       const result = await registerSeller(formData);
       if (result.error) {
         setError(result.error);
       } else {
         // Redirect to seller dashboard
-        router.push('/admin');  // or wherever your seller dashboard is
+        router.push('/seller');
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -32,8 +33,22 @@ export default function SellerRegistrationForm() {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-6 bg-white p-8 rounded-lg shadow">
-      {/* Basic Information */}
+    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-lg shadow">
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Shop Information</h2>
         
@@ -50,11 +65,10 @@ export default function SellerRegistrationForm() {
               className="block w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-500"
               placeholder="Your shop name"
             />
-            <Building2 className="pointer-events-none absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+              <Building2 className="h-5 w-5 text-gray-400" />
+            </div>
           </div>
-          <p className="mt-2 text-sm text-gray-500">
-            This will be your public shop name on the marketplace.
-          </p>
         </div>
 
         <div>
@@ -74,48 +88,24 @@ export default function SellerRegistrationForm() {
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-                {error === 'You must be logged in to register as a seller' && (
-                  <p className="mt-2">
-                    Please{' '}
-                    <Link href="/login" className="text-red-800 hover:text-red-900 underline">
-                      log in
-                    </Link>
-                    {' '}or{' '}
-                    <Link href="/signup" className="text-red-800 hover:text-red-900 underline">
-                      create an account
-                    </Link>
-                    {' '}to continue.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className={`w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-          isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
-        }`}
-      >
-        {isSubmitting ? 'Creating Shop...' : 'Create Your Shop'}
-      </button>
-
-      <p className="text-sm text-gray-500 text-center">
-        By creating a shop, you agree to our Terms of Service and Seller Guidelines.
-      </p>
-      <p className="text-sm text-gray-500 text-center">
-        Already registered? <Link href={`/login?redirect=${encodeURIComponent('/seller')}`} className="text-blue-600 hover:underline">Login here</Link>.
-      </p>
+      <div className="flex items-center justify-end space-x-4">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {isSubmitting ? 'Registering...' : 'Register as Seller'}
+        </button>
+      </div>
     </form>
   );
 }

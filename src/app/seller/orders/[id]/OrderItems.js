@@ -39,27 +39,23 @@ export default function OrderItems({ orderId }) {
         <h2 className="text-lg font-semibold mb-4">Order Items</h2>
         <div className="divide-y divide-gray-200">
           {items.map((item) => (
-            <div key={item.$id} className="py-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div key={item._id} className="py-4 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="flex items-center gap-4 md:col-span-2">
-                {item.product_image && (
-                  <img
-                    src={item.product_image}
-                    alt={item.product_name}
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                )}
+                <img
+                  src={item.product.mainImage}
+                  alt={item.product.name}
+                  className="w-16 h-16 object-cover rounded"
+                />
                 <div>
-                  <p className="font-medium">{item.product_name}</p>
-                  {item.variant_name && (
-                    <p className="text-sm text-gray-500">Variant: {item.variant_name}</p>
-                  )}
+                  <h3 className="font-medium">{item.product.name}</h3>
+                  <p className="text-sm text-gray-500">{item.product.description}</p>
                 </div>
               </div>
-              <div className="text-gray-600">
-                Quantity: {item.quantity}
+              <div className="flex items-center">
+                <p className="text-gray-600">Quantity: {item.quantity}</p>
               </div>
-              <div className="font-medium">
-                {formatPrice(item.price * item.quantity)}
+              <div className="flex items-center">
+                <p className="font-medium">{formatPrice(item.price)}</p>
               </div>
             </div>
           ))}

@@ -24,14 +24,6 @@ export default function ProductGallery({ images, name }) {
     setIsZoomed(!isZoomed);
   };
 
-  if (!images.length) {
-    return (
-      <div className="aspect-square w-full bg-gray-100 rounded-lg flex items-center justify-center">
-        <p className="text-gray-500">No image available</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Main Image */}

@@ -66,9 +66,8 @@ export default function BuyerDetails({ orderId }) {
           <div>
             <p className="text-sm text-gray-500">Shipping Address</p>
             <div className="font-medium">
-              <p>{buyer.shipping_address?.street}</p>
-              <p>{buyer.shipping_address?.city}, {buyer.shipping_address?.state} {buyer.shipping_address?.postal_code}</p>
-              <p>{buyer.shipping_address?.country}</p>
+              <p>{buyer.address.street}</p>
+              <p>{buyer.address.city}, {buyer.address.state} {buyer.address.pincode}</p>
             </div>
           </div>
         </div>

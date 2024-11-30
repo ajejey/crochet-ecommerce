@@ -3,35 +3,43 @@
 import { createAdminClient } from '@/appwrite/config';
 import { ID } from 'node-appwrite';
 import { cookies } from 'next/headers';
+import { User } from '@/models/User';
+import dbConnect from '@/lib/mongodb';
 
 export async function createAccount(formData) {
   try {
     const data = Object.fromEntries(formData);
     const { email, password, name } = data;
 
-    const { account, databases } = createAdminClient();
+    const { account } = createAdminClient();
 
-    // Create account
-    const user = await account.create(
+    // Create Appwrite account
+    const appwriteUser = await account.create(
       ID.unique(),
       email,
       password,
       name
     );
 
-    // Create user document
-    await databases.createDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_USERS,
-      user.$id,
-      {
-        email,
-        name,
-        role: 'buyer', // default role
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+    // Connect to MongoDB
+    await dbConnect();
+
+    // Create MongoDB user
+    await User.create({
+      appwriteId: appwriteUser.$id,
+      email,
+      name,
+      role: 'user',
+      lastSync: new Date(),
+      metadata: {
+        lastLogin: new Date(),
+        loginCount: 0,
+        preferences: {
+          newsletter: false,
+          notifications: true
+        }
       }
-    );
+    });
 
     // Create session
     const session = await account.createEmailPasswordSession(email, password);

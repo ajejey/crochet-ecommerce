@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import OrderSummary from "./OrderSummary";
 import OrderItems from "./OrderItems";
 import BuyerDetails from "./BuyerDetails";
+import UpdateStatus from "./UpdateStatus";
 import Link from "next/link";
 import { ArrowLeft } from 'lucide-react';
 import { getOrderBasicDetails } from "../actions";
@@ -29,11 +30,7 @@ export default async function OrderDetailsPage({ params }) {
           Back to Orders
         </Link>
         <h1 className="text-2xl font-bold">Order #{params.id}</h1>
-        <Link href={`/seller/orders/${params.id}/status`}>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
-            Update Status
-          </button>
-        </Link>
+        <UpdateStatus orderId={params.id} currentStatus={result.order.status} />
       </div>
 
       {/* Main Content */}

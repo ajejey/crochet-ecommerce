@@ -1,21 +1,22 @@
 import Link from 'next/link';
 import { LayoutDashboard, Package, ShoppingCart, Settings, LogOut } from 'lucide-react';
-import auth from '@/auth';
+import { redirect } from 'next/navigation';
+import { requireSeller } from '@/lib/auth-context';
 
 export default async function SellerLayout({ children }) {
-  const user = await auth.getUser();
+  try {
+    // This will throw an error if user is not an active seller
+    await requireSeller();
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md">
-        <div className="p-4 border-b">
-          <h2 className="text-xl font-semibold">Seller Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1">{user?.name}</p>
-        </div>
-        
-        <nav className="p-4">
-          <ul className="space-y-2">
+    return (
+      <div className="flex min-h-screen">
+        <nav className="w-64 bg-white shadow-lg">
+          {/* Sidebar */}
+          <div className="p-4 border-b">
+            <h2 className="text-xl font-semibold">Seller Dashboard</h2>
+          </div>
+          
+          <ul className="p-4 space-y-2">
             <li>
               <Link 
                 href="/seller" 
@@ -53,25 +54,27 @@ export default async function SellerLayout({ children }) {
               </Link>
             </li>
           </ul>
+
+          <div className="absolute bottom-0 w-64 p-4 border-t">
+            <form action="/api/auth/logout">
+              <button 
+                type="submit"
+                className="flex items-center w-full p-2 text-gray-700 rounded hover:bg-gray-100"
+              >
+                <LogOut className="w-5 h-5 mr-3" />
+                Logout
+              </button>
+            </form>
+          </div>
         </nav>
 
-        <div className="absolute bottom-0 w-64 p-4 border-t">
-          <form action={auth.deleteSession}>
-            <button 
-              type="submit"
-              className="flex items-center w-full p-2 text-gray-700 rounded hover:bg-gray-100"
-            >
-              <LogOut className="w-5 h-5 mr-3" />
-              Logout
-            </button>
-          </form>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto p-8">
-        {children}
-      </main>
-    </div>
-  );
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto p-8">
+          {children}
+        </main>
+      </div>
+    );
+  } catch (error) {
+    redirect('/login?from=/seller');
+  }
 }

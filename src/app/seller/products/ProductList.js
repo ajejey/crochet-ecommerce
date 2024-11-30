@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { deleteProduct, updateProductStatus } from './actions';
 import { useState } from 'react';
+import { PRODUCT_CATEGORIES } from '@/constants/product';
 
 export default function ProductList({ initialProducts }) {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function ProductList({ initialProducts }) {
     try {
       const result = await deleteProduct(productId);
       if (result.success) {
-        mutate(products.filter(p => p.$id !== productId));
+        mutate(products.filter(p => p._id !== productId));
         router.refresh();
       } else {
         alert(result.error || 'Failed to delete product');
@@ -45,14 +46,14 @@ export default function ProductList({ initialProducts }) {
   }
 
   async function handleStatusToggle(product) {
-    setUpdatingStatus(product.$id);
+    setUpdatingStatus(product._id);
     try {
-      const newStatus = product.status === 'active' ? 'inactive' : 'active';
-      const result = await updateProductStatus(product.$id, newStatus);
+      const newStatus = product.status === 'active' ? 'outOfStock' : 'active';
+      const result = await updateProductStatus(product._id, newStatus);
       
       if (result.success) {
         const updatedProducts = products.map(p => 
-          p.$id === product.$id ? { ...p, status: newStatus } : p
+          p._id === product._id ? { ...p, status: newStatus } : p
         );
         await mutate(updatedProducts, false);
       } else {
@@ -112,39 +113,41 @@ export default function ProductList({ initialProducts }) {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {products.map((product) => (
-                  <tr key={product.$id}>
+                  <tr key={product._id}>
                     <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
                           <img
                             className="h-10 w-10 rounded-full object-cover"
-                            src={product.image_urls?.[0] || '/placeholder.png'}
-                            alt=""
+                            src={product.images?.[0]?.url || '/placeholder.png'}
+                            alt={product.name}
                           />
                         </div>
                         <div className="ml-4">
                           <div className="font-medium text-gray-900">{product.name}</div>
-                          <div className="text-gray-500">{product.category}</div>
+                          <div className="text-gray-500">
+                            {PRODUCT_CATEGORIES.find(cat => cat.id === product.category)?.label || product.category}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      ₹{product.price}
+                      {product.formattedPrice || `₹${product.price}`}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                      {product.stock}
+                      {product.inventory?.quantity || 0}
                     </td>
                     <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                       <button
                         onClick={() => handleStatusToggle(product)}
-                        disabled={updatingStatus === product.$id}
+                        disabled={updatingStatus === product._id}
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                           product.status === 'active'
                             ? 'bg-green-100 text-green-800 hover:bg-green-200'
                             : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                         } transition-colors`}
                       >
-                        {updatingStatus === product.$id ? (
+                        {updatingStatus === product._id ? (
                           <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
                         ) : product.status === 'active' ? (
                           <ToggleRight className="w-4 h-4 mr-1" />
@@ -156,13 +159,13 @@ export default function ProductList({ initialProducts }) {
                     </td>
                     <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium">
                       <Link
-                        href={`/seller/products/edit/${product.$id}`}
+                        href={`/seller/products/edit/${product._id}`}
                         className="text-blue-600 hover:text-blue-900 mr-4"
                       >
                         <Edit2 className="h-5 w-5 inline" />
                       </Link>
                       <button
-                        onClick={() => handleDelete(product.$id)}
+                        onClick={() => handleDelete(product._id)}
                         disabled={isDeleting}
                         className={`text-red-600 hover:text-red-900 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >

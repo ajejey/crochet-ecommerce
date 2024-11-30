@@ -121,20 +121,20 @@ export default function SellerOrdersPage() {
               </div>
             ) : result?.orders?.length ? (
               result.orders.map(order => (
-                <div key={order.$id} className="grid grid-cols-6 gap-4 px-6 py-4 text-sm">
+                <div key={order._id} className="grid grid-cols-6 gap-4 px-6 py-4 text-sm">
                   <div className="col-span-2">
-                    <p className="font-medium text-gray-900">#{order.$id}</p>
-                    <p className="text-gray-500">{order.buyer_name}</p>
-                    <p className="text-gray-500 text-xs">{new Date(order.$createdAt).toLocaleDateString()}</p>
+                    <p className="font-medium text-gray-900">#{order._id}</p>
+                    <p className="text-gray-500">{order.buyerName}</p>
+                    <p className="text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString()}</p>
                   </div>
                   <div>
                     <StatusBadge status={order.status} />
                   </div>
                   <div className="text-gray-500">{order.items?.length || 0} items</div>
-                  <div className="font-medium">{formatPrice(order.total_amount)}</div>
+                  <div className="font-medium">{formatPrice(order.totalAmount)}</div>
                   <div>
                     <Link
-                      href={`/seller/orders/${order.$id}`}
+                      href={`/seller/orders/${order._id}`}
                       className="text-blue-600 hover:text-blue-800 font-medium"
                     >
                       View Details

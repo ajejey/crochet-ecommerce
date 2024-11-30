@@ -7,16 +7,29 @@ import { createReview } from '../../../actions';
 
 export default function ProductReviews({ 
   productId, 
-  initialReviews, 
-  reviewsCount,
-  averageRating 
+  initialReviews = {}, 
+  reviewsCount: initialReviewsCount = 0,
+  averageRating: initialAverageRating = 0
 }) {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState(
+    initialReviews?.reviews || initialReviews || []
+  );
   const [isWritingReview, setIsWritingReview] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [averageRating, setAverageRating] = useState(initialAverageRating);
+  const [reviewsCount, setReviewsCount] = useState(initialReviewsCount);
+
+  // Update average rating when reviews change
+  useEffect(() => {
+    if (Array.isArray(reviews) && reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      setAverageRating(totalRating / reviews.length);
+      setReviewsCount(reviews.length);
+    }
+  }, [reviews]);
 
   // Check authentication status
   useEffect(() => {
@@ -45,27 +58,20 @@ export default function ProductReviews({
 
     try {
       setIsSubmitting(true);
-      const review = await createReview(
+      const result = await createReview(
         productId,
         newReview.rating,
         newReview.comment
       );
       
-      // Add user info to the review for display
-      const reviewWithUser = {
-        ...review,
-        user: {
-          name: user.name
-        }
-      };
-      
-      setReviews(prev => [reviewWithUser, ...prev]);
+      // Update reviews list with new review
+      setReviews(prev => Array.isArray(prev) ? [result, ...prev] : [result]);
       setIsWritingReview(false);
       setNewReview({ rating: 5, comment: '' });
       toast.success('Review submitted successfully!');
     } catch (error) {
       console.error('Error submitting review:', error);
-      toast.error('Failed to submit review. Please try again.');
+      toast.error(error.message || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -94,80 +100,92 @@ export default function ProductReviews({
             <Star
               key={i}
               className={`h-6 w-6 ${
-                i < Math.round(averageRating || 0)
+                i < Math.round(averageRating)
                   ? 'text-yellow-400 fill-yellow-400'
                   : 'text-gray-300'
               }`}
             />
           ))}
         </div>
-        <span className="text-lg font-medium">
-          {averageRating?.toFixed(1) || 'No ratings yet'}
+        <span className="text-xl font-medium">
+          {averageRating ? averageRating.toFixed(1) : 'No reviews yet'}
         </span>
+        <span className="text-gray-500">({reviewsCount} reviews)</span>
       </div>
 
       {/* Write Review Form */}
       {isWritingReview && (
-        <form onSubmit={handleSubmitReview} className="space-y-4 bg-gray-50 p-6 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Rating</label>
-            <div className="flex items-center gap-1 mt-1">
-              {[...Array(5)].map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setNewReview(prev => ({ ...prev, rating: i + 1 }))}
-                >
-                  <Star
-                    className={`h-6 w-6 ${
-                      i < newReview.rating
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                </button>
-              ))}
+        <form onSubmit={handleSubmitReview} className="bg-gray-50 p-6 rounded-lg">
+          <h3 className="text-lg font-medium mb-4">Write a Review</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    type="button"
+                    onClick={() => setNewReview(prev => ({ ...prev, rating }))}
+                    className="focus:outline-none"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        rating <= newReview.rating
+                          ? 'text-yellow-400 fill-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Review</label>
-            <textarea
-              value={newReview.comment}
-              onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
-              rows={4}
-              className="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
-              placeholder="Share your thoughts about this product..."
-              required
-              minLength={10}
-            />
-          </div>
-          <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => setIsWritingReview(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:bg-purple-400"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Review'}
-            </button>
+            <div>
+              <label htmlFor="comment" className="block text-sm font-medium mb-2">
+                Review
+              </label>
+              <textarea
+                id="comment"
+                rows={4}
+                value={newReview.comment}
+                onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                required
+                className="w-full border rounded-lg p-2"
+                placeholder="Share your thoughts about the product..."
+              />
+            </div>
+            <div className="flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => setIsWritingReview(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Review'}
+              </button>
+            </div>
           </div>
         </form>
       )}
 
       {/* Reviews List */}
-      <div className="space-y-8">
-        {reviews.length > 0 ? (
+      <div className="space-y-6">
+        {Array.isArray(reviews) && reviews.length > 0 ? (
           reviews.map((review) => (
-            <div key={review.$id} className="space-y-2">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center">
+            <div key={review._id} className="border-b pb-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{review.user?.name || 'Anonymous'}</span>
+                  <span className="text-gray-500 text-sm">
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -179,12 +197,6 @@ export default function ProductReviews({
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-500">
-                  {new Date(review.created_at).toLocaleDateString()}
-                </span>
-                <span className="text-sm text-gray-500">
-                  {review.user ? review.user.name : 'Anonymous'}
-                </span>
               </div>
               <p className="text-gray-700">{review.comment}</p>
             </div>

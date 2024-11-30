@@ -9,7 +9,8 @@ import { Loader2 } from 'lucide-react';
 export default function OrderSummary({ orderId }) {
   const { data: result, error } = useSWR(
     ['order-basic', orderId],
-    () => getOrderBasicDetails(orderId)
+    () => getOrderBasicDetails(orderId),
+    { refreshInterval: 0 } // Disable auto-refresh, we'll handle updates manually
   );
 
   if (error) {
@@ -20,7 +21,7 @@ export default function OrderSummary({ orderId }) {
     );
   }
 
-  if (!result) {
+  if (!result?.order) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
@@ -41,7 +42,7 @@ export default function OrderSummary({ orderId }) {
           <Package className="w-8 h-8 text-blue-500" />
           <div>
             <p className="text-sm text-gray-500">Order Status</p>
-            <p className="font-semibold">{order.status.toUpperCase()}</p>
+            <p className="font-semibold">{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
           </div>
         </div>
       </div>
@@ -49,26 +50,26 @@ export default function OrderSummary({ orderId }) {
         <div className="flex items-center gap-3">
           <DollarSign className="w-8 h-8 text-green-500" />
           <div>
-            <p className="text-sm text-gray-500">Order Value</p>
-            <p className="font-semibold">{formatPrice(order.total_amount)}</p>
+            <p className="text-sm text-gray-500">Total Amount</p>
+            <p className="font-semibold">{formatPrice(order.totalAmount)}</p>
           </div>
         </div>
       </div>
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center gap-3">
-          <Clock className="w-8 h-8 text-purple-500" />
+          <Clock className="w-8 h-8 text-orange-500" />
           <div>
             <p className="text-sm text-gray-500">Order Date</p>
-            <p className="font-semibold">{formatDate(order.$createdAt)}</p>
+            <p className="font-semibold">{formatDate(order.createdAt)}</p>
           </div>
         </div>
       </div>
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center gap-3">
-          <Truck className="w-8 h-8 text-orange-500" />
+          <Truck className="w-8 h-8 text-purple-500" />
           <div>
             <p className="text-sm text-gray-500">Payment Status</p>
-            <p className="font-semibold">{order.payment_status.toUpperCase()}</p>
+            <p className="font-semibold">{order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}</p>
           </div>
         </div>
       </div>

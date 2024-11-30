@@ -14,24 +14,46 @@ const fetcher = async () => {
   if (!result.success) {
     throw new Error('Failed to load cart items');
   }
-  return result.items;
+  return result.items || [];
 };
 
 export default function CartPage() {
-  const { data: cartItems, error, isLoading } = useSWR('cart-items', fetcher);
+  const { data: cartItems = [], error, isLoading } = useSWR('cart-items', fetcher, {
+    refreshInterval: 30000, // Refresh every 30 seconds
+    revalidateOnFocus: true,
+  });
   const { refreshCart } = useCart();
+
+  console.log("CART ITEMS ", cartItems)
 
   const handleQuantityChange = async (itemId, newQuantity) => {
     try {
+      const item = cartItems.find(item => item._id === itemId);
+      if (!item?.product) {
+        toast.error('Product not found');
+        return;
+      }
+
+      // Check stock availability
+      if (newQuantity > item.product.inventory.stockCount) {
+        toast.error('Requested quantity exceeds available stock');
+        return;
+      }
+
+      // Don't allow negative quantities
+      if (newQuantity < 0) {
+        newQuantity = 0;
+      }
+
       // Optimistic update
       const previousItems = cartItems;
       let optimisticData = cartItems.map(item =>
-        item.$id === itemId ? { ...item, quantity: newQuantity } : item
+        item._id === itemId ? { ...item, quantity: newQuantity } : item
       );
 
       // If quantity is 0, remove the item
       if (newQuantity <= 0) {
-        optimisticData = optimisticData.filter(item => item.$id !== itemId);
+        optimisticData = optimisticData.filter(item => item._id !== itemId);
       }
 
       mutate('cart-items', optimisticData, false);
@@ -50,7 +72,7 @@ export default function CartPage() {
       } else {
         // Revert to previous data if update failed
         mutate('cart-items', previousItems);
-        toast.error('Failed to update quantity');
+        toast.error(result.error || 'Failed to update quantity');
       }
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -62,7 +84,7 @@ export default function CartPage() {
     try {
       // Optimistic update
       const previousItems = cartItems;
-      const optimisticData = cartItems.filter(item => item.$id !== itemId);
+      const optimisticData = cartItems.filter(item => item._id !== itemId);
       
       mutate('cart-items', optimisticData, false);
 
@@ -87,8 +109,9 @@ export default function CartPage() {
   const calculateTotal = () => {
     if (!cartItems) return 0;
     return cartItems.reduce((total, item) => {
-      const price = item.product.price + (item.variant?.price_adjustment || 0);
-      return total + (price * item.quantity);
+      if (!item?.product) return total;
+      const price = (item.product.price || 0) + (item.variant?.price_adjustment || 0);
+      return total + (price * (item.quantity || 0));
     }, 0);
   };
 
@@ -128,58 +151,69 @@ export default function CartPage() {
     );
   }
 
+  console.log("cartItems ", cartItems)
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-4">Shopping Cart</h1>
       
       <div className="grid gap-4">
-        {cartItems.map((item) => (
-          <div key={item.$id} className="flex items-center gap-4 p-4 border rounded-lg">
-            <div className="relative w-24 h-24">
-              <Image
-                src={item.product.image_urls[0]}
-                alt={item.product.name}
-                fill
-                className="object-cover rounded"
-              />
-            </div>
-            
-            <div className="flex-grow">
-              <h3 className="font-semibold">{item.product.name}</h3>
-              {item.variant && (
-                <p className="text-sm text-gray-600">
-                  Variant: {item.variant.name}
+        {cartItems.map((item) => {
+          // Get the main image URL from the first image object
+          const productImage = item.product.images[0]?.url;
+          const productName = item.product.name;
+          
+          return (
+            <div key={item._id} className="flex items-center gap-4 p-4 border rounded-lg">
+              <div className="relative w-24 h-24">
+                <Image
+                  src={productImage}
+                  alt={productName}
+                  fill
+                  className="object-cover rounded-md"
+                />
+              </div>
+              
+              <div className="flex-grow">
+                <h3 className="font-semibold">{productName}</h3>
+                {item.variant && (
+                  <p className="text-sm text-gray-600">
+                    Variant: {item.variant.name}
+                  </p>
+                )}
+                <p className="text-blue-600">
+                  {formatPrice((item.product.price || 0) + (item.variant?.price_adjustment || 0))}
                 </p>
-              )}
-              <p className="text-blue-600">
-                {formatPrice(item.product.price + (item.variant?.price_adjustment || 0))}
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleQuantityChange(item._id, (item.quantity || 0) - 1)}
+                  className="w-8 h-8 flex items-center justify-center border rounded"
+                  disabled={!item.product}
+                >
+                  -
+                </button>
+                <span className="w-8 text-center">{item.quantity || 0}</span>
+                <button
+                  onClick={() => handleQuantityChange(item._id, (item.quantity || 0) + 1)}
+                  className="w-8 h-8 flex items-center justify-center border rounded"
+                  disabled={!item.product}
+                >
+                  +
+                </button>
+              </div>
+              
               <button
-                onClick={() => handleQuantityChange(item.$id, item.quantity - 1)}
-                className="w-8 h-8 flex items-center justify-center border rounded"
+                onClick={() => handleRemove(item._id)}
+                className="text-red-600 hover:text-red-800"
+                disabled={!item.product}
               >
-                -
-              </button>
-              <span className="w-8 text-center">{item.quantity}</span>
-              <button
-                onClick={() => handleQuantityChange(item.$id, item.quantity + 1)}
-                className="w-8 h-8 flex items-center justify-center border rounded"
-              >
-                +
+                Remove
               </button>
             </div>
-            
-            <button
-              onClick={() => handleRemove(item.$id)}
-              className="text-red-600 hover:text-red-800"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
       
       {cartItems && cartItems.length > 0 && (

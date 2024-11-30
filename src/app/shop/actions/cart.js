@@ -1,8 +1,12 @@
-"use server";
+'use server';
 
-import { createAdminClient } from "@/appwrite/config";
-import { cookies } from "next/headers";
-import { ID, Query } from "node-appwrite";
+import { cookies } from 'next/headers';
+import { ID } from 'node-appwrite';
+import dbConnect from '@/lib/mongodb';
+import { CartItem } from '@/models/CartItem';
+import { Product } from '@/models/Product';
+import { Variant } from '@/models/Variant';
+import mongoose from 'mongoose';
 
 const CART_ITEMS_COLLECTION = process.env.NEXT_PUBLIC_COLLECTION_CART_ITEMS;
 
@@ -28,7 +32,6 @@ async function getOrCreateCartId() {
 // Get cart items with optimized queries
 export async function getCartItems() {
   try {
-    const { databases } = createAdminClient();
     const cookieStore = cookies();
     const cartId = cookieStore.get('cartId')?.value;
 
@@ -36,50 +39,40 @@ export async function getCartItems() {
       return { success: true, items: [] };
     }
 
-    // Get all cart items in a single query
-    const cartItems = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      CART_ITEMS_COLLECTION,
-      [Query.equal('cart_id', cartId)]
-    );
+    await dbConnect();
 
-    if (cartItems.documents.length === 0) {
-      return { success: true, items: [] };
-    }
+    // Get cart items with populated product and variant data
+    const cartItems = await CartItem.find({ cartId })
+      .populate({
+        path: 'product',
+        model: Product,
+        select: 'name description price images inventory.stockCount status'
+      })
+      .populate({
+        path: 'variant',
+        model: Variant,
+        select: 'name price_adjustment'
+      })
+      .lean();
 
-    // Get all product IDs and variant IDs
-    const productIds = [...new Set(cartItems.documents.map(item => item.product_id))];
-    const variantIds = [...new Set(cartItems.documents.map(item => item.variant_id).filter(Boolean))];
-
-    // Fetch all products in a single query
-    const products = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      process.env.NEXT_PUBLIC_COLLECTION_PRODUCTS,
-      [Query.equal('$id', productIds)]
-    );
-
-    // Fetch all variants in a single query if there are any
-    let variants = [];
-    if (variantIds.length > 0) {
-      variants = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_DATABASE_ID,
-        process.env.NEXT_PUBLIC_COLLECTION_VARIANTS,
-        [Query.equal('$id', variantIds)]
-      );
-    }
-
-    // Create lookup maps for faster access
-    const productMap = new Map(products.documents.map(p => [p.$id, p]));
-    const variantMap = new Map(variants.documents?.map(v => [v.$id, v]) || []);
-
-    // Combine the data
-    const itemsWithDetails = cartItems.documents.map(item => ({
-      ...item,
-      product: productMap.get(item.product_id),
-      variant: item.variant_id ? variantMap.get(item.variant_id) : null
+    // Transform the items to match the expected format
+    const transformedItems = cartItems.map(item => ({
+      $id: item._id.toString(),
+      cartId: item.cartId,
+      product: {
+        ...item.product,
+        _id: item.product._id.toString(),
+        image_urls: item.product.images?.map(img => img.url) || []
+      },
+      variant: item.variant ? {
+        ...item.variant,
+        _id: item.variant._id.toString(),
+        price_adjustment: item.variant.price_adjustment
+      } : null,
+      quantity: item.quantity
     }));
 
-    return { success: true, items: itemsWithDetails };
+    return { success: true, items: transformedItems };
   } catch (error) {
     console.error('Error getting cart items:', error);
     return { success: false, error: error.message };
@@ -87,53 +80,112 @@ export async function getCartItems() {
 }
 
 // Add item to cart
-export async function addToCart({ productId, variantId, quantity }) {
+export async function addToCart(data) {
   try {
-    const { databases } = createAdminClient();
+    const { productId, variantId, quantity } = data;
     const cartId = await getOrCreateCartId();
+    await dbConnect();
+
+    // Convert string ID to ObjectId
+    const productObjectId = new mongoose.Types.ObjectId(productId);
+
+    // Check if product exists
+    const product = await Product.findById(productObjectId);
+    if (!product) {
+      return { success: false, error: 'Product not found' };
+    }
+
+    // Check if variant exists if variantId is provided
+    let variantObjectId = null;
+    if (variantId) {
+      variantObjectId = new mongoose.Types.ObjectId(variantId);
+      const variant = await Variant.findById(variantObjectId);
+      if (!variant) {
+        return { success: false, error: 'Variant not found' };
+      }
+    }
 
     // Check if item already exists in cart
-    const existingItems = await databases.listDocuments(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      CART_ITEMS_COLLECTION,
-      [
-        Query.equal('cart_id', cartId),
-        Query.equal('product_id', productId),
-        variantId ? Query.equal('variant_id', variantId) : Query.isNull('variant_id'),
-      ]
-    );
+    const existingItem = await CartItem.findOne({
+      cartId,
+      product: productObjectId,
+      ...(variantObjectId ? { variant: variantObjectId } : {})
+    });
 
-    if (existingItems.documents.length > 0) {
+    if (existingItem) {
       // Update quantity of existing item
-      const existingItem = existingItems.documents[0];
-      const updatedItem = await databases.updateDocument(
-        process.env.NEXT_PUBLIC_DATABASE_ID,
-        CART_ITEMS_COLLECTION,
-        existingItem.$id,
-        {
-          quantity: existingItem.quantity + quantity,
-          updated_at: new Date().toISOString(),
-        }
-      );
-      return { success: true, item: updatedItem };
+      existingItem.quantity += quantity;
+      existingItem.updatedAt = new Date();
+      await existingItem.save();
+
+      // Return the populated item
+      const populatedItem = await CartItem.findById(existingItem._id)
+        .populate({
+          path: 'product',
+          select: 'name description price images inventory.stockCount status'
+        })
+        .populate({
+          path: 'variant',
+          select: 'name price_adjustment'
+        });
+
+      // Transform the item
+      const transformedItem = {
+        $id: populatedItem._id.toString(),
+        cartId: populatedItem.cartId,
+        product: {
+          ...populatedItem.product.toObject(),
+          _id: populatedItem.product._id.toString(),
+          image_urls: populatedItem.product.images?.map(img => img.url) || []
+        },
+        variant: populatedItem.variant ? {
+          ...populatedItem.variant.toObject(),
+          _id: populatedItem.variant._id.toString()
+        } : null,
+        quantity: populatedItem.quantity
+      };
+
+      return { success: true, item: transformedItem };
     }
 
     // Add new item to cart
-    const cartItem = await databases.createDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      CART_ITEMS_COLLECTION,
-      ID.unique(),
-      {
-        cart_id: cartId,
-        product_id: productId,
-        variant_id: variantId || null,
-        quantity,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-    );
+    const cartItem = await CartItem.create({
+      cartId,
+      product: productObjectId,
+      variant: variantObjectId,
+      quantity,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
 
-    return { success: true, item: cartItem };
+    // Populate the new item
+    const populatedItem = await CartItem.findById(cartItem._id)
+      .populate({
+        path: 'product',
+        select: 'name description price images inventory.stockCount status'
+      })
+      .populate({
+        path: 'variant',
+        select: 'name price_adjustment'
+      });
+
+    // Transform the item
+    const transformedItem = {
+      $id: populatedItem._id.toString(),
+      cartId: populatedItem.cartId,
+      product: {
+        ...populatedItem.product.toObject(),
+        _id: populatedItem.product._id.toString(),
+        image_urls: populatedItem.product.images?.map(img => img.url) || []
+      },
+      variant: populatedItem.variant ? {
+        ...populatedItem.variant.toObject(),
+        _id: populatedItem.variant._id.toString()
+      } : null,
+      quantity: populatedItem.quantity
+    };
+
+    return { success: true, item: transformedItem };
   } catch (error) {
     console.error('Error adding to cart:', error);
     return { success: false, error: error.message };
@@ -143,30 +195,67 @@ export async function addToCart({ productId, variantId, quantity }) {
 // Update cart item quantity
 export async function updateCartItemQuantity(itemId, quantity) {
   try {
-    const { databases } = createAdminClient();
+    await dbConnect();
 
+    // Convert string ID to ObjectId
+    const itemIdObjectId = new mongoose.Types.ObjectId(itemId);
+
+    // Find the cart item first to check if it exists
+    const cartItem = await CartItem.findById(itemIdObjectId).populate('product');
+    if (!cartItem) {
+      return { success: false, error: 'Cart item not found' };
+    }
+
+    // Check if we have enough stock
+    if (cartItem.product && quantity > cartItem.product.inventory.stockCount) {
+      return { success: false, error: 'Not enough stock available' };
+    }
+
+    // If quantity is 0 or less, remove the item
     if (quantity <= 0) {
-      await databases.deleteDocument(
-        process.env.NEXT_PUBLIC_DATABASE_ID,
-        CART_ITEMS_COLLECTION,
-        itemId
-      );
+      await CartItem.findByIdAndDelete(itemIdObjectId);
       return { success: true, deleted: true };
     }
 
-    const updatedItem = await databases.updateDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      CART_ITEMS_COLLECTION,
-      itemId,
-      {
+    // Update the quantity
+    const updatedItem = await CartItem.findByIdAndUpdate(
+      itemIdObjectId,
+      { 
         quantity,
-        updated_at: new Date().toISOString(),
-      }
-    );
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate({
+      path: 'product',
+      select: 'name description price images inventory.stockCount status'
+    }).populate({
+      path: 'variant',
+      select: 'name price_adjustment'
+    });
 
-    return { success: true, item: updatedItem };
+    if (!updatedItem) {
+      return { success: false, error: 'Failed to update cart item' };
+    }
+
+    // Transform the updated item to match the expected format
+    const transformedItem = {
+      $id: updatedItem._id.toString(),
+      cartId: updatedItem.cartId,
+      product: {
+        ...updatedItem.product.toObject(),
+        _id: updatedItem.product._id.toString(),
+        image_urls: updatedItem.product.images?.map(img => img.url) || []
+      },
+      variant: updatedItem.variant ? {
+        ...updatedItem.variant.toObject(),
+        _id: updatedItem.variant._id.toString()
+      } : null,
+      quantity: updatedItem.quantity
+    };
+
+    return { success: true, item: transformedItem };
   } catch (error) {
-    console.error("Error updating cart item:", error);
+    console.error('Error updating cart item:', error);
     return { success: false, error: error.message };
   }
 }
@@ -174,17 +263,23 @@ export async function updateCartItemQuantity(itemId, quantity) {
 // Remove item from cart
 export async function removeFromCart(itemId) {
   try {
-    const { databases } = createAdminClient();
+    await dbConnect();
     
-    await databases.deleteDocument(
-      process.env.NEXT_PUBLIC_DATABASE_ID,
-      CART_ITEMS_COLLECTION,
-      itemId
-    );
+    // Convert string ID to ObjectId
+    const itemIdObjectId = new mongoose.Types.ObjectId(itemId);
 
+    // Check if the item exists first
+    const cartItem = await CartItem.findById(itemIdObjectId);
+    if (!cartItem) {
+      return { success: false, error: 'Cart item not found' };
+    }
+
+    // Remove the item
+    await CartItem.findByIdAndDelete(itemIdObjectId);
+    
     return { success: true };
   } catch (error) {
-    console.error("Error removing from cart:", error);
+    console.error('Error removing cart item:', error);
     return { success: false, error: error.message };
   }
 }

@@ -1,42 +1,81 @@
-import { getProduct } from '../../actions';
-import EditProductForm from './EditProductForm';
-import { redirect } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
+'use client';
 
-export default async function EditProductPage({ params }) {
-  const result = await getProduct(params.id);
+import { getProduct, updateProduct } from '../../actions';
+import ProductForm from '../../components/ProductForm';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { useEffect, useState } from 'react';
 
-  if (result.error === 'Not authenticated') {
-    redirect('/login');
+export default function EditProductPage({ params }) {
+  const router = useRouter();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        const result = await getProduct(params.id);
+        if (result.error) {
+          toast.error(result.error);
+          router.push('/seller/products');
+          return;
+        }
+        setProduct(result.product);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to fetch product');
+        router.push('/seller/products');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProduct();
+  }, [params.id, router]);
+
+  async function handleSubmit(formData) {
+    try {
+      const result = await updateProduct(params.id, formData);
+      
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success('Product updated successfully!');
+      router.push('/seller/products');
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Failed to update product');
+    }
   }
 
-  if (result.error) {
+  if (loading) {
     return (
-      <div className="text-center">
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 max-w-2xl mx-auto">
-          <div className="flex">
-            <AlertCircle className="h-5 w-5 text-red-400" />
-            <div className="ml-3">
-              <p className="text-sm text-red-700">{result.error}</p>
-              <p className="mt-2">
-                <a href="/seller/products" className="text-red-700 font-medium hover:text-red-600 underline">
-                  Back to Products
-                </a>
-              </p>
-            </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
           </div>
         </div>
       </div>
     );
   }
 
+  if (!product) {
+    return null;
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Edit Product</h1>
-        <p className="text-gray-600">Update your product details.</p>
-      </div>
-      <EditProductForm product={result.product} />
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Edit Product</h1>
+      <ProductForm
+        product={product}
+        onSubmit={handleSubmit}
+        submitButtonText="Update Product"
+      />
     </div>
   );
 }
