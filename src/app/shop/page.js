@@ -1,45 +1,31 @@
-import ProductsSection from './components/ProductsSection';
 import HeroSection from './components/HeroSection';
-import { getActiveProducts } from './actions';
-
-// Revalidate every hour instead of every request
-export const revalidate = 3600;
+import { getInitialProducts, getFilteredProducts } from './actions';
+import ProductsSection from './components/ProductsSection';
 
 export default async function ShopPage({
   searchParams
 }) {
-  // Get filter parameters from URL
-  const page = Number(searchParams.page) || 1;
-  const category = searchParams.category || 'all';
-  const sort = searchParams.sort || 'latest';
-  const search = searchParams.search || null;
-  const minPrice = searchParams.minPrice ? Number(searchParams.minPrice) : null;
-  const maxPrice = searchParams.maxPrice ? Number(searchParams.maxPrice) : null;
+  const hasFilters = searchParams.category || 
+                    searchParams.sort || 
+                    searchParams.minPrice || 
+                    searchParams.maxPrice || 
+                    searchParams.search ||
+                    searchParams.page;
 
-  // Fetch products with filters
-  const result = await getActiveProducts({
-    page,
-    category,
-    sort,
-    search,
-    minPrice,
-    maxPrice
-  });
+  // Use simpler query for initial load
+  const { products, pagination } = hasFilters 
+    ? await getFilteredProducts(searchParams)
+    : await getInitialProducts();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* <HeroSection /> */}
-      <ProductsSection 
-        initialData={result}
-        currentFilters={{
-          page,
-          category,
-          sort,
-          search,
-          minPrice,
-          maxPrice
-        }}
-      />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <ProductsSection 
+          products={products} 
+          pagination={pagination}
+          initialFilters={searchParams}
+        />
+      </div>
     </div>
   );
 }

@@ -9,7 +9,37 @@ import { revalidatePath } from 'next/cache';
 
 const PRODUCTS_PER_PAGE = 12;
 
-export async function getActiveProducts({ 
+// Simple initial load function
+export async function getInitialProducts() {
+  try {
+    await dbConnect();
+    const products = await Product.find({ status: 'active' })
+      .select('name price images category')
+      .sort({ createdAt: -1 })
+      .limit(PRODUCTS_PER_PAGE)
+      .lean();
+
+    return {
+      products: products.map(product => ({
+        ...product,
+        _id: product._id.toString(),
+        mainImage: product.images?.find(img => img.isMain)?.url || 
+                  product.images?.[0]?.url || 
+                  '/placeholder-product.jpg'
+      })),
+      pagination: {
+        currentPage: 1,
+        hasMore: products.length === PRODUCTS_PER_PAGE
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching initial products:', error);
+    return { products: [], pagination: { currentPage: 1, hasMore: false } };
+  }
+}
+
+// Complex filtered products function
+export async function getFilteredProducts({ 
   page = 1, 
   category = null, 
   sort = 'latest',
@@ -56,7 +86,6 @@ export async function getActiveProducts({
         sortQuery.createdAt = -1;
     }
 
-    // Execute query with pagination
     const skip = (page - 1) * PRODUCTS_PER_PAGE;
     
     const [products, total] = await Promise.all([
@@ -76,21 +105,18 @@ export async function getActiveProducts({
       sellerProfiles.map(seller => [seller.userId, seller])
     );
 
-    // Transform products for optimal client usage
-    const transformedProducts = products.map(product => ({
-      ...product,
-      mainImage: product.images?.find(img => img.isMain)?.url || 
-                product.images?.[0]?.url || 
-                '/placeholder-product.jpg',
-      _id: product._id.toString(),
-      sellerId: product.sellerId,
-      sellerName: sellerMap[product.sellerId]?.businessName || 'Unknown Seller',
-      averageRating: product.rating?.average || 0,
-      totalReviews: product.rating?.count || 0
-    }));
-
     return {
-      products: transformedProducts,
+      products: products.map(product => ({
+        ...product,
+        _id: product._id.toString(),
+        mainImage: product.images?.find(img => img.isMain)?.url || 
+                  product.images?.[0]?.url || 
+                  '/placeholder-product.jpg',
+        sellerId: product.sellerId,
+        sellerName: sellerMap[product.sellerId]?.businessName || 'Unknown Seller',
+        averageRating: product.rating?.average || 0,
+        totalReviews: product.rating?.count || 0
+      })),
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / PRODUCTS_PER_PAGE),
@@ -99,8 +125,8 @@ export async function getActiveProducts({
       }
     };
   } catch (error) {
-    console.error('Error fetching active products:', error);
-    throw new Error('Failed to fetch products');
+    console.error('Error fetching filtered products:', error);
+    return { products: [], pagination: { currentPage: page, hasMore: false, total: 0 } };
   }
 }
 

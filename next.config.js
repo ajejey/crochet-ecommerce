@@ -11,7 +11,7 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ["images.unsplash.com", "firebasestorage.googleapis.com", "cloud.appwrite.io"],
+    domains: ["images.unsplash.com", "firebasestorage.googleapis.com", "cloud.appwrite.io", "cloud.appwrite.io"],
   },
 };
 

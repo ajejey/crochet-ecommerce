@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { Heart, ShoppingCart, Menu, Search, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import HeaderSection from './HeaderSection';
+// import HeaderSection from './HeaderSection';
 import useSWR from 'swr';
 import { getActiveProducts } from './shop/actions';
+import HeaderSection from './(header)/HeaderSection';
 
 const HomePage = () => {
   const { data: products, error } = useSWR('featured-products', getActiveProducts);
@@ -38,30 +39,22 @@ const HomePage = () => {
     <div className="min-h-screen bg-gray-50">
       <HeaderSection />
 
-      {/* Hero Section */}
-      <div className="relative pt-16">
+      {/* Hero Section - No padding needed here since it's full-height */}
+      <div className="relative">
         <div
-          className="h-[70vh] bg-cover bg-center relative"
+          className="h-[80vh] min-h-[600px] max-h-[800px] bg-cover bg-center relative"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1530396333989-24c5b8f805dd?q=80&w=2070&auto=format&fit=crop')` }}
         >
           <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-            <div className="text-center text-white px-4">
+            <div className="text-center text-white px-4 mt-16">
               <h1 className="text-4xl md:text-6xl font-serif mb-4">Handcrafted with Love</h1>
               <p className="text-xl mb-8">Unique, handmade knitted & crochet creations</p>
-              <div className="space-x-4">
-                <Link 
-                  href="/shop" 
-                  className="bg-white text-gray-900 px-8 py-3 rounded-full text-lg font-medium hover:bg-gray-100 transition-colors"
-                >
-                  Shop Now
-                </Link>
-                <Link 
-                  href="/become-seller" 
-                  className="bg-transparent border-2 border-white text-white px-8 py-3 rounded-full text-lg font-medium hover:bg-white hover:text-gray-900 transition-colors"
-                >
-                  Become a Seller
-                </Link>
-              </div>
+              <Link
+                href="/shop"
+                className="inline-block bg-white text-gray-900 px-8 py-3 rounded-full font-medium hover:bg-gray-100 transition-colors"
+              >
+                Shop Now
+              </Link>
             </div>
           </div>
         </div>

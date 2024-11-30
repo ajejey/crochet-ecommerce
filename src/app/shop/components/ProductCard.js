@@ -15,7 +15,7 @@ export default function ProductCard({ product }) {
     e.preventDefault();
     try {
       const result = await addToCart({
-        productId: product.$id,
+        productId: product._id,
         quantity: 1
       });
 
@@ -35,10 +35,10 @@ export default function ProductCard({ product }) {
   };
 
   return (
-    <Link href={`/shop/product/${product.$id}`}>
+    <Link href={`/shop/product/${product._id}`}>
       <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
         {/* Sale Badge */}
-        {product.sale_price && (
+        {product.salePrice && (
           <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
             SALE
           </div>
@@ -58,7 +58,7 @@ export default function ProductCard({ product }) {
         {/* Image */}
         <div className="aspect-square relative overflow-hidden bg-gray-100 mb-2">
           <Image
-            src={product.image_urls?.[0] || '/placeholder.png'}
+            src={product.mainImage || '/placeholder-product.jpg'}
             alt={product.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -78,15 +78,15 @@ export default function ProductCard({ product }) {
           </h3>
 
           {/* Rating */}
-          {product.rating && (
+          {product.averageRating > 0 && (
             <div className="flex items-center gap-1 mb-2">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
               <span className="text-sm text-gray-600">
-                {product.rating.toFixed(1)}
+                {product.averageRating.toFixed(1)}
               </span>
-              {product.reviews_count && (
+              {product.totalReviews > 0 && (
                 <span className="text-xs text-gray-500">
-                  ({product.reviews_count})
+                  ({product.totalReviews})
                 </span>
               )}
             </div>
@@ -95,9 +95,9 @@ export default function ProductCard({ product }) {
           {/* Price */}
           <div className="flex items-center gap-2 mb-3">
             <span className="font-bold text-gray-800">
-              {formatPrice(product.sale_price || product.price)}
+              {formatPrice(product.salePrice || product.price)}
             </span>
-            {product.sale_price && (
+            {product.salePrice && (
               <span className="text-sm text-gray-500 line-through">
                 {formatPrice(product.price)}
               </span>
@@ -107,7 +107,7 @@ export default function ProductCard({ product }) {
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
           >
             <ShoppingCart className="w-4 h-4" />
             Add to Cart

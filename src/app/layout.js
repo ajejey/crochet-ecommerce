@@ -86,7 +86,6 @@ export const metadata = {
     'product-types': 'sweaters, bags, accessories',
   },
 };
-// <meta name="google-site-verification" content="LgcU2T6ZKqKdHZMC6rtrQajvPuX-Y7W-aqHpb0ya1hs" />
 
 export const viewport = {
   width: "device-width",
@@ -95,9 +94,6 @@ export const viewport = {
 }
 
 export default async function RootLayout({ children }) {
-   // Add this line temporarily
-  //  const dbInit = await database.initialize()
-  //  console.log('Database initialization: --------------------------------------------------', dbInit)
   return (
     <html lang="en">
       <body
