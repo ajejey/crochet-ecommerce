@@ -79,7 +79,7 @@ function DynamicStats({ stats }) {
       />
       <StatCard
         title="Total Revenue"
-        value={`$${stats.totalRevenue.toLocaleString()}`}
+        value={`₹${stats.totalRevenue.toLocaleString()}`}
         IconComponent={DynamicIcons.DollarSign}
         trend={stats.revenueTrend}
       />

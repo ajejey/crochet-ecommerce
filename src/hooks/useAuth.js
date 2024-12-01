@@ -1,36 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 
+const fetcher = async (url) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch user');
+  return res.json();
+};
+
 export function useAuth() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const router = useRouter();
+  const { data, error, mutate } = useSWR('/api/auth/check', fetcher, {
+    revalidateOnFocus: false,     // Don't revalidate on tab focus - rely on session cookie
+    revalidateOnReconnect: true,  // Revalidate on reconnect to ensure session is still valid
+    refreshInterval: 0,           // Don't auto-refresh - rely on session cookie
+    dedupingInterval: 0,          // No deduping needed for auth - immediate revalidation when requested
+    shouldRetryOnError: false,    // Don't retry on error - auth errors are usually permanent
+    keepPreviousData: true,       // Keep showing previous user data while revalidating
+  });
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/check');
-        const data = await response.json();
-        
-        if (data.authenticated && data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error('Auth check error:', err);
-        setError(err);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
+  const loading = !data && !error;
+  const user = data?.authenticated ? data.user : null;
 
   const logout = async () => {
     try {
@@ -40,23 +31,26 @@ export function useAuth() {
       const data = await response.json();
       
       if (data.success) {
-        setUser(null);
-        router.push('/login'); // Redirect to login page
+        await mutate(null, { revalidate: false }); // Clear cache without revalidation
+        router.push('/login');
       } else {
         throw new Error(data.error || 'Failed to logout');
       }
     } catch (err) {
       console.error('Logout error:', err);
-      setError(err);
     }
   };
+
+  // Force revalidation when needed (e.g., after user updates their profile)
+  const refresh = () => mutate();
 
   return {
     user,
     loading,
     error,
     logout,
+    refresh,                    // Expose refresh function for manual revalidation
     isAuthenticated: !!user,
-    isSeller: user?.role === 'seller'
+    isSeller: user?.role === 'seller',
   };
 }

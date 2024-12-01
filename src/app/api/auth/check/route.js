@@ -2,6 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { createSessionClient } from '@/appwrite/config';
+import { User } from '@/models/User';
+import dbConnect from '@/lib/mongodb';
 
 export async function GET() {
   try {
@@ -14,12 +16,21 @@ export async function GET() {
     const { account } = await createSessionClient(sessionCookie.value);
     const user = await account.get();
 
+    // Get user role from MongoDB
+    await dbConnect();
+    const mongoUser = await User.findOne({ appwriteId: user.$id })
+      .select('role')
+      .lean();
+
+    console.log('Authenticated user:', { ...user, role: mongoUser?.role });
+
     return Response.json({ 
       authenticated: true, 
       user: {
-        id: user.$id,
+        $id: user.$id,
+        name: user.name,
         email: user.email,
-        name: user.name
+        role: mongoUser?.role || 'user', // Default to 'user' if not found in MongoDB
       }
     });
   } catch (error) {

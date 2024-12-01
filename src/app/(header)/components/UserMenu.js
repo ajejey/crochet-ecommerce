@@ -20,20 +20,22 @@ export default function UserMenu() {
       <div className="flex items-center gap-2">
         <Link
           href="/login"
-          className="hidden sm:flex items-center gap-2 text-gray-700 hover:text-gray-900"
+          className="flex items-center gap-1 text-gray-700 hover:text-gray-900"
         >
           <User className="w-5 h-5" />
-          <span>Login</span>
+          <span className="hidden sm:inline">Login</span>
         </Link>
         <Link
           href="/become-seller"
-          className="hidden sm:block bg-indigo-600 text-white px-4 py-2 rounded-full text-sm hover:bg-indigo-700 transition-colors"
+          className="bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-full text-sm hover:bg-indigo-700 transition-colors whitespace-nowrap"
         >
-          Become a Seller
+          <span className="hidden sm:inline">Become a </span>Seller
         </Link>
       </div>
     );
   }
+
+  console.log("user ", user)
 
   return (
     <div className="relative">

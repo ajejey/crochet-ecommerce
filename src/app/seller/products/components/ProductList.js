@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-re
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { deleteProduct, updateProductStatus } from './actions';
+import { deleteProduct, updateProductStatus } from '../actions';
 import { useState } from 'react';
 import { PRODUCT_CATEGORIES } from '@/constants/product';
 
@@ -69,16 +69,6 @@ export default function ProductList({ initialProducts }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Your Products</h1>
-        <Link
-          href="/seller/products/add"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Add New Product
-        </Link>
-      </div>
 
       {products ? (
         products.length === 0 ? (

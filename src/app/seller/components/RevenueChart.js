@@ -1,6 +1,7 @@
 'use client';
 
 import { Line } from 'react-chartjs-2';
+import { formatPrice } from '@/utils/format';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -67,10 +68,7 @@ export default function RevenueChart({ data, loading = false }) {
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-              }).format(context.parsed.y);
+              label += formatPrice(context.parsed.y);
             }
             return label;
           }
@@ -87,12 +85,7 @@ export default function RevenueChart({ data, loading = false }) {
         beginAtZero: true,
         ticks: {
           callback: function(value) {
-            return new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            }).format(value);
+            return formatPrice(value);
           },
         },
       },

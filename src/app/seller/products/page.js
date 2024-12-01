@@ -3,7 +3,7 @@ import { Product } from '@/models/Product';
 import dbConnect from '@/lib/mongodb';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProductList from './ProductList';
+import ProductList from './components/ProductList';
 
 export default async function ProductsPage() {
   // This will redirect if not a seller

@@ -32,7 +32,7 @@ export default function MainHeader({ isMenuOpen, onMenuToggle }) {
             </Link>
           </div>
 
-          {/* Center: Search */}
+          {/* Center: Search (Desktop) */}
           <div className="flex-grow max-w-3xl hidden lg:block">
             <SearchBar />
           </div>
@@ -63,6 +63,11 @@ export default function MainHeader({ isMenuOpen, onMenuToggle }) {
             {/* User Menu */}
             <UserMenu />
           </div>
+        </div>
+
+        {/* Search Bar (Mobile) */}
+        <div className="lg:hidden py-4">
+          <SearchBar />
         </div>
       </div>
     </div>
