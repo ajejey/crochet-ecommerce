@@ -100,6 +100,25 @@ export const requireSeller = async () => {
   };
 };
 
+// Helper to check if user is admin
+export async function requireAdmin() {
+  const user = await getAuthUser();
+  
+  if (!user || user.role !== 'admin') {
+    redirect('/');
+  }
+
+  return user;
+}
+
+// Admin middleware helper
+export function withAdmin(handler) {
+  return async function adminMiddleware(params) {
+    const user = await requireAdmin();
+    return handler({ ...params, user });
+  };
+}
+
 // Auth middleware helper
 export const withAuth = (handler, options = {}) => {
   return async function authWrapper(...args) {
