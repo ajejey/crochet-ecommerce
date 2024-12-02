@@ -18,6 +18,8 @@ export const getAuthUser = cache(async () => {
     const { account } = await createSessionClient(sessionCookie.value);
     const appwriteUser = await account.get();
 
+    console.log("APPWRITE USER ------------------ ", appwriteUser)
+
     // Get or create MongoDB user
     let mongoUser = await User.findOne({ appwriteId: appwriteUser.$id })
       .populate('sellerProfile');
@@ -69,14 +71,18 @@ export const requireAuth = async (redirectTo = '/login') => {
 // Helper to check if user is a seller
 export const requireSeller = async () => {
   const user = await requireAuth('/login');
+
+  console.log("user in requireSeller", user)
   
-  if (user.role !== 'seller') {
+  if (user.role !== 'seller' && user.role !== 'admin') {
     redirect('/become-seller');
   }
 
   // Get the latest seller profile directly from MongoDB
   await dbConnect();
   const sellerProfile = await SellerProfile.findOne({ userId: user.$id });
+
+  console.log("sellerProfile in requireSeller", sellerProfile)
   
   if (!sellerProfile) {
     redirect('/become-seller');
@@ -91,7 +97,7 @@ export const requireSeller = async () => {
   }
 
   if (sellerProfile.status !== 'active') {
-    throw new Error('Your seller account is not active. Please contact support.');
+    redirect('/become-seller?error=inactive');
   }
 
   return {
