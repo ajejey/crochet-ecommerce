@@ -113,3 +113,33 @@ export async function updateSellerStatus(sellerId, status) {
     throw error;
   }
 }
+
+export async function approveSeller(sellerId) {
+  try {
+    await requireAdmin();
+    await dbConnect();
+
+    const seller = await SellerProfile.findById(sellerId);
+    if (!seller) {
+      return { success: false, message: 'Seller not found' };
+    }
+
+    // Update seller status to active
+    seller.status = 'active';
+    await seller.save();
+
+    // Get associated user to include in response
+    const user = await User.findOne({ appwriteId: seller.userId });
+
+    return {
+      success: true,
+      seller: {
+        ...seller.toObject(),
+        user: user ? { name: user.name, email: user.email } : null
+      }
+    };
+  } catch (error) {
+    console.error('Failed to approve seller:', error);
+    return { success: false, message: 'Failed to approve seller' };
+  }
+}

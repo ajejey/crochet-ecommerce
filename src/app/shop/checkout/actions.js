@@ -39,55 +39,80 @@ export async function createOrder(orderData) {
       return { success: false, message: 'Cart is empty' };
     }
 
-    // Get the first product to get seller information
-    const firstProduct = cartItems[0].product;
+    // Group items by seller
+    const itemsBySeller = cartItems.reduce((acc, item) => {
+      const sellerId = item.product.sellerId;
+      if (!acc[sellerId]) {
+        acc[sellerId] = [];
+      }
+      acc[sellerId].push(item);
+      return acc;
+    }, {});
 
-    // Calculate fees and amounts
-    const platformFeePercentage = 0.10; // 10% platform fee
-    const platformFee = orderData.total * platformFeePercentage;
-    const sellerAmount = orderData.total - platformFee;
+    const orders = [];
+    const orderItems = [];
 
-    // Create the order document
-    const order = await Order.create({
-      buyerId: user.$id,
-      buyerEmail: user.email,
-      buyerName: orderData.name,
-      buyerPhone: orderData.phone,
-      sellerId: firstProduct.sellerId,
-      totalAmount: orderData.total,
-      platformFee: platformFee,
-      sellerAmount: sellerAmount,
-      status: 'pending',
-      paymentStatus: 'pending',
-      razorpayOrderId: '',
-      razorpayPaymentId: '',
-      shippingAddress: orderData.address,
-      shippingCity: orderData.city,
-      shippingState: orderData.state,
-      shippingPincode: orderData.pincode
-    });
+    // Create orders for each seller
+    for (const [sellerId, items] of Object.entries(itemsBySeller)) {
+      // Calculate total for this seller's items
+      const sellerTotal = items.reduce((sum, item) => {
+        const itemPrice = (item.variant ? item.variant.price : item.product.price) * item.quantity;
+        return sum + itemPrice;
+      }, 0);
 
-    // Create order items
-    const orderItems = await Promise.all(cartItems.map(async (item) => {
-      return OrderItem.create({
-        orderId: order._id,
-        productId: item.product._id,
-        variantId: item.variant?._id || null,
-        quantity: item.quantity,
-        price: item.variant ? item.variant.price : item.product.price
+      // Calculate fees and amounts for this seller
+      const platformFeePercentage = 0.10; // 10% platform fee
+      const platformFee = sellerTotal * platformFeePercentage;
+      const sellerAmount = sellerTotal - platformFee;
+
+      // Create order for this seller
+      const order = await Order.create({
+        buyerId: user.$id,
+        buyerEmail: user.email,
+        buyerName: orderData.name,
+        buyerPhone: orderData.phone,
+        sellerId: sellerId,
+        totalAmount: sellerTotal,
+        platformFee: platformFee,
+        sellerAmount: sellerAmount,
+        status: 'pending',
+        paymentStatus: 'pending',
+        razorpayOrderId: '',
+        razorpayPaymentId: '',
+        shippingAddress: orderData.address,
+        shippingCity: orderData.city,
+        shippingState: orderData.state,
+        shippingPincode: orderData.pincode
       });
-    }));
+
+      orders.push(order);
+
+      // Create order items for this seller's order
+      const sellerOrderItems = await Promise.all(items.map(async (item) => {
+        return OrderItem.create({
+          orderId: order._id,
+          productId: item.product._id,
+          variantId: item.variant?._id || null,
+          quantity: item.quantity,
+          price: item.variant ? item.variant.price : item.product.price
+        });
+      }));
+
+      orderItems.push(...sellerOrderItems);
+    }
 
     // Clear cart items
     await CartItem.deleteMany({ cartId });
 
     return {
       success: true,
-      message: 'Order created successfully',
-      order: {
+      message: 'Orders created successfully',
+      orders: orders.map(order => ({
         ...order.toObject(),
-        items: orderItems.map(item => item.toObject())
-      }
+        items: orderItems
+          .filter(item => item.orderId.toString() === order._id.toString())
+          .map(item => item.toObject())
+      }))
     };
 
   } catch (error) {

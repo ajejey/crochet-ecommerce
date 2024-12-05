@@ -1,111 +1,165 @@
 'use client';
 
 import { useState } from 'react';
-import { Building2 } from 'lucide-react';
-import { registerSeller } from './actions';
 import { useRouter } from 'next/navigation';
+import { createAdminClient } from '@/appwrite/config';
+import { ID } from 'node-appwrite';
+import AccountStep from './components/AccountStep';
+import ShopDetailsStep from './components/ShopDetailsStep';
+import VerificationStep from './components/VerificationStep';
+import { registerSeller } from './actions';
+import { createAccount } from '../signup/actions';
 
 export default function SellerRegistrationForm() {
+  const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [formData, setFormData] = useState({});
   const router = useRouter();
 
-  async function handleSubmit(e) {
+  const steps = [
+    { number: 1, name: 'Account' },
+    { number: 2, name: 'Shop Details' },
+    { number: 3, name: 'Verification' }
+  ];
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError('');
+    setIsSubmitting(true);
 
     try {
-      const formData = new FormData(e.target);
-      const result = await registerSeller(formData);
-      if (result.error) {
-        setError(result.error);
-      } else {
-        // Redirect to seller dashboard
+      const currentFormData = new FormData(e.target);
+      const currentStepData = Object.fromEntries(currentFormData);
+
+      // Merge the current step's data with existing form data
+      const updatedFormData = { ...formData, ...currentStepData };
+      setFormData(updatedFormData);
+
+      // If on account step, handle signup/login
+      if (step === 1) {
+        const { account } = createAdminClient();
+        const email = currentStepData.email;
+        const password = currentStepData.password;
+        const name = currentStepData.name;
+
+        try {
+          if (currentStepData.isLogin === 'true') {
+            // Handle login
+            const session = await account.createEmailPasswordSession(email, password);
+            // Store session in cookie using server action
+            const response = await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ session }),
+            });
+            if (!response.ok) {
+              throw new Error('Failed to store session');
+            }
+          } else {
+            // Handle signup using server action
+            const result = await createAccount(currentFormData);
+            if (result.error) {
+              throw new Error(result.error);
+            }
+          }
+          setStep(2);
+        } catch (error) {
+          console.error('Account error:', error);
+          setError(error.message || 'Authentication failed. Please try again.');
+          return;
+        }
+      }
+      // If on final step, handle seller registration
+      else if (step === 3) {
+        // Create a new FormData with all accumulated data
+        const finalFormData = new FormData();
+        Object.entries(updatedFormData).forEach(([key, value]) => {
+          finalFormData.append(key, value);
+        });
+        
+        const result = await registerSeller(finalFormData);
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
         router.push('/seller');
       }
-    } catch (err) {
+      // Otherwise, just move to next step
+      else {
+        setStep(step + 1);
+      }
+    } catch (error) {
+      console.error('Error:', error);
       setError('Something went wrong. Please try again.');
-      console.error(err);
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-lg shadow">
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Progress Steps */}
+      <div className="mb-8">
+        <div className="flex items-center">
+          {steps.map((s, i) => (
+            <div key={s.number} className="flex-1 relative">
+              <div className="flex flex-col items-center">
+                <div className="w-full flex items-center">
+                  <div className={`flex-1 ${i === 0 ? 'hidden' : ''} h-0.5 bg-gray-200`}></div>
+                  <div
+                    className={`relative w-10 h-10 flex items-center justify-center rounded-full border-2 ${
+                      step >= s.number
+                        ? 'bg-rose-600 border-rose-600 text-white'
+                        : 'border-gray-300 bg-white text-gray-500'
+                    }`}
+                  >
+                    {s.number}
+                  </div>
+                  <div className={`flex-1 ${i === steps.length - 1 ? 'hidden' : ''} h-0.5 bg-gray-200`}></div>
+                </div>
+                <span className="mt-2 text-xs font-medium text-gray-700">
+                  {s.name}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
+        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+          {error}
         </div>
       )}
 
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Shop Information</h2>
-        
-        <div>
-          <label htmlFor="business_name" className="block text-sm font-medium text-gray-700">
-            Business/Shop Name
-          </label>
-          <div className="mt-1 relative">
-            <input
-              type="text"
-              id="business_name"
-              name="business_name"
-              required
-              className="block w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-500"
-              placeholder="Your shop name"
-            />
-            <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-              <Building2 className="h-5 w-5 text-gray-400" />
-            </div>
-          </div>
-        </div>
+      {/* Step Components */}
+      {step === 1 && (
+        <AccountStep isSubmitting={isSubmitting} error={error} />
+      )}
 
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Shop Description
-          </label>
-          <div className="mt-1">
-            <textarea
-              id="description"
-              name="description"
-              rows={4}
-              required
-              className="block w-full rounded-md border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-500"
-              placeholder="Tell us about your shop and what you sell..."
-            />
-          </div>
-        </div>
-      </div>
+      {step === 2 && (
+        <ShopDetailsStep 
+          onBack={handleBack} 
+          initialData={formData}
+        />
+      )}
 
-      <div className="flex items-center justify-end space-x-4">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-500"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {isSubmitting ? 'Registering...' : 'Register as Seller'}
-        </button>
-      </div>
+      {step === 3 && (
+        <VerificationStep 
+          onBack={handleBack} 
+          isSubmitting={isSubmitting} 
+          initialData={formData}
+        />
+      )}
     </form>
   );
 }

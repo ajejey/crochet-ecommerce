@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getSellers } from '../actions';
+import { getSellers, approveSeller } from '../actions';
+import { toast } from 'sonner';
 
 export default function SellersTable({ initialData }) {
   const searchParams = useSearchParams();
@@ -11,6 +12,7 @@ export default function SellersTable({ initialData }) {
   const [status, setStatus] = useState('all');
   const [isPending, startTransition] = useTransition();
   const [data, setData] = useState(initialData);
+  const [processingId, setProcessingId] = useState(null);
 
   const currentPage = Number(searchParams.get('page')) || 1;
 
@@ -48,6 +50,31 @@ export default function SellersTable({ initialData }) {
       });
       setData(result);
     });
+  };
+
+  const handleApprove = async (sellerId) => {
+    setProcessingId(sellerId);
+    try {
+      const result = await approveSeller(sellerId);
+      if (result.success) {
+        // Update the local data
+        setData(prev => ({
+          ...prev,
+          sellers: prev.sellers.map(seller =>
+            seller._id === sellerId
+              ? { ...seller, status: 'active' }
+              : seller
+          )
+        }));
+        toast.success('Seller approved successfully');
+      } else {
+        toast.error(result.message || 'Failed to approve seller');
+      }
+    } catch (error) {
+      toast.error('Failed to approve seller');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   if (!data) return <div>Failed to load sellers</div>;
@@ -123,7 +150,13 @@ export default function SellersTable({ initialData }) {
                   <td className="px-6 py-4 space-x-2">
                     <button className="text-indigo-600 hover:text-indigo-900">View</button>
                     {seller.status === 'pending' && (
-                      <button className="text-green-600 hover:text-green-900">Approve</button>
+                      <button 
+                        onClick={() => handleApprove(seller._id)}
+                        disabled={processingId === seller._id}
+                        className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                      >
+                        {processingId === seller._id ? 'Approving...' : 'Approve'}
+                      </button>
                     )}
                     {seller.status === 'active' && (
                       <button className="text-red-600 hover:text-red-900">Suspend</button>

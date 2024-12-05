@@ -1,4 +1,5 @@
 import localFont from "next/font/local";
+import { Inter, Playfair_Display, DM_Sans, Plus_Jakarta_Sans } from 'next/font/google';
 import "./globals.css";
 import database from "@/appwrite/database";
 import { CartProvider } from './components/CartProvider';
@@ -13,6 +14,16 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+});
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
+const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' });
+
+const plusJakarta = Plus_Jakarta_Sans({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-heading'
 });
 
 export const metadata = {
@@ -93,11 +104,11 @@ export const viewport = {
   themeColor: "#4A90E2",
 }
 
-export default async function RootLayout({ children }) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className={plusJakarta.variable}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${playfair.variable} ${dmSans.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <CartProvider>
           {children}

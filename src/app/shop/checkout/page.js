@@ -99,14 +99,14 @@ export default function CheckoutPage() {
 
       if (result.success) {
         await refreshCart();
-        toast.success('Order placed successfully!');
+        toast.success('Orders created successfully!');
         router.push('/shop/orders');
       } else {
-        toast.error(result.message || 'Failed to place order');
+        toast.error(result.message || 'Failed to create order');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error('Something went wrong. Please try again.');
+      toast.error('Failed to process order. Please try again.');
     } finally {
       setIsProcessing(false);
     }

@@ -29,7 +29,7 @@ export default function AdminNavigation() {
       : "text-gray-700 hover:bg-gray-100";
 
     return (
-      <Link href={href} className={`${baseClasses} ${activeClasses}`}>
+      <Link href={href} className={`${baseClasses} ${activeClasses}`} prefetch={true}>
         <Icon className="w-5 h-5 mr-3" />
         <span className="font-medium">{label}</span>
       </Link>

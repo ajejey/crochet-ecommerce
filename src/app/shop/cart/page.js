@@ -28,7 +28,7 @@ export default function CartPage() {
 
   const handleQuantityChange = async (itemId, newQuantity) => {
     try {
-      const item = cartItems.find(item => item._id === itemId);
+      const item = cartItems.find(item => item.$id === itemId);
       if (!item?.product) {
         toast.error('Product not found');
         return;
@@ -48,12 +48,12 @@ export default function CartPage() {
       // Optimistic update
       const previousItems = cartItems;
       let optimisticData = cartItems.map(item =>
-        item._id === itemId ? { ...item, quantity: newQuantity } : item
+        item.$id === itemId ? { ...item, quantity: newQuantity } : item
       );
 
       // If quantity is 0, remove the item
       if (newQuantity <= 0) {
-        optimisticData = optimisticData.filter(item => item._id !== itemId);
+        optimisticData = optimisticData.filter(item => item.$id !== itemId);
       }
 
       mutate('cart-items', optimisticData, false);
@@ -84,7 +84,7 @@ export default function CartPage() {
     try {
       // Optimistic update
       const previousItems = cartItems;
-      const optimisticData = cartItems.filter(item => item._id !== itemId);
+      const optimisticData = cartItems.filter(item => item.$id !== itemId);
       
       mutate('cart-items', optimisticData, false);
 
@@ -164,7 +164,7 @@ export default function CartPage() {
           const productName = item.product.name;
           
           return (
-            <div key={item._id} className="flex items-center gap-4 p-4 border rounded-lg">
+            <div key={item.$id} className="flex items-center gap-4 p-4 border rounded-lg">
               <div className="relative w-24 h-24">
                 <Image
                   src={productImage}
@@ -188,7 +188,7 @@ export default function CartPage() {
               
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleQuantityChange(item._id, (item.quantity || 0) - 1)}
+                  onClick={() => handleQuantityChange(item.$id, (item.quantity || 0) - 1)}
                   className="w-8 h-8 flex items-center justify-center border rounded"
                   disabled={!item.product}
                 >
@@ -196,7 +196,7 @@ export default function CartPage() {
                 </button>
                 <span className="w-8 text-center">{item.quantity || 0}</span>
                 <button
-                  onClick={() => handleQuantityChange(item._id, (item.quantity || 0) + 1)}
+                  onClick={() => handleQuantityChange(item.$id, (item.quantity || 0) + 1)}
                   className="w-8 h-8 flex items-center justify-center border rounded"
                   disabled={!item.product}
                 >
@@ -205,7 +205,7 @@ export default function CartPage() {
               </div>
               
               <button
-                onClick={() => handleRemove(item._id)}
+                onClick={() => handleRemove(item.$id)}
                 className="text-red-600 hover:text-red-800"
                 disabled={!item.product}
               >
