@@ -130,6 +130,35 @@ export async function getFilteredProducts({
   }
 }
 
+// Get active products for homepage with optimized query
+export async function getActiveProducts() {
+  try {
+    await dbConnect();
+    const products = await Product.find({ 
+      status: 'active',
+      featured: true 
+    })
+      .select('name price images rating sellerId') // Only select fields we need
+      .sort({ 'metadata.salesCount': -1 }) // Sort by sales count for better relevance
+      .limit(6)
+      .lean();
+
+    // Transform the data for frontend
+    return products.map(product => ({
+      _id: product._id.toString(),
+      name: product.name,
+      price: product.price,
+      images: product.images || [],
+      rating: product.rating?.average || 0,
+      numReviews: product.rating?.count || 0,
+      sellerId: product.sellerId
+    }));
+  } catch (error) {
+    console.error('Error fetching active products:', error);
+    return [];
+  }
+}
+
 export async function getProduct(productId) {
   try {
     await dbConnect();

@@ -20,14 +20,14 @@ export default function UserMenu() {
       <div className="flex items-center gap-2">
         <Link
           href="/login"
-          className="flex items-center gap-1 text-gray-700 hover:text-gray-900"
+          className="flex items-center gap-1 text-gray-700 hover:text-rose-600 transition-colors"
         >
           <User className="w-5 h-5" />
           <span className="hidden sm:inline">Login</span>
         </Link>
         <Link
           href="/become-seller"
-          className="bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-full text-sm hover:bg-indigo-700 transition-colors whitespace-nowrap"
+          className="bg-rose-600 text-white px-3 sm:px-4 py-2 rounded-full text-sm hover:bg-rose-700 transition-colors whitespace-nowrap"
         >
           <span className="hidden sm:inline">Become a </span>Seller
         </Link>
@@ -42,9 +42,9 @@ export default function UserMenu() {
       {/* User Avatar/Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+        className="flex items-center gap-2 text-gray-700 hover:text-rose-600 transition-colors"
       >
-        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center">
           {user.image ? (
             <img
               src={user.image}
@@ -52,7 +52,7 @@ export default function UserMenu() {
               className="w-8 h-8 rounded-full"
             />
           ) : (
-            <User className="w-5 h-5 text-indigo-600" />
+            <User className="w-5 h-5 text-rose-600" />
           )}
         </div>
         <span className="hidden sm:block">{user.name}</span>
@@ -64,7 +64,7 @@ export default function UserMenu() {
           {(user.role === 'seller' || user.role === 'admin') && (
             <Link
               href="/seller"
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
               onClick={() => setIsOpen(false)}
             >
               <Store className="w-4 h-4" />
@@ -74,7 +74,7 @@ export default function UserMenu() {
           
           <Link
             href="/orders"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
             onClick={() => setIsOpen(false)}
           >
             <Package className="w-4 h-4" />
@@ -83,7 +83,7 @@ export default function UserMenu() {
           
           <Link
             href="/settings"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors"
             onClick={() => setIsOpen(false)}
           >
             <Settings className="w-4 h-4" />
@@ -95,7 +95,7 @@ export default function UserMenu() {
               setIsOpen(false);
               await logout();
             }}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-rose-50 hover:text-rose-600 transition-colors w-full"
           >
             <LogOut className="w-4 h-4" />
             Logout

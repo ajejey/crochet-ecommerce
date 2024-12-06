@@ -5,7 +5,6 @@ import { useInView } from 'react-intersection-observer';
 import { Loader2 } from 'lucide-react';
 import { getFilteredProducts } from '../actions';
 import useSWRInfinite from 'swr/infinite';
-import FilterSection from './FilterSection';
 import ProductGrid from './ProductGrid';
 
 // Create a fetcher that uses our server action
@@ -55,9 +54,6 @@ export default function ProductsSection({ products, pagination, initialFilters }
 
   return (
     <div className="space-y-6">
-
-      <FilterSection initialFilters={initialFilters} />
-      
       <ProductGrid products={allProducts} />
 
       {/* Load More */}

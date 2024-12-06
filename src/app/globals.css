@@ -4,11 +4,11 @@
 
 :root {
   /* Color Palette */
-  --color-primary: #E07A5F;
-  --color-secondary: #81B29A;
-  --color-background: #F4F1DE;
-  --color-text: #3D405B;
-  --color-accent: #F2CC8F;
+  --color-primary: #E11D48;  /* rose-600 */
+  --color-secondary: #FDA4AF; /* rose-300 */
+  --color-background: #FFF1F2; /* rose-50 */
+  --color-text: #1F2937;  /* gray-800 */
+  --color-accent: #FB7185;  /* rose-400 */
 
   /* Typography */
   --font-heading: var(--font-plus-jakarta);

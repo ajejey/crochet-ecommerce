@@ -36,27 +36,27 @@ export default function ProductCard({ product }) {
 
   return (
     <Link href={`/shop/product/${product._id}`}>
-      <div className="group relative bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+      <div className="group relative bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
         {/* Sale Badge */}
         {product.salePrice && (
-          <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+          <div className="absolute top-3 left-3 z-10 bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full">
             SALE
           </div>
         )}
         
         {/* Wishlist Button */}
         <button 
-          className="absolute top-2 right-2 z-10 p-2 bg-white/80 rounded-full hover:bg-white transition-colors"
+          className="absolute top-3 right-3 z-10 p-2.5 bg-white rounded-full hover:bg-rose-50 transition-colors shadow-md"
           onClick={(e) => {
             e.preventDefault();
             toast.success('Added to wishlist');
           }}
         >
-          <Heart className="w-4 h-4 text-gray-600 hover:text-red-500 transition-colors" />
+          <Heart className="w-4 h-4 text-gray-400 hover:text-rose-600 transition-colors" />
         </button>
 
         {/* Image */}
-        <div className="aspect-square relative overflow-hidden bg-gray-100 mb-2">
+        <div className="aspect-square relative overflow-hidden bg-gray-50">
           <Image
             src={product.mainImage || '/placeholder-product.jpg'}
             alt={product.name}
@@ -66,26 +66,26 @@ export default function ProductCard({ product }) {
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-5">
           {/* Category */}
-          <div className="text-xs text-purple-600 font-medium mb-1">
+          <div className="text-xs font-medium text-rose-600 tracking-wider uppercase mb-2">
             {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
           </div>
 
           {/* Title */}
-          <h3 className="font-semibold text-gray-800 mb-1 line-clamp-1">
+          <h3 className="font-semibold text-gray-900 text-lg mb-2 line-clamp-1 group-hover:text-rose-600 transition-colors">
             {product.name}
           </h3>
 
           {/* Rating */}
           {product.averageRating > 0 && (
-            <div className="flex items-center gap-1 mb-2">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              <span className="text-sm font-medium text-gray-700">
                 {product.averageRating.toFixed(1)}
               </span>
               {product.totalReviews > 0 && (
-                <span className="text-xs text-gray-500">
+                <span className="text-sm text-gray-500">
                   ({product.totalReviews})
                 </span>
               )}
@@ -93,8 +93,8 @@ export default function ProductCard({ product }) {
           )}
 
           {/* Price */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="font-bold text-gray-800">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl font-bold text-gray-900">
               {formatPrice(product.salePrice || product.price)}
             </span>
             {product.salePrice && (
@@ -107,7 +107,7 @@ export default function ProductCard({ product }) {
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+            className="w-full bg-rose-600 text-white py-3 rounded-xl font-medium hover:bg-rose-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <ShoppingCart className="w-4 h-4" />
             Add to Cart

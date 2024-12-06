@@ -10,16 +10,16 @@ export default function CategoryNav({ isMenuOpen }) {
 
   return (
     <nav className="border-b bg-white">
-      <div className="max-w-8xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-8 h-12">
           {PRODUCT_CATEGORIES.map((category) => (
             <Link
               key={category.value}
               href={`/shop?category=${category.value}`}
-              className={`text-sm font-medium transition-colors hover:text-indigo-600 ${
+              className={`text-sm font-medium transition-colors hover:text-rose-600 ${
                 isActive(`/shop?category=${category.value}`)
-                  ? 'text-indigo-600'
+                  ? 'text-rose-600'
                   : 'text-gray-700'
               }`}
             >
@@ -29,23 +29,25 @@ export default function CategoryNav({ isMenuOpen }) {
         </div>
 
         {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="lg:hidden py-4 space-y-4">
-            {PRODUCT_CATEGORIES.map((category) => (
-              <Link
-                key={category.value}
-                href={`/shop?category=${category.value}`}
-                className={`block text-sm font-medium transition-colors hover:text-indigo-600 ${
-                  isActive(`/shop?category=${category.value}`)
-                    ? 'text-indigo-600'
-                    : 'text-gray-700'
-                }`}
-              >
-                {category.label}
-              </Link>
-            ))}
-          </div>
-        )}
+        <div
+          className={`lg:hidden ${
+            isMenuOpen ? 'block' : 'hidden'
+          } py-4 space-y-4`}
+        >
+          {PRODUCT_CATEGORIES.map((category) => (
+            <Link
+              key={category.value}
+              href={`/shop?category=${category.value}`}
+              className={`block text-sm font-medium transition-colors hover:text-rose-600 ${
+                isActive(`/shop?category=${category.value}`)
+                  ? 'text-rose-600'
+                  : 'text-gray-700'
+              }`}
+            >
+              {category.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </nav>
   );

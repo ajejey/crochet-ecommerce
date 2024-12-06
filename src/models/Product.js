@@ -28,6 +28,11 @@ const ProductSchema = new mongoose.Schema({
     enum: PRODUCT_CATEGORIES.map(cat => cat.id),
     index: true 
   },
+  featured: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   material: { 
     type: String, 
     required: true 

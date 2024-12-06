@@ -6,19 +6,18 @@ import UserMenu from './UserMenu';
 import SearchBar from './SearchBar';
 import { useCart } from '@/app/components/CartProvider';
 
-// This is a client component that receives the server-side user data
 export default function MainHeader({ isMenuOpen, onMenuToggle }) {
   const { itemCount } = useCart();
 
   return (
-    <div className="border-b">
-      <div className="max-w-8xl mx-auto px-4 py-4">
+    <div className="border-b bg-white shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-8">
           {/* Left: Menu Button (Mobile) & Logo */}
           <div className="flex items-center gap-4">
             <button
               onClick={onMenuToggle}
-              className="p-2 -m-2 lg:hidden"
+              className="p-2 -m-2 lg:hidden text-gray-500 hover:text-gray-700"
               aria-label="Toggle menu"
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -26,47 +25,44 @@ export default function MainHeader({ isMenuOpen, onMenuToggle }) {
             
             <Link 
               href="/" 
-              className="text-2xl font-medium font-serif ml-2 text-indigo-800 hover:text-indigo-600 transition-colors"
+              className="text-2xl font-bold tracking-widest text-rose-600 hover:text-rose-700 transition-colors"
             >
-              CraftedWithLove
+              KnitKart
             </Link>
           </div>
 
-          {/* Center: Search (Desktop) */}
-          <div className="flex-grow max-w-3xl hidden lg:block">
+          {/* Center: Search */}
+          <div className="flex-1 max-w-2xl hidden sm:block">
             <SearchBar />
           </div>
 
-          {/* Right: Actions */}
+          {/* Right: Cart, Wishlist, User */}
           <div className="flex items-center gap-4">
-            {/* Wishlist */}
-            <Link 
-              href="/wishlist" 
-              className="hidden sm:flex items-center p-2 -m-2 text-gray-600 hover:text-gray-900"
+            <Link
+              href="/wishlist"
+              className="p-2 -m-2 text-gray-500 hover:text-rose-600 transition-colors relative hidden sm:block"
             >
-              <Heart className="w-6 h-6" />
+              <Heart size={24} />
             </Link>
 
-            {/* Cart */}
-            <Link 
-              href="/shop/cart" 
-              className="flex items-center p-2 -m-2 text-gray-600 hover:text-gray-900 relative"
+            <Link
+              href="/cart"
+              className="p-2 -m-2 text-gray-500 hover:text-rose-600 transition-colors relative"
             >
-              <ShoppingCart className="w-6 h-6" />
+              <ShoppingCart size={24} />
               {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {itemCount}
                 </span>
               )}
             </Link>
 
-            {/* User Menu */}
             <UserMenu />
           </div>
         </div>
 
-        {/* Search Bar (Mobile) */}
-        <div className="lg:hidden py-4">
+        {/* Mobile Search (Below Header) */}
+        <div className="mt-4 sm:hidden">
           <SearchBar />
         </div>
       </div>

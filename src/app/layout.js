@@ -28,34 +28,34 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata = {
   title: {
-    default: 'Knotted With Love | Handcrafted Crochet & Knitted Treasures',
-    template: '%s | Knotted With Love'
+    default: 'KnitKart | Modern Crochet & Knitted Essentials',
+    template: '%s | KnitKart'
   },
-  description: 'Discover unique, handmade crochet and knitted items at Knotted With Love. From cozy sweaters to stylish bags, each piece is crafted with care using eco-friendly materials. Shop our collection for one-of-a-kind, artisanal creations that blend comfort with contemporary design.',
-  keywords: ['crochet', 'handmade', 'knitted', 'bags', 'sweaters', 'eco-friendly', 'artisanal', 'custom orders', 'sustainable fashion', 'handcrafted accessories'],
-  authors: [{ name: 'Knotted With Love Team' }],
-  creator: 'Knotted With Love',
-  publisher: 'Knotted With Love',
+  description: 'Discover modern, handcrafted crochet and knitted items at KnitKart. From cozy sweaters to contemporary accessories, each piece is crafted with precision using premium materials. Shop our curated collection of artisanal creations that blend tradition with modern design.',
+  keywords: ['crochet', 'handmade', 'knitted', 'accessories', 'sweaters', 'premium', 'artisanal', 'custom orders', 'modern fashion', 'handcrafted essentials'],
+  authors: [{ name: 'KnitKart Team' }],
+  creator: 'KnitKart',
+  publisher: 'KnitKart',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://www.knottedwithlove.com'),
+  metadataBase: new URL('https://knitkart.in'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Knotted With Love | Handcrafted Crochet & Knitted Treasures',
-    description: 'Explore our collection of unique, handmade crochet and knitted items. From cozy sweaters to stylish bags, each piece is crafted with love using eco-friendly materials.',
-    url: 'https://www.knottedwithlove.com',
-    siteName: 'Knotted With Love',
+    title: 'KnitKart | Modern Crochet & Knitted Essentials',
+    description: 'Explore our collection of modern, handcrafted crochet and knitted items. From cozy sweaters to contemporary accessories, each piece is crafted with precision using premium materials.',
+    url: 'https://knitkart.in',
+    siteName: 'KnitKart',
     images: [
       {
         url: '/opengraph-image.png', 
         width: 1200,
         height: 630,
-        alt: 'Knotted With Love - Handcrafted Crochet & Knitted Items',
+        alt: 'KnitKart - Modern Crochet & Knitted Essentials',
       },
     ],
     locale: 'en_US',
@@ -74,8 +74,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Knotted With Love | Handcrafted Crochet & Knitted Treasures',
-    description: 'Discover unique, handmade crochet and knitted items. From cozy sweaters to stylish bags, each piece is crafted with care using eco-friendly materials.',
+    title: 'KnitKart | Modern Crochet & Knitted Essentials',
+    description: 'Discover modern, handcrafted crochet and knitted items. From cozy sweaters to contemporary accessories, each piece is crafted with precision.',
     images: ['/opengraph-image.png'],
   },
   verification: {
@@ -91,17 +91,17 @@ export const metadata = {
   },
   other: {
     'custom-made': 'true',
-    'eco-friendly': 'true',
+    'premium-quality': 'true',
     'handcrafted': 'true',
     'material': 'yarn, cotton, wool',
-    'product-types': 'sweaters, bags, accessories',
+    'product-types': 'sweaters, accessories, home decor',
   },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#4A90E2",
+  themeColor: "#E11D48", // Rose-600 from Tailwind
 }
 
 export default function RootLayout({ children }) {
