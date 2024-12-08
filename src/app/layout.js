@@ -1,7 +1,6 @@
 import localFont from "next/font/local";
 import { Inter, Playfair_Display, DM_Sans, Plus_Jakarta_Sans } from 'next/font/google';
 import "./globals.css";
-import database from "@/appwrite/database";
 import { CartProvider } from './components/CartProvider';
 import { Toaster } from 'sonner';
 
