@@ -25,7 +25,7 @@ export default function MainHeader({ isMenuOpen, onMenuToggle }) {
             
             <Link 
               href="/" 
-              className="text-2xl font-bold tracking-widest text-rose-600 hover:text-rose-700 transition-colors"
+              className="font-allura text-3xl font-bold tracking-widest text-rose-600 hover:text-rose-700 transition-colors"
             >
               KnitKart
             </Link>

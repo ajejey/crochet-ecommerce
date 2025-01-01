@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 import { PRODUCT_CATEGORIES, PRODUCT_STATUSES } from '../constants/product';
 
+const WeightSchema = new mongoose.Schema({
+  value: { type: Number, min: 0 },
+  unit: { type: String, enum: ['g', 'oz'], default: 'g' }
+}, { _id: false });
+
 const ProductSchema = new mongoose.Schema({
   name: { 
     type: String, 
@@ -71,7 +76,7 @@ const ProductSchema = new mongoose.Schema({
     full: String
   },
   specifications: {
-    weight: Number,
+    weight: { type: WeightSchema },
     dimensions: {
       length: Number,
       width: Number,

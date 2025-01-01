@@ -1,0 +1,14 @@
+This is a ecommerce platform for buying and selling crochet products. The platform is built using Next.js and MongoDB.
+We are using the following technologies:
+- Next.js (Javascript)
+- Tailwind CSS (CSS)
+- MongoDB (Database)
+- Appwrite for authentication and file storage
+- Every route has page.js, layout.js, actions.js, loader.js, and components folder for the page.
+- Use server components as much as possible
+- Use server actions as much as possible instead of making api routes (unless needed)
+- If client side data fetching is needed, use SWR library
+
+Think from the perspective of the end user. Always make the user experience as smooth as possible. And the UI should be as elegant as possible.
+All pages andlayouts should be responsive and mobile first.
+We use Indian rupee for all prices and currency.

@@ -14,7 +14,7 @@ export default function CreatorsGrid({ creators, pagination }) {
       {/* Sort Options */}
       <div className="flex justify-end">
         <select
-          className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-rose-500 focus:border-rose-500 sm:text-sm rounded-md"
+          className="block w-48 pl-3 pr-10 py-2 text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 rounded-lg bg-white shadow-sm transition-shadow duration-200"
           value={searchParams.get('sort') || 'newest'}
           onChange={(e) => {
             const params = new URLSearchParams(searchParams);
@@ -31,66 +31,51 @@ export default function CreatorsGrid({ creators, pagination }) {
       </div>
 
       {/* Creators Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {creators.map((creator) => (
           <Link
             key={creator.userId}
             href={`/creators/${creator.userId}`}
             className="group"
           >
-            <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-200 hover:-translate-y-1">
+            <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200/50 overflow-hidden transition duration-300 hover:shadow-md hover:-translate-y-1">
               {/* Creator Banner/Image */}
-              <div className="relative h-48 bg-gray-100">
+              <div className="relative h-40 sm:h-48 bg-gray-50">
                 {creator.bannerImage ? (
                   <Image
                     src={creator.bannerImage.url}
                     alt={creator.bannerImage.alt || creator.businessName}
                     fill
-                    className="object-cover"
+                    className="object-cover transition duration-700 ease-in-out group-hover:scale-105"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-rose-50 flex items-center justify-center">
-                    <span className="text-rose-500 text-lg font-medium">
-                      {creator.businessName[0]}
-                    </span>
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-50 to-gray-100" />
                 )}
               </div>
 
               {/* Creator Info */}
               <div className="p-4">
-                <h3 className="text-lg font-medium text-gray-900 group-hover:text-rose-600 transition-colors">
-                  {creator.businessName}
-                </h3>
-                
-                <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                  {creator.description || 'Crafting beautiful crochet pieces'}
-                </p>
-
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-medium text-gray-900 truncate group-hover:text-rose-600 transition-colors">
+                    {creator.businessName}
+                  </h3>
+                  <div className="flex items-center text-amber-400">
+                    <Star className="w-4 h-4 fill-current" />
                     <span className="ml-1 text-sm text-gray-600">
                       {creator.metadata.rating.average.toFixed(1)} ({creator.metadata.rating.count})
                     </span>
                   </div>
-                  <span className="text-sm text-gray-500">
-                    {creator.metadata.productsCount} products
+                </div>
+                
+                <p className="text-sm text-gray-500 line-clamp-2">
+                  {creator.description || 'Crafting beautiful crochet pieces'}
+                </p>
+                
+                <div className="mt-3 flex items-center text-sm text-gray-500">
+                  <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">
+                    {creator.metadata.productsCount} {creator.metadata.productsCount === 1 ? 'Product' : 'Products'}
                   </span>
                 </div>
-
-                {creator.specialties && creator.specialties.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {creator.specialties.slice(0, 3).map((specialty, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800"
-                      >
-                        {specialty}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </Link>

@@ -6,186 +6,126 @@ import {
   Facebook, 
   Twitter, 
   Youtube,
+  Pinterest,
+  Globe,
   MessageCircle,
   MapPin,
   Package,
-  Users,
-  ExternalLink,
-  Info
+  Users
 } from 'lucide-react';
 
 const socialIcons = {
+  website: Globe,
   instagram: Instagram,
   facebook: Facebook,
   twitter: Twitter,
-  youtube: Youtube
+  youtube: Youtube,
+  pinterest: Pinterest
 };
 
-export default function CreatorHeader({ 
-  businessName = "Beautiful Designers",
-  location = "Mumbai, India",
-  profileImage,
-  socialLinks = {},
-  productsCount = 0,
-  followersCount = 0,
-  isFollowing = false
-}) {
+export default function CreatorHeader({ creator }) {
+  const {
+    businessName,
+    displayLocation,
+    description,
+    profileImage,
+    socialLinks = {},
+    metadata = {}
+  } = creator || {};
+
+  const { productsCount = 0, reviewsCount = 0, followersCount = 0 } = metadata;
+
   return (
-    <header className="sticky top-0 z-50 bg-white border-b">
-      <div className="px-4 py-3 sm:px-6 sm:py-4">
-        {/* Mobile Layout */}
-        <div className="sm:hidden">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <div className="relative h-12 w-12 rounded-full overflow-hidden">
-                {profileImage ? (
-                  <Image
-                    src={profileImage}
-                    alt={businessName}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-rose-100 flex items-center justify-center">
-                    <span className="text-rose-600 text-lg font-semibold">
-                      {businessName.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
+    <div className="bg-white border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+        {/* Main Container - Column on mobile, Row on desktop */}
+        <div className="flex flex-row md:items-start md:gap-8">
+          {/* Profile Image */}
+          <div className="relative w-20 h-20 md:w-32 md:h-32 rounded-full overflow-hidden bg-rose-50 shrink-0">
+            {profileImage?.url ? (
+              <Image
+                src={profileImage.url}
+                alt={profileImage.alt || businessName}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl md:text-4xl font-semibold text-rose-500">
+                {businessName?.[0]}
               </div>
-              <div>
-                <h1 className="font-semibold text-lg leading-tight">{businessName}</h1>
-                <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="h-3.5 w-3.5 mr-1" />
-                  {location}
+            )}
+          </div>
+
+          <div className="flex flex-col flex-1 min-w-0">
+            {/* Info Container */}
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between flex-1 gap-4 ml-4 md:ml-0">
+              {/* Creator Info */}
+              <div className="space-y-4">
+                <div>
+                  <h1 className="text-xl md:text-3xl font-bold text-gray-900 sm:tracking-tight">
+                    {businessName}
+                  </h1>
+                  {displayLocation && (
+                    <div className="mt-1 flex items-center text-sm text-gray-500">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      {displayLocation}
+                    </div>
+                  )}
+                  {description && (
+                    <p className="mt-2 text-sm text-gray-600 max-w-2xl">
+                      {description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Stats */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center text-gray-600">
+                    <Package className="h-4 w-4 mr-1" />
+                    <span>{productsCount} Products</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <Users className="h-4 w-4 mr-1" />
+                    <span>{followersCount} Followers</span>
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                <div className="flex gap-3">
+                  {Object.entries(socialLinks).map(([platform, url]) => {
+                    if (!url) return null; // Don't show if no URL
+                    const Icon = socialIcons[platform];
+                    if (!Icon) return null;
+                    return (
+                      <a
+                        key={platform}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors"
+                        title={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <Info className="h-5 w-5 text-gray-600" />
-            </button>
-          </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="flex items-center justify-center p-2 bg-gray-50 rounded-lg">
-              <Package className="h-4 w-4 text-gray-600 mr-1.5" />
-              <span className="text-sm font-medium">{productsCount} Products</span>
-            </div>
-            <div className="flex items-center justify-center p-2 bg-gray-50 rounded-lg">
-              <Users className="h-4 w-4 text-gray-600 mr-1.5" />
-              <span className="text-sm font-medium">{followersCount} Followers</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex -space-x-1">
-              {Object.entries(socialIcons).map(([platform, url]) => {
-                const Icon = socialIcons[platform];
-                if (!Icon) return null;
-                
-                return url ? (
-                  <div title={`Visit ${platform}`} key={platform}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative inline-flex items-center justify-center h-8 w-8 bg-white border border-gray-200 rounded-full hover:bg-gray-50"
-                    >
-                      <Icon className="h-4 w-4" />
-                      {/* <ExternalLink className="absolute -top-0.5 -right-0.5 h-3 w-3" /> */}
-                    </a>
-                  </div>
-                ) : (
-                  <div
-                    key={platform}
-                    className="inline-flex items-center justify-center h-8 w-8 bg-gray-100 border border-gray-200 rounded-full text-gray-400 cursor-not-allowed"
-                  >
-                    <Icon className="h-4 w-4" />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full">
-                <MessageCircle className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full">
-                <MapPin className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
-        <div className="hidden sm:flex sm:items-center sm:justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="relative h-16 w-16">
-              {profileImage ? (
-                <Image
-                  src={profileImage}
-                  alt={businessName}
-                  fill
-                  className="object-cover rounded-full"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-rose-200 rounded-full">
-                  <span className="text-2xl font-bold text-rose-600">
-                    {businessName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold">{businessName}</h1>
-              <div className="flex items-center mt-1 text-gray-600">
-                <MapPin className="h-4 w-4 mr-1" />
-                {location}
+              {/* Actions - Full width on mobile, auto width on desktop */}
+              <div className="flex gap-3 w-full md:w-auto">
+                <button className="flex-1 md:flex-initial inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
+                  Follow
+                </button>
+                <button className="flex-1 md:flex-initial inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Message
+                </button>
               </div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center text-gray-600">
-                <Package className="h-5 w-5 mr-1.5" />
-                <span>{productsCount} Products</span>
-              </div>
-              <div className="flex items-center text-gray-600">
-                <Users className="h-5 w-5 mr-1.5" />
-                <span>{followersCount} Followers</span>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              {Object.entries(socialIcons).map(([platform, url]) => {
-                const Icon = socialIcons[platform];
-                if (!Icon) return null;
-                
-                return url ? (
-                  <div title={`Visit ${platform}`} key={platform}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative inline-flex items-center justify-center h-10 w-10 bg-white border border-gray-200 rounded-full hover:bg-gray-50"
-                    >
-                      <Icon className="h-5 w-5" />
-                      {/* <ExternalLink className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5" /> */}
-                    </a>
-                  </div>
-                ) : (
-                  <div
-                    key={platform}
-                    className="inline-flex items-center justify-center h-10 w-10 bg-gray-100 border border-gray-200 rounded-full text-gray-400 cursor-not-allowed"
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>
       </div>
-    </header>
+    </div>
   );
 }

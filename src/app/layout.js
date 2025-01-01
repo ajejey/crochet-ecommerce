@@ -1,5 +1,5 @@
 import localFont from "next/font/local";
-import { Inter, Playfair_Display, DM_Sans, Plus_Jakarta_Sans } from 'next/font/google';
+import { Inter, Playfair_Display, DM_Sans, Plus_Jakarta_Sans, Leckerli_One, Allura } from 'next/font/google';
 import "./globals.css";
 import { CartProvider } from './components/CartProvider';
 import { Toaster } from 'sonner';
@@ -15,9 +15,13 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' });
 const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-dm-sans' });
+const leckerli = Leckerli_One({ subsets: ['latin'], variable: '--font-leckerli', weight: '400' });
+const allura = Allura({ subsets: ['latin'], variable: '--font-allura', weight: '400' });
+
 
 const plusJakarta = Plus_Jakarta_Sans({ 
   subsets: ['latin'],
@@ -107,7 +111,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={plusJakarta.variable}>
       <body
-        className={`${inter.variable} ${playfair.variable} ${dmSans.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${playfair.variable} ${dmSans.variable} ${geistSans.variable} ${geistMono.variable} ${leckerli.variable} ${allura.variable} antialiased`}
       >
         <CartProvider>
           {children}

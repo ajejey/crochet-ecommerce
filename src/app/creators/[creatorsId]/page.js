@@ -32,10 +32,10 @@ export default async function CreatorPage({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <CreatorHeader creator={creator} />
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Suspense fallback={<LoadingSpinner />}>
           <CreatorTabs 
             initialProducts={initialProducts}

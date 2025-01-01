@@ -13,6 +13,17 @@ export default function CategoryNav({ isMenuOpen }) {
       <div className="max-w-7xl mx-auto px-4">
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-8 h-12">
+          {/* link to creators route */}
+          <Link
+            href="/creators"
+            className={`text-sm font-medium transition-colors hover:text-rose-600 ${
+              isActive('/creators')
+                ? 'text-rose-600'
+                : 'text-gray-700'
+            }`}
+          >
+            Creators
+          </Link>
           {PRODUCT_CATEGORIES.map((category) => (
             <Link
               key={category.value}

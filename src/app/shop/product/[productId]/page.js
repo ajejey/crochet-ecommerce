@@ -1,10 +1,9 @@
+
 import { getProduct, getProductReviews } from '../../actions';
 import { notFound } from 'next/navigation';
-import ProductGallery from './components/ProductGallery';
-import ProductInfo from './components/ProductInfo';
-import ProductReviews from './components/ProductReviews';
 import { Suspense } from 'react';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
+import MainLayout from './components/MainLayout';
 
 export async function generateMetadata({ params }) {
   const product = await getProduct(params.productId);
@@ -17,11 +16,11 @@ export async function generateMetadata({ params }) {
   }
 
   return {
-    title: `${product.name} | Crochet Store`,
-    description: product.description,
+    title: `${product.name} | KnitKart`,
+    description: product.description?.short || product.description?.full || product.name,
     openGraph: {
       title: product.name,
-      description: product.description,
+      description: product.description?.short || product.description?.full || product.name,
       images: [product.mainImage],
     },
   };
@@ -37,33 +36,13 @@ export default async function ProductPage({ params }) {
     notFound();
   }
 
+  
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Product Gallery */}
-        <div className="sticky top-8">
-          <Suspense fallback={<LoadingSpinner />}>
-            <ProductGallery images={product.images} name={product.name} />
-          </Suspense>
-        </div>
-
-        {/* Product Information */}
-        <div>
-          <Suspense fallback={<LoadingSpinner />}>
-            <ProductInfo product={product} initialReviews={initialReviews} />
-          </Suspense>
-        </div>
-      </div>
-
-      {/* Reviews Section */}
-      <div className="mt-16">
-        <Suspense fallback={<LoadingSpinner />}>
-          <ProductReviews
-            productId={params.productId}
-            initialReviews={initialReviews}
-          />
-        </Suspense>
-      </div>
+    <div className="max-w-7xl mx-auto">
+      <Suspense fallback={<LoadingSpinner />}>
+        <MainLayout product={product} initialReviews={initialReviews} params={params} />
+      </Suspense>
     </div>
   );
 }

@@ -15,17 +15,23 @@ export default async function CreatorsPage({
   const { creators, pagination } = await getActiveCreators(searchParams);
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50/50">
       <CreatorsHeader />
       
-      <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="w-full lg:w-64 space-y-6">
-          <CreatorsSearch />
-        </aside>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Sidebar */}
+          <aside className="w-full lg:w-64 shrink-0">
+            <div className="sticky top-24 space-y-6">
+              <CreatorsSearch />
+            </div>
+          </aside>
 
-        <main className="flex-1">
-          <CreatorsGrid creators={creators} pagination={pagination} />
-        </main>
+          {/* Main Content */}
+          <main className="flex-1 min-w-0">
+            <CreatorsGrid creators={creators} pagination={pagination} />
+          </main>
+        </div>
       </div>
     </div>
   );

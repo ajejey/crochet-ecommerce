@@ -11,6 +11,10 @@ module.exports = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        leckerli: ['var(--font-leckerli)'],
+        allura: ['var(--font-allura)'],
+      },
     },
   },
   plugins: [],

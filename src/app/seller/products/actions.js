@@ -7,6 +7,7 @@ import dbConnect from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/appwrite/config';
 import { ID } from 'node-appwrite';
+import slugify from 'slugify';
 
 export async function getProduct(productId) {
   try {
@@ -22,7 +23,7 @@ export async function getProduct(productId) {
       return { error: 'Product not found' };
     }
 
-    // Convert to plain object and pick only necessary fields
+    // Convert to plain object and include all fields
     const plainProduct = {
       _id: product._id.toString(),
       name: product.name,
@@ -30,6 +31,7 @@ export async function getProduct(productId) {
       price: product.price,
       salePrice: product.salePrice,
       category: product.category,
+      featured: product.featured,
       material: product.material,
       size: product.size,
       status: product.status,
@@ -38,13 +40,24 @@ export async function getProduct(productId) {
         id: img.id,
         isMain: img.isMain
       })) || [],
+      tags: product.tags || [],
+      specifications: {
+        weight: product.specifications?.weight || { value: 0, unit: 'g' },
+        dimensions: product.specifications?.dimensions || { length: 0, width: 0, height: 0 },
+        colors: product.specifications?.colors || [],
+        patterns: product.specifications?.patterns || []
+      },
       inventory: {
         stockCount: product.inventory?.stockCount || 0,
-        sku: product.inventory?.sku
+        lowStockThreshold: product.inventory?.lowStockThreshold || 5,
+        sku: product.inventory?.sku || '',
+        allowBackorder: product.inventory?.allowBackorder || false
       },
-      rating: {
-        average: product.rating?.average || 0,
-        count: product.rating?.count || 0
+      metadata: {
+        views: product.metadata?.views || 0,
+        favorites: product.metadata?.favorites || 0,
+        salesCount: product.metadata?.salesCount || 0,
+        searchKeywords: product.metadata?.searchKeywords || []
       },
       createdAt: product.createdAt?.toISOString(),
       updatedAt: product.updatedAt?.toISOString()
@@ -58,17 +71,15 @@ export async function getProduct(productId) {
 }
 
 export async function createProduct(formData) {
-  console.log("formData ", formData)
   try {
     const user = await getAuthUser();
     if (!user) {
       return { error: 'Not authenticated' };
     }
 
-    console.log("Found user ", user)
-    await dbConnect();
+    console.log("user in create product", user)
 
-    console.log("dbConnected")
+    await dbConnect();
 
     // Get seller profile to ensure user is a seller
     const sellerProfile = await SellerProfile.findOne({ userId: user.$id });
@@ -76,75 +87,105 @@ export async function createProduct(formData) {
       return { error: 'Seller profile not found' };
     }
 
-    console.log("Found sellerProfile ", sellerProfile)
+    console.log("seller profile in create product", sellerProfile)
 
     // Parse image URLs and IDs
     const imageUrls = JSON.parse(formData.get('imageUrls') || '[]');
     const imageIds = JSON.parse(formData.get('imageIds') || '[]');
 
-    console.log("imageUrls ", imageUrls)
-    console.log("imageIds ", imageIds)
+    console.log("imageUrls in create product", imageUrls)
+    console.log("imageIds in create product", imageIds)
 
     if (imageUrls.length === 0) {
       return { error: 'At least one product image is required' };
     }
 
+    // Generate slug from name
+    const name = formData.get('name');
+    const slug = slugify(name, { lower: true, strict: true });
+
+    console.log("name in create product", name)
+    console.log("slug in create product", slug)
+
     // Create the product
     const productData = {
       sellerId: user.$id,
-      name: formData.get('name'),
-      description: formData.get('description'),
+      name,
+      slug,
+      description: {
+        short: formData.get('shortDescription'),
+        full: formData.get('fullDescription')
+      },
       price: parseFloat(formData.get('price')),
+      salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
       category: formData.get('category'),
+      featured: formData.get('featured') === 'on',
       material: formData.get('material'),
       size: formData.get('size'),
+      status: formData.get('status') || 'draft',
       images: imageUrls.map((url, index) => ({
         url,
         id: imageIds[index],
-        isMain: index === 0
+        isMain: index === 0 // First image is main by default
       })),
-      status: 'active',
+      tags: formData.get('tags')?.split(',').map(tag => tag.trim()).filter(Boolean) || [],
+      specifications: {
+        // weight: {
+        //   value: parseFloat(formData.get('weight')) || 0,
+        //   unit: formData.get('weightUnit') || 'g'
+        // },
+        dimensions: {
+          length: parseFloat(formData.get('length')) || 0,
+          width: parseFloat(formData.get('width')) || 0,
+          height: parseFloat(formData.get('height')) || 0
+        },
+        colors: formData.get('colors')?.split(',').map(color => color.trim()).filter(Boolean) || [],
+        patterns: formData.get('patterns')?.split(',').map(pattern => pattern.trim()).filter(Boolean) || []
+      },
       inventory: {
-        stockCount: parseInt(formData.get('stockCount'), 10) || 0,
-        sku: formData.get('sku') || undefined
+        stockCount: parseInt(formData.get('quantity')) || 0,
+        lowStockThreshold: parseInt(formData.get('lowStockThreshold')) || 5,
+        sku: formData.get('sku'),
+        allowBackorder: formData.get('allowBackorders') === 'on'
+      },
+      metadata: {
+        views: 0,
+        favorites: 0,
+        salesCount: 0,
+        searchKeywords: formData.get('searchKeywords')?.split(',').map(kw => kw.trim()).filter(Boolean) || []
       }
     };
 
-    console.log("productData ", productData)
+    console.log('Product data:', productData);
 
-    // Validate required fields
-    if (!productData.name || !productData.price || !productData.category || 
-        !productData.material || !productData.size) {
-      return { error: 'Please fill in all required fields' };
+    // Validate sale price is less than regular price
+    if (productData.salePrice && productData.salePrice >= productData.price) {
+      return { error: 'Sale price must be less than regular price' };
     }
-    console.log("Creating product in DB")
+
     const product = await Product.create(productData);
 
-    console.log("Created product in DB ", product) 
+    console.log('Created product:', product);
 
     // Update seller's product count
-    await SellerProfile.findOneAndUpdate(
+    await SellerProfile.updateOne(
       { userId: user.$id },
-      { $inc: { 'metadata.productsCount': 1 } }
+      { 
+        $inc: { 'metadata.productsCount': 1 },
+        $set: { 
+          updatedAt: new Date(),
+          ...(product.status === 'active' ? { 'metadata.activeProductsCount': { $inc: 1 } } : {})
+        }
+      }
     );
 
-    console.log("Updated seller's product count")
+    console.log('Updated seller profile:', sellerProfile);
 
-    // Instead of revalidating the path, we'll return the product data
-    // and handle the navigation client-side
-    return { 
-      success: true, 
-      product: {
-        _id: product._id.toString(),
-        name: product.name,
-        price: product.price,
-        category: product.category,
-        status: product.status
-      }
-    };
+    revalidatePath('/seller/products');
+    return { success: true, productId: product._id };
   } catch (error) {
     console.error('Error creating product:', error);
-    return { error: error.message || 'Error creating product' };
+    return { error: error.message || 'Failed to create product' };
   }
 }
 

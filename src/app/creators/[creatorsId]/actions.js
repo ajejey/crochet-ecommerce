@@ -137,26 +137,25 @@ export async function getCreatorStats(creatorId) {
   try {
     await dbConnect();
     
-    const stats = await SellerProfile.aggregate([
-      { $match: { userId: creatorId } },
-      {
-        $project: {
-          totalProducts: '$metadata.productsCount',
-          totalSales: '$metadata.totalSales',
-          rating: '$metadata.rating',
-          joinedDate: '$createdAt',
-          businessName: 1,
-          description: 1,
-          bannerImage: 1,
-          profileImage: 1,
-          specialties: 1,
-          socialLinks: 1,
-          shopPolicies: 1
-        }
-      }
+    // Get seller profile
+    const sellerProfile = await SellerProfile.findOne({ userId: creatorId }).lean();
+    if (!sellerProfile) return null;
+
+    // Get real-time counts
+    const [productsCount, reviewsCount] = await Promise.all([
+      Product.countDocuments({ sellerId: creatorId, status: 'active' }),
+      SellerReview.countDocuments({ sellerId: creatorId })
     ]);
 
-    return stats[0] || null;
+    // Combine profile data with real-time stats
+    return {
+      ...sellerProfile,
+      metadata: {
+        ...sellerProfile.metadata,
+        productsCount,
+        reviewsCount
+      }
+    };
   } catch (error) {
     console.error('Error fetching creator stats:', error);
     throw new Error('Failed to fetch creator stats');

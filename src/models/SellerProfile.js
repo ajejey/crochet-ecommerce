@@ -18,6 +18,10 @@ const sellerProfileSchema = new mongoose.Schema({
     index: true
   },
   description: String,
+  displayLocation: {
+    type: String,
+    trim: true
+  },
   bannerImage: {
     id: String,
     url: String,
@@ -34,7 +38,9 @@ const sellerProfileSchema = new mongoose.Schema({
     website: String,
     instagram: String,
     facebook: String,
-    twitter: String
+    twitter: String,
+    youtube: String,
+    pinterest: String
   },
   shopPolicies: {
     shipping: String,
@@ -64,6 +70,8 @@ const sellerProfileSchema = new mongoose.Schema({
     productsCount: { type: Number, default: 0 },
     ordersCount: { type: Number, default: 0 },
     totalSales: { type: Number, default: 0 },
+    followersCount: { type: Number, default: 0 },
+    followingCount: { type: Number, default: 0 },
     rating: { 
       average: { type: Number, default: 0 },
       count: { type: Number, default: 0 }
@@ -82,5 +90,16 @@ sellerProfileSchema.virtual('products', {
   localField: 'userId',
   foreignField: 'sellerId'
 });
+
+// Helper method to get display location
+sellerProfileSchema.methods.getDisplayLocation = function() {
+  if (this.displayLocation) return this.displayLocation;
+  
+  const parts = [];
+  if (this.address?.city) parts.push(this.address.city);
+  if (this.address?.country) parts.push(this.address.country);
+  
+  return parts.length > 0 ? parts.join(', ') : null;
+};
 
 export const SellerProfile = mongoose.models.SellerProfile || mongoose.model('SellerProfile', sellerProfileSchema);

@@ -38,7 +38,7 @@ export default function CreatorTabs({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Follow Button and Stats */}
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <button
           onClick={handleFollow}
           className={`inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-sm font-medium transition-colors
@@ -59,11 +59,11 @@ export default function CreatorTabs({
             <MapPin className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex overflow-x-auto" aria-label="Tabs">
+        <nav className="-mb-px flex overflow-x-auto hide-scrollbar" aria-label="Tabs">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -71,20 +71,32 @@ export default function CreatorTabs({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  flex items-center whitespace-nowrap py-2 px-1 sm:py-4 sm:px-2 border-b-2 text-xs sm:text-sm font-medium min-w-0
+                  flex-1 flex flex-col items-center justify-center whitespace-nowrap py-3 px-3 sm:py-4 sm:px-6 border-b-2 text-[13px] sm:text-sm font-medium
                   ${activeTab === tab.id
                     ? 'border-rose-500 text-rose-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }
                 `}
               >
-                <Icon className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2" />
+                <Icon className="h-5 w-5 sm:h-5 sm:w-5 mb-1 sm:mb-0 sm:mr-2" />
+                <span className="sm:hidden">{tab.label}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
             );
           })}
         </nav>
       </div>
+
+      {/* Add scrollbar hiding styles */}
+      <style jsx global>{`
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
 
       {/* Tab Content */}
       <div>

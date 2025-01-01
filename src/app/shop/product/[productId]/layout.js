@@ -10,9 +10,9 @@ export default async function ProductLayout({ children, params }) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto">
       {/* Breadcrumb */}
-      <nav className="mb-4">
+      {/* <nav className="mb-4">
         <ol className="flex items-center space-x-2 text-sm text-gray-500">
           <li>
             <Link href="/shop" className="hover:text-purple-600">Shop</Link>
@@ -26,7 +26,7 @@ export default async function ProductLayout({ children, params }) {
           <li>•</li>
           <li className="text-gray-900 font-medium">{product.name}</li>
         </ol>
-      </nav>
+      </nav> */}
 
       {children}
     </div>
