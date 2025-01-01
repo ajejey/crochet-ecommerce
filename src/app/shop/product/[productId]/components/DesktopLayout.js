@@ -52,8 +52,7 @@ export default function DesktopLayout({
             <section>
               <h2 className="text-2xl font-medium mb-6">Product Details</h2>
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <div className="prose prose-gray max-w-none">
-                  {product.description?.full}
+                <div dangerouslySetInnerHTML={{ __html: product.description?.full }} className="prose prose-gray max-w-none">
                 </div>
               </div>
             </section>

@@ -211,7 +211,10 @@ export async function updateProduct(productId, formData) {
       productId,
       {
         name: formData.get('name'),
-        description: formData.get('description'),
+        description: {
+          short: formData.get('shortDescription'),
+          full: formData.get('fullDescription')
+        },
         price: parseFloat(formData.get('price')),
         salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
         category: formData.get('category'),

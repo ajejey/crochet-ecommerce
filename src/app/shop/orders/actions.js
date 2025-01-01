@@ -59,9 +59,9 @@ export async function getOrders() {
         ...item,
         product: {
           ...item.productId,
-          mainImage: item.productId.images?.find(img => img.isMain)?.url || 
-                    item.productId.images?.[0]?.url || 
-                    '/placeholder-product.jpg'
+          mainImage: (item.productId?.images?.find(img => img.isMain)?.url || 
+                    item.productId?.images?.[0]?.url || 
+                    '/placeholder-product.jpg')
         }
       }));
 

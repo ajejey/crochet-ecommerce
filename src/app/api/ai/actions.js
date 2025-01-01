@@ -118,7 +118,8 @@ For the product name:
 - Create an SEO-optimized name that includes key features
 - Use power words that trigger emotional response
 - Keep it clear and memorable
-- Example: "Luxurious Hand-Crocheted Merino Wool Baby Blanket with Vintage Rose Pattern"
+- Keep it under 4 words
+- Example: "Heirloom-quality Baby Blanket"
 
 For the short description:
 - Open with a compelling hook that addresses a specific need or desire
@@ -126,7 +127,7 @@ For the short description:
 - End with a clear call-to-action
 - Example: "Wrap your little one in pure comfort with this heirloom-quality baby blanket. Expertly crocheted from premium merino wool, each stitch carries the warmth of handmade love. Order now to give a gift that will be treasured for generations."
 
-For the full description, structure it as follows (but don't include the headings):
+For the full description, write in HTML, well formatted and styled format (give inline styling where needed) and structure it as follows (but don't include the headings):
 
 EMOTIONAL HOOK:
 - Start with an engaging scenario or question

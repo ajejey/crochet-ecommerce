@@ -33,6 +33,8 @@ export default function EditProductPage({ params }) {
     fetchProduct();
   }, [params.id, router]);
 
+  console.log("product ", product)
+
   async function handleSubmit(formData) {
     try {
       const result = await updateProduct(params.id, formData);

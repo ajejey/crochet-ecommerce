@@ -46,7 +46,7 @@ export default function MainHeader({ isMenuOpen, onMenuToggle }) {
             </Link>
 
             <Link
-              href="/cart"
+              href="/shop/cart"
               className="p-2 -m-2 text-gray-500 hover:text-rose-600 transition-colors relative"
             >
               <ShoppingCart size={24} />

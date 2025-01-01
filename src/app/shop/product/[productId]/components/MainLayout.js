@@ -77,8 +77,7 @@ const MainLayout = ({ product, initialReviews, params }) => {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
                 <div className="p-4">
                   <h2 className="font-medium mb-2">Product Details</h2>
-                  <div className="text-sm text-gray-600 space-y-2">
-                    {product.description?.full}
+                  <div dangerouslySetInnerHTML={{ __html: product.description?.full }} className="text-sm text-gray-600 space-y-2">
                   </div>
                 </div>
               </div>

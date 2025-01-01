@@ -117,21 +117,37 @@ export default function CartPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Shopping Cart</h1>
-        <div className="text-red-600">Error loading cart items. Please try again later.</div>
+      <div className="min-h-screen bg-white">
+        <div className="relative py-8 md:py-12">
+          <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+            
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="text-red-600">Error loading cart items. Please try again later.</div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Shopping Cart</h1>
-        <div className="animate-pulse">
-          <div className="h-24 bg-gray-200 rounded mb-4"></div>
-          <div className="h-24 bg-gray-200 rounded mb-4"></div>
-          <div className="h-24 bg-gray-200 rounded mb-4"></div>
+      <div className="min-h-screen bg-white">
+        <div className="relative py-8 md:py-12">
+          <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+            
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+                <div className="h-24 bg-gray-100 rounded-lg"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -139,13 +155,21 @@ export default function CartPage() {
 
   if (!cartItems || cartItems.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Shopping Cart</h1>
-        <div className="text-center py-8">
-          <p className="text-gray-600 mb-4">Your cart is empty</p>
-          <Link href="/shop" className="text-blue-600 hover:underline">
-            Continue Shopping
-          </Link>
+      <div className="min-h-screen bg-white">
+        <div className="relative py-8 md:py-12">
+          <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+            
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+              <p className="text-gray-600 mb-6">Your cart is empty</p>
+              <Link href="/shop">
+                <button className="px-6 py-3 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl">
+                  Continue Shopping
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -154,84 +178,101 @@ export default function CartPage() {
   console.log("cartItems ", cartItems)
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Shopping Cart</h1>
-      
-      <div className="grid gap-4">
-        {cartItems.map((item) => {
-          // Get the main image URL from the first image object
-          const productImage = item.product.images[0]?.url;
-          const productName = item.product.name;
+    <div className="min-h-screen bg-white">
+      <div className="relative py-8 md:py-12">
+        <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
           
-          return (
-            <div key={item.$id} className="flex items-center gap-4 p-4 border rounded-lg">
-              <div className="relative w-24 h-24">
-                <Image
-                  src={productImage}
-                  alt={productName}
-                  fill
-                  className="object-cover rounded-md"
-                />
-              </div>
-              
-              <div className="flex-grow">
-                <h3 className="font-semibold">{productName}</h3>
-                {item.variant && (
-                  <p className="text-sm text-gray-600">
-                    Variant: {item.variant.name}
-                  </p>
-                )}
-                <p className="text-blue-600">
-                  {formatPrice((item.product.price || 0) + (item.variant?.price_adjustment || 0))}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleQuantityChange(item.$id, (item.quantity || 0) - 1)}
-                  className="w-8 h-8 flex items-center justify-center border rounded"
-                  disabled={!item.product}
-                >
-                  -
-                </button>
-                <span className="w-8 text-center">{item.quantity || 0}</span>
-                <button
-                  onClick={() => handleQuantityChange(item.$id, (item.quantity || 0) + 1)}
-                  className="w-8 h-8 flex items-center justify-center border rounded"
-                  disabled={!item.product}
-                >
-                  +
-                </button>
-              </div>
-              
-              <button
-                onClick={() => handleRemove(item.$id)}
-                className="text-red-600 hover:text-red-800"
-                disabled={!item.product}
-              >
-                Remove
-              </button>
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              {cartItems.map((item) => {
+                const productImage = item.product.images[0]?.url;
+                const productName = item.product.name;
+                const price = (item.product.price || 0) + (item.variant?.price_adjustment || 0);
+                
+                return (
+                  <div key={item.$id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div className="relative w-full sm:w-24 h-40 sm:h-24 rounded-lg overflow-hidden">
+                        <Image
+                          src={productImage}
+                          alt={productName}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      
+                      <div className="flex-grow space-y-2">
+                        <h3 className="font-semibold text-lg text-gray-900">{productName}</h3>
+                        {item.variant && (
+                          <p className="text-sm text-gray-600">
+                            Variant: {item.variant.name}
+                          </p>
+                        )}
+                        <p className="text-rose-600 font-medium">
+                          {formatPrice(price)}
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleQuantityChange(item.$id, (item.quantity || 0) - 1)}
+                            className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                            disabled={!item.product}
+                          >
+                            -
+                          </button>
+                          <span className="w-12 text-center font-medium">{item.quantity || 0}</span>
+                          <button
+                            onClick={() => handleQuantityChange(item.$id, (item.quantity || 0) + 1)}
+                            className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                            disabled={!item.product}
+                          >
+                            +
+                          </button>
+                        </div>
+                        
+                        <button
+                          onClick={() => handleRemove(item.$id)}
+                          className="w-full sm:w-auto px-4 py-2 text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-      
-      {cartItems && cartItems.length > 0 && (
-        <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-xl font-semibold">Total</span>
-            <span className="text-2xl font-bold text-blue-600">
-              {formatPrice(calculateTotal())}
-            </span>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-fit">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Order Summary</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium text-gray-900">{formatPrice(calculateTotal())}</span>
+                </div>
+                <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+                  <span className="text-gray-600">Shipping</span>
+                  <span className="text-sm text-gray-500">Calculated at checkout</span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-lg font-semibold text-gray-900">Total</span>
+                  <span className="text-xl font-bold text-rose-600">{formatPrice(calculateTotal())}</span>
+                </div>
+                
+                <Link href="/shop/checkout" className="block mt-8">
+                  <button className="w-full px-6 py-4 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl">
+                    Proceed to Checkout
+                  </button>
+                </Link>
+              </div>
+            </div>
           </div>
-          <Link
-            href="/shop/checkout"
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-          >
-            Proceed to Checkout
-          </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }
