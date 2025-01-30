@@ -24,9 +24,9 @@ export default function CategoryNav({ isMenuOpen }) {
           >
             Creators
           </Link>
-          {PRODUCT_CATEGORIES.map((category) => (
+          {PRODUCT_CATEGORIES.map((category, index) => (
             <Link
-              key={category.value}
+              key={`${category.value}-${index}`}
               href={`/shop?category=${category.value}`}
               className={`text-sm font-medium transition-colors hover:text-rose-600 ${
                 isActive(`/shop?category=${category.value}`)
@@ -45,9 +45,9 @@ export default function CategoryNav({ isMenuOpen }) {
             isMenuOpen ? 'block' : 'hidden'
           } py-4 space-y-4`}
         >
-          {PRODUCT_CATEGORIES.map((category) => (
+          {PRODUCT_CATEGORIES.map((category, index) => (
             <Link
-              key={category.value}
+              key={`${category.value}-${index}`}
               href={`/shop?category=${category.value}`}
               className={`block text-sm font-medium transition-colors hover:text-rose-600 ${
                 isActive(`/shop?category=${category.value}`)

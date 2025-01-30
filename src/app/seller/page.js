@@ -45,7 +45,7 @@ export default async function SellerDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-20 md:pt-0">
       <DynamicStats stats={stats} />
       <RevenueChart data={stats.revenueData} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -61,7 +61,7 @@ function DynamicStats({ stats }) {
   'use client';
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatCard
         title="Active Products"
         value={stats.activeProducts}

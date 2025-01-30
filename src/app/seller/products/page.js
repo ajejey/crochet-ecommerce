@@ -16,8 +16,8 @@ export default async function ProductsPage() {
     .lean();
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center pt-20 md:pt-0">
         <h1 className="text-2xl font-bold">Products</h1>
         <Link
           href="/seller/products/add"

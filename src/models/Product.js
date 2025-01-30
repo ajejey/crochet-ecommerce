@@ -83,7 +83,31 @@ const ProductSchema = new mongoose.Schema({
       height: Number
     },
     colors: [String],
-    patterns: [String]
+    patterns: [String],
+    skillLevel: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced'],
+      index: true
+    },
+    occasion: {
+      type: String,
+      index: true
+    },
+    season: {
+      type: String,
+      enum: ['summer', 'winter', 'monsoon', 'all-season'],
+      index: true
+    },
+    ageGroup: {
+      type: String,
+      enum: ['baby', 'toddler', 'children', 'teen', 'adult'],
+      index: true
+    },
+    itemType: {
+      type: String,
+      required: true,
+      index: true
+    }
   },
   inventory: {
     stockCount: { type: Number, default: 0, required: true },
@@ -92,11 +116,11 @@ const ProductSchema = new mongoose.Schema({
     allowBackorder: { type: Boolean, default: false }
   },
   metadata: {
+    salesCount: { type: Number, default: 0 },
     views: { type: Number, default: 0 },
-    favorites: { type: Number, default: 0 },
-    salesCount: { type: Number, default: 0, index: true },
-    lastPurchased: Date,
-    searchKeywords: [String]
+    searchKeywords: [String], // Array of search keywords
+    searchVariations: [String], // Auto-generated variations
+    synonyms: [String] // Product-specific synonyms
   }
 }, {
   timestamps: true,
@@ -104,12 +128,20 @@ const ProductSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Add indexes for search and filtering
+ProductSchema.index({ name: 'text', 'description.short': 'text', 'description.full': 'text', tags: 'text' });
+ProductSchema.index({ category: 1 });
+ProductSchema.index({ price: 1 });
+ProductSchema.index({ createdAt: -1 });
+ProductSchema.index({ 'metadata.salesCount': -1 });
+ProductSchema.index({ 'rating.average': -1 });
+ProductSchema.index({ 'inventory.stockCount': 1 });
+ProductSchema.index({ status: 1 });
+
 // Compound indexes for common queries
-ProductSchema.index({ status: 1, category: 1 });
-ProductSchema.index({ status: 1, price: 1 });
+ProductSchema.index({ status: 1, category: 1, price: 1 });
 ProductSchema.index({ status: 1, 'rating.average': -1 });
 ProductSchema.index({ status: 1, 'metadata.salesCount': -1 });
-ProductSchema.index({ status: 1, createdAt: -1 });
 
 // Text index for search
 ProductSchema.index({ 
@@ -152,6 +184,51 @@ ProductSchema.pre('save', function(next) {
       .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
       .replace(/^-+|-+$/g, ''); // Remove hyphens from start and end
   }
+  next();
+});
+
+// Pre-save hook to generate search variations
+ProductSchema.pre('save', function(next) {
+  // Generate search variations if name changed
+  if (this.isModified('name')) {
+    const name = this.name.toLowerCase();
+    const variations = new Set();
+    
+    // Add original words
+    name.split(' ').forEach(word => {
+      variations.add(word);
+      // Add plural/singular variations
+      if (word.endsWith('s')) {
+        variations.add(word.slice(0, -1));
+      } else {
+        variations.add(`${word}s`);
+      }
+      // Handle 'y' to 'ies'
+      if (word.endsWith('y')) {
+        variations.add(`${word.slice(0, -1)}ies`);
+      }
+      if (word.endsWith('ies')) {
+        variations.add(`${word.slice(0, -3)}y`);
+      }
+    });
+
+    // Add common variations for clothing
+    if (this.category === 'womens-clothing') {
+      variations.add('women');
+      variations.add('womens');
+      variations.add("women's");
+      variations.add('female');
+    }
+    if (this.category === 'mens-clothing') {
+      variations.add('men');
+      variations.add('mens');
+      variations.add("men's");
+      variations.add('male');
+    }
+
+    this.metadata.searchVariations = [...variations];
+  }
+
   next();
 });
 

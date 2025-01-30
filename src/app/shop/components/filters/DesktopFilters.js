@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useFilters } from './FilterProvider';
+import { SmartFilters } from './SmartFilters';
 
 // Filter Section Component
 function FilterSection({ title, children, defaultOpen = false }) {
@@ -54,7 +55,7 @@ function CheckboxOption({ label, checked, onChange }) {
   );
 }
 
-// Star Rating Filter Option
+// Rating Filter Option
 function RatingOption({ rating, selected, onChange }) {
   return (
     <button
@@ -83,103 +84,144 @@ function RatingOption({ rating, selected, onChange }) {
 }
 
 export default function DesktopFilters() {
-  const { filters, setFilter, resetFilter } = useFilters();
+  const { filters, setFilter, resetFilter, getActiveFilterCount } = useFilters();
+  const activeCount = getActiveFilterCount();
 
   return (
     <div className="w-64 space-y-8 p-4">
-      <h2 className="text-xl font-semibold text-gray-900">Filters</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">Filters</h2>
+        {activeCount > 0 && (
+          <button
+            onClick={() => resetAllFilters()}
+            className="text-sm text-rose-600 hover:text-rose-700"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
       
-      {/* Price Range */}
-      <FilterSection title="Price Range">
-        <div className="flex items-center gap-2">
-          <PriceRangeInput
-            value={filters.priceRange.min || ''}
-            onChange={(value) => setFilter('priceRange', { ...filters.priceRange, min: value })}
-            placeholder="Min"
-          />
-          <span className="text-gray-500">to</span>
-          <PriceRangeInput
-            value={filters.priceRange.max || ''}
-            onChange={(value) => setFilter('priceRange', { ...filters.priceRange, max: value })}
-            placeholder="Max"
-          />
-        </div>
-      </FilterSection>
-
-      {/* Rating */}
-      <FilterSection title="Rating">
-        <div className="space-y-2">
-          {[5, 4, 3, 2, 1].map((rating) => (
-            <RatingOption
-              key={rating}
-              rating={rating}
-              selected={Number(filters.rating) === rating}
-              onChange={(value) => setFilter('rating', value)}
+      {/* Smart Filters */}
+      <SmartFilters />
+      
+      {/* Traditional Filters */}
+      <div className="border-t pt-6">
+        <h3 className="text-sm font-medium text-gray-900 mb-4">
+          Additional Filters
+        </h3>
+        
+        {/* Price Range */}
+        <FilterSection title="Price Range">
+          <div className="flex items-center gap-2">
+            <PriceRangeInput
+              value={filters.priceRange.min}
+              onChange={(value) => setFilter('priceRange', { ...filters.priceRange, min: value })}
+              placeholder="Min"
             />
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Availability */}
-      <FilterSection title="Availability">
-        <select
-          className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-          value={filters.availability}
-          onChange={(e) => setFilter('availability', e.target.value)}
-        >
-          <option value="all">All Items</option>
-          <option value="inStock">In Stock</option>
-          <option value="outOfStock">Out of Stock</option>
-        </select>
-      </FilterSection>
-
-      {/* Material */}
-      <FilterSection title="Material">
-        <div className="space-y-3">
-          {['Cotton', 'Wool', 'Acrylic', 'Bamboo'].map((material) => (
-            <CheckboxOption
-              key={material}
-              label={material}
-              checked={filters.materials.includes(material)}
-              onChange={(e) => {
-                if (e.target.checked) {
-                  setFilter('materials', [...filters.materials, material]);
-                } else {
-                  setFilter('materials', filters.materials.filter(m => m !== material));
-                }
-              }}
+            <span className="text-gray-500">to</span>
+            <PriceRangeInput
+              value={filters.priceRange.max}
+              onChange={(value) => setFilter('priceRange', { ...filters.priceRange, max: value })}
+              placeholder="Max"
             />
-          ))}
-        </div>
-      </FilterSection>
+          </div>
+        </FilterSection>
 
-      {/* Colors */}
-      <FilterSection title="Colors">
-        <div className="flex flex-wrap gap-3">
-          {['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'Black', 'White'].map((color) => (
-            <button
-              key={color}
-              className={`w-8 h-8 rounded-full border shadow-sm transition-all duration-200 ${
-                filters.colors.includes(color) 
-                  ? 'ring-2 ring-rose-500 ring-offset-2' 
-                  : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-              }`}
-              style={{ 
-                backgroundColor: color.toLowerCase(),
-                borderColor: ['White', 'Yellow'].includes(color) ? '#e5e7eb' : 'transparent'
-              }}
-              onClick={() => {
-                if (filters.colors.includes(color)) {
-                  setFilter('colors', filters.colors.filter(c => c !== color));
-                } else {
-                  setFilter('colors', [...filters.colors, color]);
-                }
-              }}
-              aria-label={color}
-            />
-          ))}
-        </div>
-      </FilterSection>
+        {/* Materials */}
+        <FilterSection title="Materials">
+          <div className="space-y-2">
+            {['Cotton', 'Wool', 'Acrylic', 'Bamboo', 'Mixed'].map((material) => (
+              <CheckboxOption
+                key={material}
+                label={material}
+                checked={filters.materials.includes(material)}
+                onChange={() => {
+                  const newMaterials = filters.materials.includes(material)
+                    ? filters.materials.filter(m => m !== material)
+                    : [...filters.materials, material];
+                  setFilter('materials', newMaterials);
+                }}
+              />
+            ))}
+          </div>
+        </FilterSection>
+
+        {/* Sizes */}
+        <FilterSection title="Sizes">
+          <div className="space-y-2">
+            {['XS', 'S', 'M', 'L', 'XL', 'Custom'].map((size) => (
+              <CheckboxOption
+                key={size}
+                label={size}
+                checked={filters.sizes.includes(size)}
+                onChange={() => {
+                  const newSizes = filters.sizes.includes(size)
+                    ? filters.sizes.filter(s => s !== size)
+                    : [...filters.sizes, size];
+                  setFilter('sizes', newSizes);
+                }}
+              />
+            ))}
+          </div>
+        </FilterSection>
+
+        {/* Colors */}
+        <FilterSection title="Colors">
+          <div className="grid grid-cols-2 gap-2">
+            {['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Pink', 'White', 'Black', 'Multi'].map((color) => (
+              <CheckboxOption
+                key={color}
+                label={color}
+                checked={filters.colors.includes(color)}
+                onChange={() => {
+                  const newColors = filters.colors.includes(color)
+                    ? filters.colors.filter(c => c !== color)
+                    : [...filters.colors, color];
+                  setFilter('colors', newColors);
+                }}
+              />
+            ))}
+          </div>
+        </FilterSection>
+
+        {/* Rating */}
+        <FilterSection title="Rating">
+          <div className="space-y-2">
+            {[4, 3, 2, 1].map((rating) => (
+              <RatingOption
+                key={rating}
+                rating={rating}
+                selected={filters.rating === rating}
+                onChange={(value) => setFilter('rating', value)}
+              />
+            ))}
+          </div>
+        </FilterSection>
+
+        {/* Availability */}
+        <FilterSection title="Availability">
+          <div className="space-y-2">
+            {[
+              { value: 'all', label: 'All Items' },
+              { value: 'inStock', label: 'In Stock' },
+              { value: 'outOfStock', label: 'Out of Stock' }
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center space-x-2"
+              >
+                <input
+                  type="radio"
+                  checked={filters.availability === option.value}
+                  onChange={() => setFilter('availability', option.value)}
+                  className="h-4 w-4 border-gray-300 text-rose-600 focus:ring-rose-500"
+                />
+                <span className="text-sm text-gray-600">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      </div>
     </div>
   );
 }

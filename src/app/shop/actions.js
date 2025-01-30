@@ -4,10 +4,62 @@ import dbConnect from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 import { Review } from '@/models/Review';
 import { SellerProfile } from '@/models/SellerProfile';
+import { SearchLog } from '@/models/SearchLog';
 import { getAuthUser } from '@/lib/auth-context';
 import { revalidatePath } from 'next/cache';
 
 const PRODUCTS_PER_PAGE = 12;
+
+// Constants for search configuration
+const ATLAS_SEARCH_ENABLED = process.env.MONGODB_ATLAS_SEARCH === 'true';
+const SEARCH_INDEX = 'default';  // Using the default index name
+
+// Search term variations helper
+function getSearchVariations(term) {
+  const variations = new Set([term]);
+  
+  // Handle plurals/singulars
+  if (term.endsWith('s')) {
+    variations.add(term.slice(0, -1));
+  } else {
+    variations.add(`${term}s`);
+  }
+  
+  // Handle common variations
+  switch (term.toLowerCase()) {
+    case 'women':
+    case 'woman':
+    case 'womens':
+    case "women's":
+      variations.add('women');
+      variations.add('womens');
+      variations.add("women's");
+      variations.add('female');
+      variations.add('ladies');
+      break;
+    case 'men':
+    case 'mans':
+    case 'mens':
+    case "men's":
+      variations.add('men');
+      variations.add('mens');
+      variations.add("men's");
+      variations.add('male');
+      break;
+    case 'top':
+    case 'tops':
+      variations.add('top');
+      variations.add('tops');
+      variations.add('shirt');
+      variations.add('shirts');
+      variations.add('blouse');
+      variations.add('blouses');
+      break;
+    // Add more crochet-specific variations here
+  }
+  
+  return [...variations];
+}
 
 // Simple initial load function
 export async function getInitialProducts() {
@@ -45,89 +97,284 @@ export async function getFilteredProducts({
   sort = 'latest',
   minPrice = null,
   maxPrice = null,
-  search = null
+  search = null,
+  filters = {}
 }) {
   try {
     await dbConnect();
+    const sessionId = Math.random().toString(36).substring(7);
+    const startTime = Date.now();
+    
+    // Build the aggregation pipeline
+    const pipeline = [];
 
-    // Build query
-    const query = { status: 'active' };
-    if (category && category !== 'all') {
-      query.category = category;
-    }
-    if (minPrice !== null || maxPrice !== null) {
-      query.price = {};
-      if (minPrice !== null) query.price.$gte = minPrice;
-      if (maxPrice !== null) query.price.$lte = maxPrice;
-    }
+    // Add search stage if search query exists
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
-      ];
+      pipeline.push(...getSearchPipeline(search));
     }
 
-    // Build sort
-    const sortQuery = {};
+    // Match stage for basic filtering
+    const matchStage = {
+      status: 'active'
+    };
+
+    if (category && category !== 'all') {
+      matchStage.category = category;
+    }
+
+    if (minPrice !== null || maxPrice !== null) {
+      matchStage.price = {};
+      if (minPrice !== null) matchStage.price.$gte = Number(minPrice);
+      if (maxPrice !== null) matchStage.price.$lte = Number(maxPrice);
+    }
+
+    // Handle smart filters
+    if (filters.skillLevel) {
+      matchStage['specifications.skillLevel'] = filters.skillLevel;
+    }
+    if (filters.occasion) {
+      matchStage['specifications.occasion'] = filters.occasion;
+    }
+    if (filters.season) {
+      matchStage['specifications.season'] = filters.season;
+    }
+    if (filters.ageGroup) {
+      matchStage['specifications.ageGroup'] = filters.ageGroup;
+    }
+    if (filters.materials?.length) {
+      matchStage.material = { $in: filters.materials };
+    }
+    if (filters.colors?.length) {
+      matchStage['specifications.colors'] = { $in: filters.colors };
+    }
+    if (filters.sizes?.length) {
+      matchStage.size = { $in: filters.sizes };
+    }
+    if (filters.availability === 'inStock') {
+      matchStage['inventory.stockCount'] = { $gt: 0 };
+    } else if (filters.availability === 'outOfStock') {
+      matchStage['inventory.stockCount'] = 0;
+    }
+    if (filters.rating) {
+      matchStage['rating.average'] = { $gte: Number(filters.rating) };
+    }
+
+    // Add match stage to pipeline
+    pipeline.push({ $match: matchStage });
+
+    // Add scoring for relevance
+    pipeline.push({
+      $addFields: {
+        relevanceScore: {
+          $add: [
+            { $ifNull: ['$searchScore', 0] },
+            { $multiply: [{ $ifNull: ['$rating.average', 0] }, 0.3] },
+            { $multiply: [{ $ifNull: ['$metadata.salesCount', 0] }, 0.2] },
+            { $cond: [{ $gt: ['$inventory.stockCount', 0] }, 1, 0] },
+            { $cond: [{ $eq: ['$featured', true] }, 2, 0] }
+          ]
+        }
+      }
+    });
+
+    // Sorting stage
+    const sortStage = {};
     switch (sort) {
       case 'price-asc':
-        sortQuery.price = 1;
+        sortStage.$sort = { price: 1 };
         break;
       case 'price-desc':
-        sortQuery.price = -1;
+        sortStage.$sort = { price: -1 };
         break;
       case 'popular':
-        sortQuery['metadata.salesCount'] = -1;
+        sortStage.$sort = { 'metadata.salesCount': -1 };
         break;
       case 'rating':
-        sortQuery['rating.average'] = -1;
+        sortStage.$sort = { 'rating.average': -1 };
+        break;
+      case 'relevance':
+        sortStage.$sort = { relevanceScore: -1 };
         break;
       default: // latest
-        sortQuery.createdAt = -1;
+        sortStage.$sort = { createdAt: -1 };
     }
+    pipeline.push(sortStage);
 
-    const skip = (page - 1) * PRODUCTS_PER_PAGE;
+    // Get total count before pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
     
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .select('name description price images category status rating metadata createdAt sellerId')
-        .sort(sortQuery)
-        .skip(skip)
-        .limit(PRODUCTS_PER_PAGE)
-        .lean(),
-      Product.countDocuments(query)
+    // Add pagination to main pipeline
+    pipeline.push(
+      { $skip: (page - 1) * PRODUCTS_PER_PAGE },
+      { $limit: PRODUCTS_PER_PAGE }
+    );
+
+    // Select fields
+    pipeline.push({
+      $project: {
+        name: 1,
+        description: 1,
+        price: 1,
+        salePrice: 1,
+        images: 1,
+        category: 1,
+        status: 1,
+        rating: 1,
+        metadata: 1,
+        specifications: 1,
+        inventory: 1,
+        createdAt: 1,
+        sellerId: 1,
+        relevanceScore: 1
+      }
+    });
+
+    console.log('MongoDB Pipeline:', JSON.stringify(pipeline, null, 2));
+
+    // Execute queries
+    const [products, countResult] = await Promise.all([
+      Product.aggregate(pipeline),
+      Product.aggregate(countPipeline)
     ]);
 
-    // Get seller profiles for all products
+    const total = countResult[0]?.total || 0;
+
+    // Get seller profiles
     const sellerIds = [...new Set(products.map(p => p.sellerId))];
     const sellerProfiles = await SellerProfile.find({ userId: { $in: sellerIds } }).lean();
     const sellerMap = Object.fromEntries(
       sellerProfiles.map(seller => [seller.userId, seller])
     );
 
+    // Log search for analytics
+    if (search) {
+      const user = await getAuthUser();
+      await SearchLog.create({
+        phrase: search,
+        resultCount: total,
+        userId: user?._id,
+        sessionId,
+        filters: {
+          autoApplied: Object.entries(matchStage)
+            .filter(([key]) => !['status', '$or'].includes(key))
+            .map(([type, value]) => ({
+              type,
+              value,
+              kept: true
+            })),
+          userApplied: Object.entries(filters).map(([type, value]) => ({
+            type,
+            value,
+            source: 'manual'
+          }))
+        },
+        metrics: {
+          timeToFirstClick: null,
+          timeToRefine: null,
+          refinementCount: 0
+        }
+      });
+    }
+
+    console.log('Found products:', products.length, 'Total:', total);
+
     return {
       products: products.map(product => ({
         ...product,
         _id: product._id.toString(),
+        seller: sellerMap[product.sellerId],
         mainImage: product.images?.find(img => img.isMain)?.url || 
                   product.images?.[0]?.url || 
-                  '/placeholder-product.jpg',
-        sellerId: product.sellerId,
-        sellerName: sellerMap[product.sellerId]?.businessName || 'Unknown Seller',
-        averageRating: product.rating?.average || 0,
-        totalReviews: product.rating?.count || 0
+                  '/placeholder-product.jpg'
       })),
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / PRODUCTS_PER_PAGE),
-        hasMore: skip + products.length < total,
-        total
+        hasMore: page * PRODUCTS_PER_PAGE < total
+      },
+      metadata: {
+        total,
+        searchTime: Date.now() - startTime,
+        appliedFilters: Object.keys(matchStage).filter(key => !['status'].includes(key))
       }
     };
+
   } catch (error) {
     console.error('Error fetching filtered products:', error);
-    return { products: [], pagination: { currentPage: page, hasMore: false, total: 0 } };
+    return { 
+      products: [], 
+      pagination: { currentPage: page, totalPages: 0, hasMore: false },
+      metadata: { total: 0, searchTime: 0, appliedFilters: [] }
+    };
   }
+}
+
+// Search helper function
+function getSearchPipeline(searchQuery) {
+  if (!searchQuery) return [];
+
+  // Clean and split search terms
+  const searchTerms = searchQuery
+    .toLowerCase()
+    .replace(/['"""'']/g, '')
+    .replace(/[-_]/g, ' ')
+    .trim()
+    .split(/\s+/);
+
+  // Get variations for each term
+  const termVariations = searchTerms.map(getSearchVariations).flat();
+  
+  if (ATLAS_SEARCH_ENABLED) {
+    return [{
+      $search: {
+        index: SEARCH_INDEX,
+        compound: {
+          should: [
+            {
+              // Exact phrase matching with high boost
+              phrase: {
+                query: searchQuery,
+                path: ['name', 'description.short', 'description.full'],
+                score: { boost: { value: 5 } }
+              }
+            },
+            ...termVariations.map(term => ({
+              // Search each variation with fuzzy matching
+              text: {
+                query: term,
+                path: ['name', 'description.short', 'description.full', 'metadata.searchKeywords', 'metadata.searchVariations', 'tags'],
+                fuzzy: {
+                  maxEdits: 1,
+                  prefixLength: 2
+                },
+                score: { boost: { value: 3 } }
+              }
+            }))
+          ],
+          minimumShouldMatch: 1
+        }
+      }
+    }];
+  }
+
+  // Fallback for non-Atlas search
+  return [{
+    $match: {
+      $or: [
+        // Match any variation in any field
+        ...termVariations.map(term => ({
+          $or: [
+            { name: { $regex: term, $options: 'i' } },
+            { 'description.short': { $regex: term, $options: 'i' } },
+            { 'description.full': { $regex: term, $options: 'i' } },
+            { tags: { $regex: term, $options: 'i' } },
+            { 'metadata.searchKeywords': { $regex: term, $options: 'i' } },
+            { 'metadata.searchVariations': { $regex: term, $options: 'i' } }
+          ]
+        }))
+      ]
+    }
+  }];
 }
 
 // Get active products for homepage with optimized query
