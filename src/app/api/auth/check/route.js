@@ -5,6 +5,8 @@ import { createSessionClient } from '@/appwrite/config';
 import { User } from '@/models/User';
 import dbConnect from '@/lib/mongodb';
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const sessionCookie = cookies().get('session');

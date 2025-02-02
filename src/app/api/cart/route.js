@@ -5,6 +5,8 @@ import { Query } from 'node-appwrite';
 
 const CART_ITEMS_COLLECTION = process.env.NEXT_PUBLIC_COLLECTION_CART_ITEMS;
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const { databases } = createAdminClient();
