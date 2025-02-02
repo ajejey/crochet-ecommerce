@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { uploadProductImage } from '../actions';
 import { PRODUCT_CATEGORIES, PRODUCT_STATUSES } from '@/constants/product';
 import { useAIAssist } from '@/lib/hooks/useAIAssist';
+import RichTextEditor, { RichTextEditorStyles } from '@/app/components/RichTextEditor';
 
 const MAX_IMAGES = 5;
 
@@ -19,8 +20,78 @@ export default function ProductForm({
 }) {
   const [uploadingImages, setUploadingImages] = useState(new Set());
   const [images, setImages] = useState(product?.images || []);
+  const [fullDescription, setFullDescription] = useState(product?.description?.full || '');
   const router = useRouter();
-  const { generateProductContent, isGenerating, error: aiError } = useAIAssist();
+  const { 
+    generateProductContent, 
+    getJobResult, 
+    checkJobStatus,
+    reset,
+    jobResult 
+  } = useAIAssist();
+
+  useEffect(() => {
+    console.log('ProductForm: Full Description Initial Value', product?.description?.full);
+    console.log('ProductForm: Full Description State', fullDescription);
+  }, [product?.description?.full, fullDescription]);
+
+  useEffect(() => {
+    if (jobResult) {
+      // Dismiss any existing toasts
+      toast.dismiss();
+
+      // Update form fields with AI-generated content
+      if (jobResult) {
+        // Update product name if suggested
+        if (jobResult.suggestedName) {
+          document.getElementById('name').value = jobResult.suggestedName;
+          toast.success('Generated product name based on image analysis');
+        }
+
+        // Update category if detected
+        if (jobResult.detectedCategory) {
+          const categorySelect = document.getElementById('category');
+          categorySelect.value = jobResult.detectedCategory;
+          toast.success(`Detected category: ${jobResult.detectedCategory} (${jobResult.categoryConfidence})`);
+        }
+
+        // Update descriptions
+        document.getElementById('shortDescription').value = jobResult.shortDescription;
+        
+        // Set full description in state
+        setFullDescription(jobResult.fullDescription || '');
+        
+        // Update materials if detected
+        if (jobResult.suggestedMaterials?.length > 0) {
+          document.getElementById('material').value = jobResult.suggestedMaterials[0];
+        }
+
+        // Update size if detected
+        if (jobResult.suggestedSize) {
+          document.getElementById('size').value = jobResult.suggestedSize;
+        }
+        
+        // Update tags and keywords
+        document.getElementById('tags').value = jobResult.seoKeywords.join(', ');
+        document.getElementById('searchKeywords').value = jobResult.seoKeywords.join(', ');
+        
+        // Update colors if detected
+        if (jobResult.colors?.length > 0) {
+          document.getElementById('colors').value = jobResult.colors.join(', ');
+        }
+
+        // Update patterns if detected
+        if (jobResult.patterns?.length > 0) {
+          document.getElementById('patterns').value = jobResult.patterns.join(', ');
+        }
+
+        // Reset the hook state to prevent re-triggering
+        reset();
+
+        toast.success('AI suggestions applied successfully!');
+      }
+    }
+  }, [jobResult, reset]);
 
   async function handleImageChange(e) {
     const files = Array.from(e.target.files);
@@ -102,53 +173,16 @@ export default function ProductForm({
     }
 
     try {
-      const result = await generateProductContent(images.map(img => img.url));
+      // Reset any previous job state
+      reset();
 
-      // Update form fields with AI-generated content
-      if (result) {
-        // Update product name if suggested
-        if (result.suggestedName) {
-          document.getElementById('name').value = result.suggestedName;
-          toast.success('Generated product name based on image analysis');
-        }
-
-        // Update category if detected
-        if (result.detectedCategory) {
-          const categorySelect = document.getElementById('category');
-          categorySelect.value = result.detectedCategory;
-          toast.success(`Detected category: ${result.detectedCategory} (${result.categoryConfidence})`);
-        }
-
-        // Update descriptions
-        document.getElementById('shortDescription').value = result.shortDescription;
-        document.getElementById('fullDescription').value = result.fullDescription;
-        
-        // Update materials if detected
-        if (result.suggestedMaterials?.length > 0) {
-          document.getElementById('material').value = result.suggestedMaterials[0];
-        }
-
-        // Update size if detected
-        if (result.suggestedSize) {
-          document.getElementById('size').value = result.suggestedSize;
-        }
-        
-        // Update tags and keywords
-        document.getElementById('tags').value = result.seoKeywords.join(', ');
-        document.getElementById('searchKeywords').value = result.seoKeywords.join(', ');
-        
-        // Update colors if detected
-        if (result.colors?.length > 0) {
-          document.getElementById('colors').value = result.colors.join(', ');
-        }
-
-        // Update patterns if detected
-        if (result.patterns?.length > 0) {
-          document.getElementById('patterns').value = result.patterns.join(', ');
-        }
-
-        toast.success('AI suggestions applied successfully!');
-      }
+      // Initiate AI content generation
+      await generateProductContent(images.map(img => img.url));
+      
+      // Show loading toast
+      toast.loading('Generating product details...', {
+        description: 'This may take a few moments.'
+      });
     } catch (error) {
       console.error('AI assistance failed:', error);
       toast.error('Failed to generate AI suggestions. Please try again.');
@@ -165,17 +199,10 @@ export default function ProductForm({
             <button
               type="button"
               onClick={handleAIAssist}
-              disabled={isGenerating}
+              disabled={isSubmitting}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                  Generating...
-                </>
-              ) : (
-                'AI Assist'
-              )}
+              AI Assist
             </button>
           )}
         </div>
@@ -275,17 +302,23 @@ export default function ProductForm({
         </div>
 
         <div>
-          <label htmlFor="fullDescription" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="fullDescription" className="block text-sm font-medium text-gray-700 mb-2">
             Full Description
           </label>
-          <textarea
-            name="fullDescription"
-            id="fullDescription"
-            rows={4}
-            required
-            defaultValue={product?.description?.full}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
-            placeholder="Detailed description of your product..."
+          <div className="border rounded-md">
+            <RichTextEditor
+              key={`rich-text-editor-${fullDescription}`}
+              value={fullDescription}
+              onChange={(content) => {
+                setFullDescription(content);
+              }}
+              className="mt-1"
+            />
+          </div>
+          <input 
+            type="hidden" 
+            name="fullDescription" 
+            value={fullDescription} 
           />
         </div>
 
@@ -617,6 +650,7 @@ export default function ProductForm({
           </button>
         </div>
       </div>
+      <RichTextEditorStyles />
     </form>
   );
 }

@@ -1,16 +1,10 @@
-'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import useSWR from 'swr';
-import { getActiveProducts } from './shop/actions';
 import HeaderSection from './(header)/HeaderSection';
 import { ArrowRight, Star } from 'lucide-react';
 
 const HomePage = () => {
-  const { data: products, error } = useSWR('featured-products', getActiveProducts);
-  console.log('Products:', products);
   const categories = [
     { 
       name: 'All Products', 
@@ -71,13 +65,13 @@ const HomePage = () => {
                 Discover unique, handmade crochet creations that bring warmth and character to your home
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link href="/shop">
-                  <button className="px-8 py-4 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl">
+                <Link className="px-8 py-4 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl" href="/shop" prefetch={true}>
+                  <button>
                     Shop Now
                   </button>
                 </Link>
-                <Link href="/become-seller">
-                  <button className="px-8 py-4 bg-white text-rose-600 border-2 border-rose-600 rounded-full text-lg font-medium hover:bg-rose-50 transition-colors duration-200">
+                <Link className="px-8 py-4 bg-white text-rose-600 border-2 border-rose-600 rounded-full text-lg font-medium hover:bg-rose-50 transition-colors duration-200" href="/become-seller" prefetch={true}>
+                  <button>
                     Become a Seller
                   </button>
                 </Link>
@@ -123,65 +117,6 @@ const HomePage = () => {
                 </div>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products Section */}
-      <section className="py-16 bg-rose-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12">
-            Featured Products
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {!products && !error ? (
-              // Loading state
-              Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl overflow-hidden shadow-lg animate-pulse">
-                  <div className="h-64 bg-gray-200"></div>
-                  <div className="p-6 space-y-4">
-                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                </div>
-              ))
-            ) : error ? (
-              <div className="col-span-full text-center text-gray-500">
-                Unable to load products at this time
-              </div>
-            ) : products?.length === 0 ? (
-              <div className="col-span-full text-center text-gray-500">
-                No featured products available yet
-              </div>
-            ) : (
-              products?.slice(0, 6).map((product) => (
-                <Link 
-                  href={`/shop/product/${product._id}`} 
-                  key={product._id}
-                >
-                  <div className="bg-white rounded-xl overflow-hidden shadow-lg transition-transform duration-300 hover:-translate-y-2">
-                    <div className="relative h-64">
-                      <Image
-                        src={product.images[0]?.url || '/images/placeholder-product.jpg'}
-                        alt={product.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-semibold text-gray-900">{product.name}</h3>
-                      <div className="flex items-center mt-2">
-                        <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                        <span className="ml-2 text-gray-600">
-                          {product.rating.toFixed(1)} ({product.numReviews} reviews)
-                        </span>
-                      </div>
-                      <p className="mt-2 text-2xl font-bold text-rose-600">₹{product.price}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            )}
           </div>
         </div>
       </section>

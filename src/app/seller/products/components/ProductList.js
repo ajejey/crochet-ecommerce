@@ -127,7 +127,7 @@ export default function ProductList({ initialProducts }) {
                         ₹{product.price}
                       </td>
                       <td className="px-3 py-4 text-sm text-gray-500">
-                        {product.inventory?.quantity || 0} units
+                        {product.inventory?.stockCount || 0} units
                       </td>
                       <td className="px-3 py-4 text-sm">
                         <button

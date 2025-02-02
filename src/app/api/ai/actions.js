@@ -83,7 +83,95 @@ async function convertImageToBase64(imageUrl) {
   }
 }
 
-export async function analyzeProductImages(images) {
+// Job store to track async jobs
+const jobs = new Map();
+
+export async function initiateProductImageAnalysis(imageUrls, jobId) {
+  'use server';
+  
+  try {
+    // Immediately register the job as pending
+    jobs.set(jobId, { 
+      status: 'pending', 
+      startTime: Date.now() 
+    });
+
+    // Start the analysis process asynchronously
+    processProductImageAnalysis(imageUrls, jobId)
+      .catch(error => {
+        // Update job status if processing fails
+        jobs.set(jobId, { 
+          status: 'error', 
+          error: error.message 
+        });
+      });
+
+    return { 
+      success: true, 
+      jobId 
+    };
+  } catch (error) {
+    console.error('Failed to initiate product image analysis:', error);
+    return { 
+      success: false, 
+      error: error.message 
+    };
+  }
+}
+
+async function processProductImageAnalysis(imageUrls, jobId) {
+  'use server';
+  
+  try {
+    // Simulate AI processing with a timeout to prevent blocking
+    const result = await analyzeProductImages(imageUrls);
+
+    // Update job with result
+    jobs.set(jobId, { 
+      status: 'completed', 
+      data: result.data,
+      completedTime: Date.now()
+    });
+
+    return result;
+  } catch (error) {
+    // Update job with error
+    jobs.set(jobId, { 
+      status: 'error', 
+      error: error.message 
+    });
+    throw error;
+  }
+}
+
+export async function checkProductImageAnalysisJob(jobId) {
+  'use server';
+  
+  const job = jobs.get(jobId);
+
+  if (!job) {
+    return { 
+      status: 'not_found' 
+    };
+  }
+
+  // Clean up old jobs after 15 minutes
+  const MAX_JOB_AGE = 15 * 60 * 1000; // 15 minutes
+  if (job.startTime && (Date.now() - job.startTime > MAX_JOB_AGE)) {
+    jobs.delete(jobId);
+    return { 
+      status: 'expired' 
+    };
+  }
+
+  return {
+    status: job.status,
+    data: job.status === 'completed' ? job.data : null,
+    error: job.status === 'error' ? job.error : null
+  };
+}
+
+async function analyzeProductImages(images) {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     

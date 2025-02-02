@@ -40,11 +40,9 @@ const ProductSchema = new mongoose.Schema({
   },
   material: { 
     type: String, 
-    required: true 
   },
   size: { 
     type: String, 
-    required: true 
   },
   sellerId: {
     type: String,
@@ -105,7 +103,6 @@ const ProductSchema = new mongoose.Schema({
     },
     itemType: {
       type: String,
-      required: true,
       index: true
     }
   },
