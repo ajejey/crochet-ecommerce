@@ -8,6 +8,26 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/appwrite/config';
 import { ID } from 'node-appwrite';
 
+// Utility function to generate a unique slug
+const generateUniqueSlug = async (businessName) => {
+  // Convert business name to a URL-friendly slug
+  const baseSlug = businessName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
+  let slug = baseSlug;
+  let counter = 1;
+  
+  // Check if slug already exists, if so, append a number
+  while (await SellerProfile.findOne({ slug })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+  
+  return slug;
+};
+
 export async function registerSeller(formData) {
   try {
     // Get current user with cached auth context
@@ -24,6 +44,10 @@ export async function registerSeller(formData) {
       return { error: 'You are already registered as a seller' };
     }
 
+    // Generate unique slug for seller profile
+    const businessName = formData.get('businessName');
+    const slug = await generateUniqueSlug(businessName);
+
     // Use a session to ensure atomic operations
     const session = await User.startSession();
     let sellerProfile;
@@ -33,7 +57,8 @@ export async function registerSeller(formData) {
         // Create seller profile
         sellerProfile = await SellerProfile.create({
           userId: user.$id,
-          businessName: formData.get('businessName'),
+          businessName,
+          slug, // Add the generated slug here
           description: formData.get('description'),
           contactEmail: user.email, // Use the email from signup
           phoneNumber: formData.get('phone'),
@@ -69,21 +94,23 @@ export async function registerSeller(formData) {
         );
       });
 
-      await session.endSession();
-      revalidatePath('/become-seller');
-      
       return { 
         success: true, 
-        message: 'Your seller profile has been created! You can now start setting up your shop. Remember to submit your identity documents later to enable payments through Razorpay.',
-        sellerProfile 
+        message: 'Seller registration successful', 
+        sellerProfile: {
+          businessName: sellerProfile.businessName,
+          slug: sellerProfile.slug
+        }
       };
-    } catch (error) {
-      await session.endSession();
-      throw error;
+    } catch (transactionError) {
+      console.error('Transaction error:', transactionError);
+      return { error: 'Failed to complete seller registration' };
+    } finally {
+      session.endSession();
     }
   } catch (error) {
-    console.error('Error registering seller:', error);
-    return { error: 'Failed to register seller. Please try again.' };
+    console.error('Seller registration error:', error);
+    return { error: error.message || 'Failed to register as seller' };
   }
 }
 
