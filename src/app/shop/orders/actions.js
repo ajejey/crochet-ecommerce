@@ -7,7 +7,6 @@ import { Product } from '@/models/Product';
 import { SellerProfile } from '@/models/SellerProfile';
 import dbConnect from '@/lib/mongodb';
 
-export const dynamic = 'force-dynamic';
 
 export async function getOrders() {
   try {
