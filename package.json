@@ -12,6 +12,7 @@
     "@ckeditor/ckeditor5-build-classic": "^44.1.0",
     "@ckeditor/ckeditor5-react": "^9.4.0",
     "@google/generative-ai": "^0.21.0",
+    "@next/third-parties": "^15.1.6",
     "@tinymce/tinymce-react": "^5.1.1",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",

@@ -3,6 +3,7 @@ import { Inter, Playfair_Display, DM_Sans, Plus_Jakarta_Sans, Leckerli_One, Allu
 import "./globals.css";
 import { CartProvider } from './components/CartProvider';
 import { Toaster } from 'sonner';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -82,7 +83,7 @@ export const metadata = {
     images: ['/opengraph-image.png'],
   },
   verification: {
-    google: 'your-google-site-verification-code', // Replace with your actual code when you have it
+    google: 'snj5gapw5rZUnRp7exOcGk-dSyY6kaorMwWYOvSA9nM',
   },
   category: 'E-commerce',
   manifest: "site.webmanifest",
@@ -116,6 +117,7 @@ export default function RootLayout({ children }) {
         <CartProvider>
           {children}
           <Toaster richColors position="top-center" />
+          <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
         </CartProvider>
       </body>
     </html>
