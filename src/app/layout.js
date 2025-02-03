@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartProvider } from './components/CartProvider';
 import { Toaster } from 'sonner';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import Footer from './components/Footer';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -111,11 +112,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={plusJakarta.variable}>
-      <body
-        className={`${inter.variable} ${playfair.variable} ${dmSans.variable} ${geistSans.variable} ${geistMono.variable} ${leckerli.variable} ${allura.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${playfair.variable} ${dmSans.variable} ${plusJakarta.variable} ${leckerli.variable} ${allura.variable} font-sans antialiased`}>
         <CartProvider>
           {children}
+          <Footer />
           <Toaster richColors position="top-center" />
           <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
         </CartProvider>

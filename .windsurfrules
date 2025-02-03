@@ -10,7 +10,26 @@ We are using the following technologies:
 - If client side data fetching is needed, use SWR library
 - All pages must be fully mobile responsive
 - Prioritize Server Components. Move client components down the tree. To minimize client-side JavaScript, move interactive elements (e.g., components with state, event handlers) into their own Client Components, while keeping the parent components (like layouts and page structures) as Server Components. This avoids sending unnecessary JavaScript to the client.
+- whenever you create something new, if there is something left to do, then add a comment with TODO: with it.
 
 Think from the perspective of the end user. Always make the user experience as smooth as possible. And the UI should be as elegant as possible.
 All pages andlayouts should be responsive and mobile first.
 We use Indian rupee for all prices and currency.
+
+Design guidelines:
+Typography:
+Main Headings: font-serif text-5xl lg:text-7xl with text-gray-900
+Subheadings: text-2xl sm:text-3xl md:text-4xl font-bold
+Section Headers: text-xl sm:text-2xl font-semibold text-gray-900
+Body Text: text-lg sm:text-xl text-gray-600
+Feature Text: text-gray-700
+
+Colors:
+Primary: text-rose-600 for accents and CTAs
+Secondary: text-gray-900 for headings
+Text Colors: text-gray-600 for body text
+Backgrounds:
+bg-white
+bg-rose-50 for subtle sections
+bg-white/80 backdrop-blur-sm for card backgrounds
+Pattern background with opacity-5
