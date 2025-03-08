@@ -13,6 +13,8 @@ import { notFound } from "next/navigation";
 export default async function OrderDetailsPage({ params }) {
   // Verify order exists and belongs to seller
   const result = await getOrderBasicDetails(params.id);
+
+  console.log('Order details:', result);
   
   if (!result.success) {
     notFound();

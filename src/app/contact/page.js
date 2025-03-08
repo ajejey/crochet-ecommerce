@@ -33,14 +33,14 @@ export default function ContactPage() {
               <div className="space-y-6">
                 <div>
                   <h3 className="font-serif text-xl text-gray-900 mb-2">Email</h3>
-                  <a href="mailto:hello@knitkart.in" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
-                    hello@knitkart.in
+                  <a href="mailto:knottedwithlove0@gmail.com" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
+                    knottedwithlove0@gmail.com
                   </a>
                 </div>
                 <div>
                   <h3 className="font-serif text-xl text-gray-900 mb-2">Phone</h3>
-                  <a href="tel:+919876543210" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
-                    +91 98765 43210
+                  <a href="tel:+919884299308" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
+                    +91 9884299308
                   </a>
                 </div>
                 <div>

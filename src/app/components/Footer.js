@@ -37,7 +37,7 @@ export default function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div>
+          {/* <div>
             <h3 className="font-serif text-xl text-gray-900 mb-4">Quick Links</h3>
             <ul className="space-y-3">
               <li>
@@ -66,10 +66,9 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div> */}
 
           {/* Company */}
-          {/* TODO: Add actual company links */}
           <div>
             <h3 className="font-serif text-xl text-gray-900 mb-4">Company</h3>
             <ul className="space-y-3">
@@ -88,46 +87,45 @@ export default function Footer() {
                   Become a Seller
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link href="/blog" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
                   Blog
                 </Link>
-              </li>
-              <li>
+              </li> */}
+              {/* <li>
                 <Link href="/careers" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
                   Careers
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
 
-          {/* Support */}
-          {/* TODO: Add actual support links */}
+          {/* Support & Policies */}
           <div>
-            <h3 className="font-serif text-xl text-gray-900 mb-4">Support</h3>
+            <h3 className="font-serif text-xl text-gray-900 mb-4">Support & Policies</h3>
             <ul className="space-y-3">
-              <li>
+              {/* <li>
                 <Link href="/help" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
                   Help Center
                 </Link>
-              </li>
+              </li> */}
               <li>
-                <Link href="/shipping" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
-                  Shipping Info
+                <Link href="/policies/shipping" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
+                  Shipping Policy
                 </Link>
               </li>
               <li>
-                <Link href="/returns" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
-                  Returns & Exchange
+                <Link href="/policies/cancellation-refund" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
+                  Returns & Refunds
                 </Link>
               </li>
-              <li>
+              {/* <li>
                 <Link href="/track-order" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
                   Track Order
                 </Link>
-              </li>
+              </li> */}
               <li>
-                <Link href="/privacy-policy" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
+                <Link href="/policies/privacy" className="text-gray-600 hover:text-rose-600 transition-colors duration-200">
                   Privacy Policy
                 </Link>
               </li>
@@ -160,21 +158,26 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        {/* TODO: Add actual bottom bar content */}
         <div className="py-6 border-t border-gray-100">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-gray-600 text-sm">
-              © {currentYear} KnitKart. All rights reserved.
+              &copy; {currentYear} KnitKart. All rights reserved.
             </div>
-            <div className="flex space-x-6">
-              <Link href="/terms" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
-                Terms of Service
+            <div className="flex flex-wrap justify-center gap-4 md:space-x-6">
+              <Link href="/policies/terms" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
+                Terms & Conditions
               </Link>
-              <Link href="/privacy-policy" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
+              <Link href="/policies/privacy" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
                 Privacy Policy
               </Link>
-              <Link href="/cookie-policy" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
-                Cookie Policy
+              <Link href="/policies/pricing" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
+                Pricing Policy
+              </Link>
+              <Link href="/policies/shipping" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
+                Shipping Policy
+              </Link>
+              <Link href="/policies/cancellation-refund" className="text-gray-600 hover:text-rose-600 transition-colors duration-200 text-sm">
+                Cancellation & Refund Policy
               </Link>
             </div>
           </div>

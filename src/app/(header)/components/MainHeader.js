@@ -38,12 +38,12 @@ export default function MainHeader({ isMenuOpen, onMenuToggle }) {
 
           {/* Right: Cart, Wishlist, User */}
           <div className="flex items-center gap-4">
-            <Link
+            {/* <Link
               href="/wishlist"
               className="p-2 -m-2 text-gray-500 hover:text-rose-600 transition-colors relative hidden sm:block"
             >
               <Heart size={24} />
-            </Link>
+            </Link> */}
 
             <Link
               href="/shop/cart"

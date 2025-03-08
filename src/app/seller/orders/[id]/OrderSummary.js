@@ -1,10 +1,12 @@
 'use client';
 
-import { Package, DollarSign, Clock, Truck } from 'lucide-react';
+import { Package, IndianRupee, Clock, Truck } from 'lucide-react';
 import { formatPrice, formatDate } from '@/utils/format';
 import { getOrderBasicDetails } from '../actions';
 import useSWR from 'swr';
 import { Loader2 } from 'lucide-react';
+
+
 
 export default function OrderSummary({ orderId }) {
   const { data: result, error } = useSWR(
@@ -48,7 +50,7 @@ export default function OrderSummary({ orderId }) {
       </div>
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center gap-3">
-          <DollarSign className="w-8 h-8 text-green-500" />
+          <IndianRupee className="w-8 h-8 text-green-500" />
           <div>
             <p className="text-sm text-gray-500">Total Amount</p>
             <p className="font-semibold">{formatPrice(order.totalAmount)}</p>

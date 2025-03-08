@@ -11,10 +11,24 @@ We are using the following technologies:
 - All pages must be fully mobile responsive
 - Prioritize Server Components. Move client components down the tree. To minimize client-side JavaScript, move interactive elements (e.g., components with state, event handlers) into their own Client Components, while keeping the parent components (like layouts and page structures) as Server Components. This avoids sending unnecessary JavaScript to the client.
 - whenever you create something new, if there is something left to do, then add a comment with TODO: with it.
-
+- All forms must have client-side validation.
+- Use react-hook-form for all forms.
+- Loading state should be implemented whenever there is async operations happen and user needs to wait for the response.
+- User understandable error messages should be shown to user whenever there is an error.
 Think from the perspective of the end user. Always make the user experience as smooth as possible. And the UI should be as elegant as possible.
+- Refer Nextjs documentation for best practices.
+- Break down large pages into smaller meaningfull components.
+- Use Nextjs' streaming with Suspense whenever there are multiple components in a single page. 
+- Make sure app is fast by using various stratagies and the latest Next.js features.
 All pages andlayouts should be responsive and mobile first.
 We use Indian rupee for all prices and currency.
+
+use cache() Function whereever appropriate
+``` 
+import { cache } from 'react'
+// Memoize expensive computations or data fetches 
+export const getUser = cache(async (id: string) => { const user = await db.user.findUnique({ where: { id } }) return user }) 
+```
 
 Design guidelines:
 Typography:

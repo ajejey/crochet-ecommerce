@@ -11,6 +11,8 @@ export default function OrderItems({ orderId }) {
     () => getOrderItems(orderId)
   );
 
+  // console.log('Order items in OrderItems component:', result);
+
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -48,7 +50,7 @@ export default function OrderItems({ orderId }) {
                 />
                 <div>
                   <h3 className="font-medium">{item.product.name}</h3>
-                  <p className="text-sm text-gray-500">{item.product.description}</p>
+                  <p className="text-sm text-gray-500">{item.product.description?.short?.slice(0, 100) + (item.product.description?.short?.length > 100 ? '...' : '') || 'No description available'}</p>
                 </div>
               </div>
               <div className="flex items-center">

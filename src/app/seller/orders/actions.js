@@ -74,6 +74,7 @@ export async function getSellerOrders({ status, search, page = 1, limit = 10 } =
       .limit(limit)
       .lean();
 
+
     // Get all order items for these orders
     const orderItems = await OrderItem.find({
       orderId: { $in: orders.map(order => order._id) }
@@ -85,6 +86,7 @@ export async function getSellerOrders({ status, search, page = 1, limit = 10 } =
       })
       .lean();
 
+
     // Group order items by order ID
     const orderItemsMap = orderItems.reduce((acc, item) => {
       if (!acc[item.orderId.toString()]) {
@@ -93,6 +95,7 @@ export async function getSellerOrders({ status, search, page = 1, limit = 10 } =
       acc[item.orderId.toString()].push(item);
       return acc;
     }, {});
+
 
     // Transform orders data
     const transformedOrders = orders.map(order => {
@@ -107,11 +110,16 @@ export async function getSellerOrders({ status, search, page = 1, limit = 10 } =
       // Transform items to include product details
       const transformedItems = items.map(item => ({
         ...item,
-        product: {
+        product: item.productId ? {
           ...item.productId,
-          mainImage: item.productId.images?.find(img => img.isMain)?.url || 
-                    item.productId.images?.[0]?.url || 
+          mainImage: item.productId?.images?.find(img => img.isMain)?.url || 
+                    item.productId?.images?.[0]?.url || 
                     '/placeholder-product.jpg'
+        } : {
+          name: 'Product Not Found',
+          description: 'This product is no longer available',
+          price: item.price,
+          mainImage: '/placeholder-product.jpg'
         }
       }));
 
@@ -138,6 +146,7 @@ export async function getSellerOrders({ status, search, page = 1, limit = 10 } =
         updatedAt: order.updatedAt.toISOString()
       };
     });
+
 
     return {
       success: true,
@@ -214,11 +223,16 @@ export async function getOrderItems(orderId) {
       ...item,
       _id: item._id.toString(),
       productId: item.productId._id.toString(),
-      product: {
+      product: item.productId ? {
         ...item.productId,
-        mainImage: item.productId.images?.find(img => img.isMain)?.url || 
-                  item.productId.images?.[0]?.url || 
+        mainImage: item.productId?.images?.find(img => img.isMain)?.url || 
+                  item.productId?.images?.[0]?.url || 
                   '/placeholder-product.jpg'
+      } : {
+        name: 'Product Not Found',
+        description: 'This product is no longer available',
+        price: item.price,
+        mainImage: '/placeholder-product.jpg'
       }
     }));
 

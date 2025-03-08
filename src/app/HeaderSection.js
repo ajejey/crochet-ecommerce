@@ -119,13 +119,13 @@ const HeaderSection = () => {
             >
               Categories
             </Link>
-            <Link 
+            {/* <Link 
               href="/wishlist" 
               className="block text-gray-700 hover:text-indigo-600 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Wishlist
-            </Link>
+            </Link> */}
             <Link 
               href="/login" 
               className="block text-gray-700 hover:text-indigo-600 transition-colors"
