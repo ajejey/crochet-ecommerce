@@ -1,26 +1,88 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, Minus, Plus, ShoppingCart, Heart } from 'lucide-react';
 import { toast } from 'sonner';
-import { addToCart } from '@/app/shop/cart/actions';
+import { useCart } from '@/app/components/CartProvider';
 
 export default function ProductInfo({ product, formatPrice }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const { addToCart, getRemainingStock } = useCart();
+
+  // Get stock count from product
+  const stockCount = product.stock || 0;
+  
+  // Calculate remaining stock (considering items already in cart)
+  const remainingStock = getRemainingStock(product._id, stockCount);
+  
+  // Check if product can be added to cart
+  const isOutOfStock = stockCount === 0;
+  const canAddToCart = !isOutOfStock && (remainingStock === null || remainingStock > 0);
+  
+  // Calculate max quantity that can be added
+  const maxQuantity = Math.min(stockCount, remainingStock || stockCount);
+
+  // Adjust quantity if it exceeds available stock
+  useEffect(() => {
+    if (quantity > maxQuantity && maxQuantity > 0) {
+      setQuantity(maxQuantity);
+    }
+  }, [maxQuantity, quantity]);
 
   const handleQuantityChange = (delta) => {
     const newQuantity = quantity + delta;
-    if (newQuantity >= 1 && newQuantity <= product.stock) {
+    if (newQuantity >= 1 && newQuantity <= maxQuantity) {
       setQuantity(newQuantity);
     }
   };
 
   const handleAddToCart = async () => {
+    if (!canAddToCart) {
+      toast.error('Cannot add to cart', {
+        description: isOutOfStock ? 'Product is out of stock' : 'No more items available'
+      });
+      return;
+    }
+    
     setIsAddingToCart(true);
     try {
-      await addToCart(product._id, quantity);
-      toast.success('Added to cart successfully!');
+      // Prepare product data to avoid database lookup
+      const productData = {
+        name: product.name,
+        price: product.price,
+        salePrice: product.salePrice,
+        description: product.description,
+        image: product.mainImage || '/placeholder-product.jpg',
+        images: product.images || [{ url: product.mainImage || '/placeholder-product.jpg' }],
+        inventory: {
+          stockCount: stockCount
+        },
+        status: product.status || 'active'
+      };
+
+      const result = await addToCart({
+        productId: product._id,
+        quantity,
+        productData
+      });
+      
+      if (result.success) {
+        toast.success('Added to cart successfully!');
+      } else {
+        if (result.stockCheck) {
+          toast.error('Limited stock', {
+            description: result.stockCheck.reason
+          });
+          
+          // If we can add some but not all requested items
+          if (result.stockCheck.canAdd && result.stockCheck.availableToAdd > 0) {
+            setQuantity(result.stockCheck.availableToAdd);
+          }
+        } else {
+          toast.error(result.error || 'Failed to add to cart. Please try again.');
+        }
+      }
     } catch (error) {
       toast.error('Failed to add to cart. Please try again.');
     } finally {
@@ -65,11 +127,15 @@ export default function ProductInfo({ product, formatPrice }) {
       {/* Stock Status */}
       <div>
         <p className={`text-sm ${
-          product.stock > 0 ? 'text-green-600' : 'text-red-600'
+          canAddToCart ? 'text-green-600' : 'text-red-600'
         }`}>
-          {product.stock > 0 
-            ? `${product.stock} items in stock`
-            : 'Out of stock'
+          {isOutOfStock 
+            ? 'Out of stock'
+            : remainingStock === 0
+              ? 'Maximum quantity already in cart'
+              : remainingStock !== null && remainingStock < stockCount
+                ? `${remainingStock} more available to add`
+                : `${stockCount} items in stock`
           }
         </p>
       </div>
@@ -80,7 +146,7 @@ export default function ProductInfo({ product, formatPrice }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleQuantityChange(-1)}
-            disabled={quantity <= 1}
+            disabled={quantity <= 1 || !canAddToCart}
             className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
           >
             <Minus className="h-4 w-4" />
@@ -88,7 +154,7 @@ export default function ProductInfo({ product, formatPrice }) {
           <span className="w-8 text-center">{quantity}</span>
           <button
             onClick={() => handleQuantityChange(1)}
-            disabled={quantity >= product.stock}
+            disabled={quantity >= maxQuantity || !canAddToCart}
             className="p-1 rounded-full hover:bg-gray-100 disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
@@ -100,11 +166,21 @@ export default function ProductInfo({ product, formatPrice }) {
       <div className="flex gap-4">
         <button
           onClick={handleAddToCart}
-          disabled={isAddingToCart || product.stock === 0}
-          className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          disabled={isAddingToCart || !canAddToCart}
+          className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg ${
+            canAddToCart 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+          }`}
         >
           <ShoppingCart className="h-5 w-5" />
-          {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+          {isAddingToCart 
+            ? 'Adding...' 
+            : isOutOfStock 
+              ? 'Out of Stock' 
+              : remainingStock === 0 
+                ? 'Maximum in Cart' 
+                : 'Add to Cart'}
         </button>
         <button
           className="p-3 border rounded-lg hover:bg-gray-50"

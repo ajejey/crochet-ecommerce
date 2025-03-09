@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/app/components/CartProvider';
 import { Star, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,19 +8,69 @@ import { formatPrice } from '@/utils/format';
 
 export default function ProductInfo({ product, initialReviews }) {
   const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCart();
+  const { addToCart, getRemainingStock, cartItems } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const stockQuantity = product.inventory?.stockCount || 0;
-  const maxQuantity = Math.min(10, stockQuantity);
+  
+  // Calculate remaining stock (considering items already in cart)
+  const remainingStock = getRemainingStock(product._id, stockQuantity);
+  const maxQuantity = Math.min(10, remainingStock || stockQuantity);
+  
+  // Check if product can be added to cart
+  const isOutOfStock = stockQuantity === 0;
+  const canAddToCart = !isOutOfStock && (remainingStock === null || remainingStock > 0);
+
+  // Adjust quantity if it exceeds available stock
+  useEffect(() => {
+    if (quantity > maxQuantity && maxQuantity > 0) {
+      setQuantity(maxQuantity);
+    }
+  }, [maxQuantity, quantity]);
 
   const handleAddToCart = async () => {
+    if (!canAddToCart) {
+      toast.error('Cannot add to cart', {
+        description: isOutOfStock ? 'Product is out of stock' : 'No more items available'
+      });
+      return;
+    }
+    
     try {
-      const result = await addToCart(product._id, quantity);
+      // Prepare product data to avoid database lookup
+      const productData = {
+        name: product.name,
+        price: product.price,
+        salePrice: product.salePrice,
+        description: product.description,
+        images: product.images || [{ url: product.mainImage || '/placeholder-product.jpg' }],
+        inventory: {
+          stockCount: stockQuantity
+        },
+        status: product.status || 'active'
+      };
+
+      const result = await addToCart({
+        productId: product._id,
+        quantity,
+        productData
+      });
+      
       if (result.success) {
         toast.success('Added to cart!');
       } else {
-        toast.error(result.error || 'Failed to add to cart');
+        if (result.stockCheck) {
+          toast.error('Limited stock', {
+            description: result.stockCheck.reason
+          });
+          
+          // If we can add some but not all requested items
+          if (result.stockCheck.canAdd && result.stockCheck.availableToAdd > 0) {
+            setQuantity(result.stockCheck.availableToAdd);
+          }
+        } else {
+          toast.error(result.error || 'Failed to add to cart');
+        }
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -44,6 +94,11 @@ export default function ProductInfo({ product, initialReviews }) {
           {stockQuantity <= 5 && stockQuantity > 0 && (
             <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
               Only {stockQuantity} left
+            </span>
+          )}
+          {remainingStock !== null && remainingStock < stockQuantity && (
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+              {remainingStock} available to add
             </span>
           )}
         </div>
@@ -95,6 +150,11 @@ export default function ProductInfo({ product, initialReviews }) {
             <span className="text-green-600 flex items-center gap-1">
               <Package className="h-4 w-4" />
               In Stock
+              {remainingStock !== null && remainingStock < stockQuantity && (
+                <span className="ml-1 text-blue-600">
+                  ({remainingStock} available to add)
+                </span>
+              )}
             </span>
           ) : (
             <span className="text-red-600 flex items-center gap-1">
@@ -125,7 +185,7 @@ export default function ProductInfo({ product, initialReviews }) {
 
       {/* Add to Cart Section */}
       <div className="space-y-4">
-        {stockQuantity > 0 && (
+        {canAddToCart && maxQuantity > 0 && (
           <div className="flex items-center gap-4">
             <label htmlFor="quantity" className="text-sm font-medium text-gray-700">
               Quantity
@@ -148,11 +208,19 @@ export default function ProductInfo({ product, initialReviews }) {
         <div className="flex gap-3">
           <button
             onClick={handleAddToCart}
-            disabled={stockQuantity === 0}
-            className="flex-1 flex items-center justify-center gap-2 bg-pink-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!canAddToCart || maxQuantity === 0}
+            className={`flex-1 flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 ${
+              canAddToCart && maxQuantity > 0
+                ? 'bg-pink-600 text-white hover:bg-pink-700'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <ShoppingCart className="h-5 w-5" />
-            Add to Cart
+            {isOutOfStock 
+              ? 'Out of Stock' 
+              : maxQuantity === 0 
+                ? 'Maximum in Cart' 
+                : 'Add to Cart'}
           </button>
           <button
             onClick={toggleWishlist}

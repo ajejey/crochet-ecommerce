@@ -401,13 +401,13 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="stockCount" className="block text-sm font-medium text-gray-700">
               Quantity in Stock
             </label>
             <input
               type="number"
-              name="quantity"
-              id="quantity"
+              name="stockCount"
+              id="stockCount"
               required
               min="0"
               defaultValue={product?.inventory?.stockCount}

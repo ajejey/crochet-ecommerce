@@ -9,23 +9,68 @@ import { useCart } from '@/app/components/CartProvider';
 import { formatPrice } from '@/utils/format';
 
 export default function ProductCard({ product }) {
-  const { refreshCart } = useCart();
+  const { addToCart: addToCartContext, cartItems, getRemainingStock } = useCart();
+
+  // Get stock count from product - Fix: use inventory.stockCount instead of stock
+  const stockCount = product.inventory?.stockCount || 0;
+  
+  // Calculate remaining stock (considering items already in cart)
+  const remainingStock = getRemainingStock(product._id, stockCount);
+  
+  // Check if product can be added to cart
+  const isOutOfStock = stockCount === 0;
+  const isInStock = stockCount > 0;
+  const canAddToCart = isInStock && (remainingStock === null || remainingStock > 0);
+
+  // Debug stock values
+  console.log('Product:', product.name);
+  console.log('Stock Count:', stockCount);
+  console.log('Remaining Stock:', remainingStock);
+  console.log('Can Add To Cart:', canAddToCart);
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
+    
+    if (!canAddToCart) {
+      toast.error('Cannot add to cart', {
+        description: isOutOfStock ? 'Product is out of stock' : 'No more items available'
+      });
+      return;
+    }
+    
     try {
-      const result = await addToCart({
+      // Pass product data to avoid database lookup
+      const productData = {
+        name: product.name,
+        price: product.price,
+        description: product.description || '',
+        image: product.mainImage || '/placeholder-product.jpg',
+        images: product.images || [{ url: product.mainImage || '/placeholder-product.jpg' }],
+        inventory: {
+          stockCount: stockCount
+        },
+        status: product.status || 'active'
+      };
+
+      // Use the context function that updates local state immediately
+      const result = await addToCartContext({
         productId: product._id,
-        quantity: 1
+        quantity: 1,
+        productData
       });
 
       if (result.success) {
         toast.success('Added to cart', {
           description: 'Product has been added to your cart successfully.'
         });
-        refreshCart();
       } else {
-        throw new Error(result.error);
+        if (result.stockCheck) {
+          toast.error('Limited stock', {
+            description: result.stockCheck.reason
+          });
+        } else {
+          throw new Error(result.error);
+        }
       }
     } catch (error) {
       toast.error('Error', {
@@ -107,20 +152,24 @@ export default function ProductCard({ product }) {
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            className="w-full bg-rose-600 text-white py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium hover:bg-rose-700 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+            disabled={!canAddToCart}
+            className={`w-full py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm
+              ${canAddToCart 
+                ? 'bg-rose-600 text-white hover:bg-rose-700' 
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
           >
             <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Add to Cart
+            {isOutOfStock ? 'Out of Stock' : remainingStock === 0 ? 'In Cart' : 'Add to Cart'}
           </button>
         </div>
 
         {/* Stock Status */}
-        {product.stock <= 5 && product.stock > 0 && (
+        {stockCount <= 5 && stockCount > 0 && (
           <div className="absolute bottom-0 left-0 right-0 bg-orange-100 text-orange-800 text-[10px] text-center py-0.5">
-            Only {product.stock} left in stock
+            Only {stockCount} left in stock
           </div>
         )}
-        {product.stock === 0 && (
+        {stockCount === 0 && (
           <div className="absolute bottom-0 left-0 right-0 bg-red-100 text-red-800 text-[10px] text-center py-0.5">
             Out of Stock
           </div>

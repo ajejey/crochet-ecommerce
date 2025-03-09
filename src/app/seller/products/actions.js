@@ -203,6 +203,8 @@ export async function updateProduct(productId, formData) {
       return { error: 'Product not found or unauthorized' };
     }
 
+    console.log("formData in update product ", formData)
+
     // Parse image URLs and IDs
     const imageUrls = JSON.parse(formData.get('imageUrls') || '[]');
     const imageIds = JSON.parse(formData.get('imageIds') || '[]');
@@ -220,14 +222,34 @@ export async function updateProduct(productId, formData) {
         category: formData.get('category'),
         material: formData.get('material'),
         size: formData.get('size'),
+        featured: formData.get('featured') === 'on',
         images: imageUrls.map((url, index) => ({
           url,
           id: imageIds[index],
           isMain: index === 0
         })),
+        tags: formData.get('tags')?.split(',').map(tag => tag.trim()).filter(Boolean) || [],
         inventory: {
           stockCount: parseInt(formData.get('stockCount'), 10) || 0,
-          sku: formData.get('sku')
+          sku: formData.get('sku'),
+          allowBackorder: formData.get('allowBackorders') === 'on',
+          lowStockThreshold: parseInt(formData.get('lowStockThreshold'), 10) || 5
+        },
+        specifications: {
+          colors: formData.get('colors')?.split(',').map(color => color.trim()).filter(Boolean) || [],
+          patterns: formData.get('patterns')?.split(',').map(pattern => pattern.trim()).filter(Boolean) || [],
+          dimensions: {
+            length: parseFloat(formData.get('length')) || 0,
+            width: parseFloat(formData.get('width')) || 0,
+            height: parseFloat(formData.get('height')) || 0,
+            weight: {
+              value: parseFloat(formData.get('weight')) || 0,
+              unit: formData.get('weightUnit') || 'g'
+            }
+          }
+        },
+        metadata: {
+          searchKeywords: formData.get('searchKeywords')?.split(',').map(kw => kw.trim()).filter(Boolean) || []
         }
       },
       { new: true }

@@ -82,26 +82,41 @@ export async function getCartItems() {
 // Add item to cart
 export async function addToCart(data) {
   try {
-    const { productId, variantId, quantity } = data;
+    const { productId, variantId, quantity, productData } = data;
     const cartId = await getOrCreateCartId();
-    await dbConnect();
-
+    
     // Convert string ID to ObjectId
     const productObjectId = new mongoose.Types.ObjectId(productId);
-
-    // Check if product exists
-    const product = await Product.findById(productObjectId);
-    if (!product) {
-      return { success: false, error: 'Product not found' };
+    
+    let product;
+    let variant = null;
+    
+    // If productData is provided, use it to avoid database lookup
+    if (productData) {
+      product = productData;
+    } else {
+      // Otherwise, fetch from database
+      await dbConnect();
+      
+      // Check if product exists
+      product = await Product.findById(productObjectId);
+      if (!product) {
+        return { success: false, error: 'Product not found' };
+      }
     }
 
+    await dbConnect();
+    
     // Check if variant exists if variantId is provided
     let variantObjectId = null;
     if (variantId) {
       variantObjectId = new mongoose.Types.ObjectId(variantId);
-      const variant = await Variant.findById(variantObjectId);
-      if (!variant) {
-        return { success: false, error: 'Variant not found' };
+      
+      if (!productData || !productData.variant) {
+        variant = await Variant.findById(variantObjectId);
+        if (!variant) {
+          return { success: false, error: 'Variant not found' };
+        }
       }
     }
 
@@ -158,7 +173,33 @@ export async function addToCart(data) {
       updatedAt: new Date()
     });
 
-    // Populate the new item
+    // If we have productData, construct the response without additional DB query
+    if (productData) {
+      const transformedItem = {
+        $id: cartItem._id.toString(),
+        cartId: cartItem.cartId,
+        product: {
+          _id: productId,
+          name: productData.name,
+          price: productData.price,
+          description: productData.description || '',
+          images: productData.images || [],
+          image_urls: productData.images?.map(img => img.url) || [productData.image || ''],
+          inventory: productData.inventory || { stockCount: 999 },
+          status: productData.status || 'active'
+        },
+        variant: variantId && productData.variant ? {
+          _id: variantId,
+          name: productData.variant.name || '',
+          price_adjustment: productData.variant.price_adjustment || 0
+        } : null,
+        quantity
+      };
+      
+      return { success: true, item: transformedItem };
+    }
+
+    // Otherwise, populate the new item from DB
     const populatedItem = await CartItem.findById(cartItem._id)
       .populate({
         path: 'product',
@@ -192,94 +233,68 @@ export async function addToCart(data) {
   }
 }
 
-// Update cart item quantity
-export async function updateCartItemQuantity(itemId, quantity) {
-  try {
-    await dbConnect();
-
-    // Convert string ID to ObjectId
-    const itemIdObjectId = new mongoose.Types.ObjectId(itemId);
-
-    // Find the cart item first to check if it exists
-    const cartItem = await CartItem.findById(itemIdObjectId).populate('product');
-    if (!cartItem) {
-      return { success: false, error: 'Cart item not found' };
-    }
-
-    // Check if we have enough stock
-    if (cartItem.product && quantity > cartItem.product.inventory.stockCount) {
-      return { success: false, error: 'Not enough stock available' };
-    }
-
-    // If quantity is 0 or less, remove the item
-    if (quantity <= 0) {
-      await CartItem.findByIdAndDelete(itemIdObjectId);
-      return { success: true, deleted: true };
-    }
-
-    // Update the quantity
-    const updatedItem = await CartItem.findByIdAndUpdate(
-      itemIdObjectId,
-      { 
-        quantity,
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).populate({
-      path: 'product',
-      select: 'name description price images inventory.stockCount status'
-    }).populate({
-      path: 'variant',
-      select: 'name price_adjustment'
-    });
-
-    if (!updatedItem) {
-      return { success: false, error: 'Failed to update cart item' };
-    }
-
-    // Transform the updated item to match the expected format
-    const transformedItem = {
-      $id: updatedItem._id.toString(),
-      cartId: updatedItem.cartId,
-      product: {
-        ...updatedItem.product.toObject(),
-        _id: updatedItem.product._id.toString(),
-        image_urls: updatedItem.product.images?.map(img => img.url) || []
-      },
-      variant: updatedItem.variant ? {
-        ...updatedItem.variant.toObject(),
-        _id: updatedItem.variant._id.toString()
-      } : null,
-      quantity: updatedItem.quantity
-    };
-
-    return { success: true, item: transformedItem };
-  } catch (error) {
-    console.error('Error updating cart item:', error);
-    return { success: false, error: error.message };
-  }
-}
-
 // Remove item from cart
 export async function removeFromCart(itemId) {
   try {
     await dbConnect();
     
-    // Convert string ID to ObjectId
-    const itemIdObjectId = new mongoose.Types.ObjectId(itemId);
-
-    // Check if the item exists first
-    const cartItem = await CartItem.findById(itemIdObjectId);
-    if (!cartItem) {
+    // Convert string ID to ObjectId if it's not a local ID
+    let itemObjectId;
+    if (!itemId.startsWith('local-')) {
+      itemObjectId = new mongoose.Types.ObjectId(itemId);
+    } else {
+      // For local IDs, we need to find the item by other means
+      // This would require additional logic if we want to support removing local items
+      // For now, we'll just return success since the item is already removed from local state
+      return { success: true };
+    }
+    
+    const result = await CartItem.findByIdAndDelete(itemObjectId);
+    
+    if (!result) {
       return { success: false, error: 'Cart item not found' };
     }
-
-    // Remove the item
-    await CartItem.findByIdAndDelete(itemIdObjectId);
     
     return { success: true };
   } catch (error) {
-    console.error('Error removing cart item:', error);
+    console.error('Error removing from cart:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Update cart item quantity
+export async function updateCartItemQuantity(itemId, quantity) {
+  try {
+    if (quantity < 1) {
+      return removeFromCart(itemId);
+    }
+    
+    await dbConnect();
+    
+    // Convert string ID to ObjectId if it's not a local ID
+    let itemObjectId;
+    if (!itemId.startsWith('local-')) {
+      itemObjectId = new mongoose.Types.ObjectId(itemId);
+    } else {
+      // For local IDs, we need to find the item by other means
+      // This would require additional logic if we want to support updating local items
+      // For now, we'll just return success since the item is already updated in local state
+      return { success: true };
+    }
+    
+    const cartItem = await CartItem.findById(itemObjectId);
+    
+    if (!cartItem) {
+      return { success: false, error: 'Cart item not found' };
+    }
+    
+    cartItem.quantity = quantity;
+    cartItem.updatedAt = new Date();
+    await cartItem.save();
+    
+    return { success: true, item: { ...cartItem.toObject(), $id: cartItem._id.toString() } };
+  } catch (error) {
+    console.error('Error updating cart item quantity:', error);
     return { success: false, error: error.message };
   }
 }
