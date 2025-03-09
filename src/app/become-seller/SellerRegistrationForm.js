@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createAdminClient } from '@/appwrite/config';
 import { ID } from 'node-appwrite';
@@ -10,12 +10,23 @@ import VerificationStep from './components/VerificationStep';
 import { registerSeller } from './actions';
 import { createAccount } from '../signup/actions';
 
-export default function SellerRegistrationForm() {
-  const [step, setStep] = useState(1);
+export default function SellerRegistrationForm({ currentUser }) {
+  // Initialize to step 1 (Account) by default, but start at step 2 (Shop Details) if user is already logged in
+  const [step, setStep] = useState(currentUser ? 2 : 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({});
   const router = useRouter();
+
+  // If the user is already logged in, pre-fill their data
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        name: currentUser.name || '',
+        email: currentUser.email || '',
+      });
+    }
+  }, [currentUser]);
 
   const steps = [
     { number: 1, name: 'Account' },
@@ -36,8 +47,8 @@ export default function SellerRegistrationForm() {
       const updatedFormData = { ...formData, ...currentStepData };
       setFormData(updatedFormData);
 
-      // If on account step, handle signup/login
-      if (step === 1) {
+      // If on account step and user is not logged in, handle signup/login
+      if (step === 1 && !currentUser) {
         const { account } = createAdminClient();
         const email = currentStepData.email;
         const password = currentStepData.password;
@@ -101,6 +112,11 @@ export default function SellerRegistrationForm() {
 
   const handleBack = () => {
     if (step > 1) {
+      // If user is logged in and at step 2, redirect to home instead of going to account step
+      if (currentUser && step === 2) {
+        router.push('/');
+        return;
+      }
       setStep(step - 1);
     }
   };
@@ -142,7 +158,7 @@ export default function SellerRegistrationForm() {
       )}
 
       {/* Step Components */}
-      {step === 1 && (
+      {step === 1 && !currentUser && (
         <AccountStep isSubmitting={isSubmitting} error={error} />
       )}
 

@@ -41,7 +41,30 @@ export async function registerSeller(formData) {
     // Check if user is already a seller
     const existingProfile = await SellerProfile.findOne({ userId: user.$id });
     if (existingProfile) {
-      return { error: 'You are already registered as a seller' };
+      // If already a seller, just redirect to the seller dashboard
+      if (existingProfile.status === 'active') {
+        return { 
+          success: true, 
+          message: 'You are already registered as a seller', 
+          sellerProfile: {
+            businessName: existingProfile.businessName,
+            slug: existingProfile.slug,
+            status: existingProfile.status
+          }
+        };
+      }
+      // If pending approval, let them know
+      else if (existingProfile.status === 'pending') {
+        return { 
+          success: true, 
+          message: 'Your seller application is pending approval', 
+          sellerProfile: {
+            businessName: existingProfile.businessName,
+            slug: existingProfile.slug,
+            status: 'pending'
+          }
+        };
+      }
     }
 
     // Generate unique slug for seller profile
@@ -93,6 +116,9 @@ export async function registerSeller(formData) {
           }
         );
       });
+
+      // Revalidate the seller path to ensure latest data
+      revalidatePath('/seller');
 
       return { 
         success: true, 

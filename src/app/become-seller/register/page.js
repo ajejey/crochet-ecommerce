@@ -1,7 +1,11 @@
 import { Container, Heading, Text } from '@/components/ui';
 import SellerRegistrationForm from "../SellerRegistrationForm";
+import { getAuthUser } from '@/lib/auth-context';
 
-export default function SellerRegistrationPage() {
+export default async function SellerRegistrationPage() {
+  // Check if user is already authenticated
+  const user = await getAuthUser();
+
   return (
     <main className="min-h-screen bg-gray-50 py-16">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,7 +18,7 @@ export default function SellerRegistrationPage() {
           </p>
         </div>
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <SellerRegistrationForm />
+          <SellerRegistrationForm currentUser={user} />
         </div>
       </div>
     </main>
