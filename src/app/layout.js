@@ -87,12 +87,20 @@ export const metadata = {
     google: 'snj5gapw5rZUnRp7exOcGk-dSyY6kaorMwWYOvSA9nM',
   },
   category: 'E-commerce',
-  manifest: "site.webmanifest",
+  manifest: "/manifest.json",
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icons/favicon.ico',
+    shortcut: '/icons/favicon-16x16.png',
     apple: [
-      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
+    other: [
+      {
+        rel: 'mask-icon',
+        url: '/icons/safari-pinned-tab.svg',
+        color: '#E11D48'
+      }
+    ]
   },
   other: {
     'custom-made': 'true',
@@ -107,11 +115,27 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#E11D48", // Rose-600 from Tailwind
+  viewportFit: "cover",
+  colorScheme: "light",
+  minimumScale: 1,
+  maximumScale: 5
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={plusJakarta.variable}>
+      <head>
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-1536-2048.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-1125-2436.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-1242-2688.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-828-1792.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-750-1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        <link rel="apple-touch-startup-image" href="/splash/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${playfair.variable} ${dmSans.variable} ${plusJakarta.variable} ${leckerli.variable} ${allura.variable} font-sans antialiased`}>
         <CartProvider>
           {children}
