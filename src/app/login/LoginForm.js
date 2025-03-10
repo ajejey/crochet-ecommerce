@@ -8,7 +8,7 @@ import LoginFormClient from './LoginFormClient';
 
 export default async function LoginForm({ searchParams }) {
   const user = await auth.getUser();
-  const redirectTo = searchParams?.redirect || '/';
+  const redirectTo = searchParams?.from || '/';
 
   if (user) {
     redirect(redirectTo);
@@ -31,5 +31,5 @@ export default async function LoginForm({ searchParams }) {
     redirect(redirectTo);
   }
 
-  return <LoginFormClient createSession={createSession} />;
+  return <LoginFormClient createSession={createSession} redirectTo={redirectTo} />;
 }

@@ -1,9 +1,9 @@
 import SignupForm from "./SignupForm";
 
-export default function SignupPage() {
+export default function SignupPage({ searchParams }) {
   return (
-    <main className="flex items-center justify-center md:h-screen">
-      <SignupForm />
-    </main>
+    <div className="min-h-screen py-12 bg-gradient-to-b from-rose-50 to-white">
+      <SignupForm searchParams={searchParams} />
+    </div>
   );
 }

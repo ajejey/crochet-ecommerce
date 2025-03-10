@@ -276,15 +276,13 @@ export default function CartPage() {
               </div>
             </div>
             
+            <Link href="/shop/checkout" className="block mt-8">
             <button
               className="w-full bg-rose-600 text-white py-3 rounded-lg font-medium hover:bg-rose-700 transition-colors"
-              onClick={() => {
-                // TODO: Implement checkout
-                toast.success('Proceeding to checkout...');
-              }}
-            >
+              >
               Proceed to Checkout
             </button>
+            </Link>
             
             <div className="mt-4">
               <Link href="/shop" className="text-sm text-rose-600 hover:text-rose-800 flex justify-center">

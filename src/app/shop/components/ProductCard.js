@@ -45,7 +45,10 @@ export default function ProductCard({ product }) {
         price: product.price,
         description: product.description || '',
         image: product.mainImage || '/placeholder-product.jpg',
-        images: product.images || [{ url: product.mainImage || '/placeholder-product.jpg' }],
+        images: product.images?.map(img => ({
+          url: img.url,
+          _id: typeof img._id === 'object' ? img._id.toString() : img._id
+        })) || [{ url: product.mainImage || '/placeholder-product.jpg' }],
         inventory: {
           stockCount: stockCount
         },

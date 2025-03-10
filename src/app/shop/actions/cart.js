@@ -62,7 +62,11 @@ export async function getCartItems() {
       product: {
         ...item.product,
         _id: item.product._id.toString(),
-        image_urls: item.product.images?.map(img => img.url) || []
+        image_urls: item.product.images?.map(img => ({
+          ...img,
+          _id: img._id ? img._id.toString() : undefined,
+          url: img.url
+        })) || []
       },
       variant: item.variant ? {
         ...item.variant,
@@ -72,7 +76,7 @@ export async function getCartItems() {
       quantity: item.quantity
     }));
 
-    return { success: true, items: transformedItems };
+    return { success: true, items: JSON.parse(JSON.stringify(transformedItems)) };
   } catch (error) {
     console.error('Error getting cart items:', error);
     return { success: false, error: error.message };
@@ -151,7 +155,11 @@ export async function addToCart(data) {
         product: {
           ...populatedItem.product.toObject(),
           _id: populatedItem.product._id.toString(),
-          image_urls: populatedItem.product.images?.map(img => img.url) || []
+          image_urls: populatedItem.product.images?.map(img => ({
+            ...img,
+            _id: img._id ? img._id.toString() : undefined,
+            url: img.url
+          })) || []
         },
         variant: populatedItem.variant ? {
           ...populatedItem.variant.toObject(),
@@ -217,7 +225,11 @@ export async function addToCart(data) {
       product: {
         ...populatedItem.product.toObject(),
         _id: populatedItem.product._id.toString(),
-        image_urls: populatedItem.product.images?.map(img => img.url) || []
+        image_urls: populatedItem.product.images?.map(img => ({
+          ...img,
+          _id: img._id ? img._id.toString() : undefined,
+          url: img.url
+        })) || []
       },
       variant: populatedItem.variant ? {
         ...populatedItem.variant.toObject(),
