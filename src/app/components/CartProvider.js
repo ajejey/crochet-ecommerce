@@ -1,308 +1,264 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getCartItems } from '@/app/shop/actions/cart';
-import { addToCart as addToCartAction } from '@/app/shop/actions/cart';
-import { removeFromCart as removeFromCartAction } from '@/app/shop/actions/cart';
-import { updateCartItemQuantity as updateCartItemQuantityAction } from '@/app/shop/actions/cart';
+import { toast } from 'sonner';
 
-// Create context
-const CartContext = createContext();
+const CartContext = createContext(null);
 
-// Custom hook to use the cart context
-export const useCart = () => {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
-  return context;
-};
-
-// Cart provider component
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([]);
+  const [cart, setCart] = useState({
+    items: [],
+    totalItems: 0,
+    totalAmount: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Initialize cart on component mount
+  // Load cart from localStorage on mount
   useEffect(() => {
-    const initializeCart = async () => {
-      await syncCartWithServer();
-    };
-    
-    initializeCart();
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+    setIsLoading(false);
   }, []);
 
-  // Sync cart with server
-  const syncCartWithServer = async () => {
-    try {
-      setIsSyncing(true);
-      
-      // Get cart items from local storage
-      const localCartItems = getLocalCartItems();
-      
-      // Get cart items from server
-      const result = await getCartItems();
-      
-      if (result.success) {
-        // If we have items in both local storage and server, merge them
-        if (typeof window !== 'undefined') {
-          if (localCartItems.length > 0 && result.items.length > 0) {
-            // Map of server items by product ID
-            const serverItemsMap = new Map(
-              result.items.map(item => [item.product._id, item])
-            );
-            
-            // Find local items not on server
-            const localOnlyItems = localCartItems.filter(
-              localItem => !serverItemsMap.has(localItem.product._id)
-            );
-            
-            // Add local-only items to server
-            for (const localItem of localOnlyItems) {
-              await addToCartAction({
-                productId: localItem.product._id,
-                quantity: localItem.quantity,
-                variantId: localItem.variant?._id,
-                productData: {
-                  name: localItem.product.name,
-                  price: localItem.product.price,
-                  images: [{ url: localItem.product.image_urls?.[0] || '' }]
-                }
-              });
-            }
-            
-            // Refresh cart from server after sync
-            const updatedResult = await getCartItems();
-            if (updatedResult.success) {
-              setCartItems(updatedResult.items);
-              // Update local storage with the latest cart items
-              saveCartItemsToLocalStorage(updatedResult.items);
-            }
-          } else {
-            // If one is empty, use the non-empty one
-            setCartItems(result.items.length > 0 ? result.items : localCartItems);
-            // Update local storage with the latest cart items
-            saveCartItemsToLocalStorage(result.items.length > 0 ? result.items : localCartItems);
-          }
-        } else {
-          setCartItems(result.items);
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing cart with server:', error);
-    } finally {
-      setIsLoading(false);
-      setIsSyncing(false);
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('cart', JSON.stringify(cart));
     }
+  }, [cart, isLoading]);
+
+  const calculateTotals = (items) => {
+    return {
+      totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+      totalAmount: items.reduce((sum, item) => {
+        const price = item.salePrice || item.price;
+        return sum + (price * item.quantity);
+      }, 0)
+    };
   };
 
-  const refreshCart = async () => {
-    try {
-      setIsLoading(true);
-      await syncCartWithServer();
-    } catch (error) {
-      console.error('Error refreshing cart:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const addToCart = (product, quantity = 1) => {
+    console.log("Adding to cart:", product, quantity);
 
-  // Check if adding a quantity of a product would exceed available stock
-  const checkStockAvailability = (productId, requestedQuantity, totalStock) => {
-    if (typeof totalStock !== 'number') {
-      // If we don't have stock information, allow the add
-      return { canAdd: true };
-    }
-    
-    // Check if product is already in cart
-    const existingItem = cartItems.find(item => item.product._id === productId);
-    const existingQuantity = existingItem ? existingItem.quantity : 0;
-    
-    // Calculate total quantity after adding
-    const totalQuantity = existingQuantity + requestedQuantity;
-    
-    // Check if total quantity exceeds stock
-    if (totalQuantity > totalStock) {
-      // Calculate how many more can be added
-      const availableToAdd = Math.max(0, totalStock - existingQuantity);
-      
-      return {
-        canAdd: availableToAdd > 0,
-        availableToAdd,
-        reason: existingQuantity > 0 
-          ? `You already have ${existingQuantity} in your cart. Only ${availableToAdd} more available.`
-          : `Only ${totalStock} items available in stock.`
-      };
-    }
-    
-    return { canAdd: true, availableToAdd: requestedQuantity };
-  };
-
-  // Add to cart
-  const addToCart = async (params) => {
-    try {
-      const { productId, quantity, productData } = params;
-      
-      // Check stock availability if we have stock information
-      if (productData?.inventory?.stockCount !== undefined) {
-        const stockCheck = checkStockAvailability(
-          productId, 
-          quantity, 
-          productData.inventory.stockCount
-        );
-        
-        if (!stockCheck.canAdd) {
-          return { 
-            success: false, 
-            error: 'Not enough stock available',
-            stockCheck 
-          };
-        }
-        
-        // If we can add some but not all requested items
-        if (stockCheck.availableToAdd < quantity) {
-          params.quantity = stockCheck.availableToAdd;
-        }
-      }
-      
-      // Update local cart immediately for better UX
-      const existingItemIndex = cartItems.findIndex(item => item.product._id === productId);
-      
-      if (existingItemIndex !== -1) {
-        // Update quantity of existing item
-        const updatedCartItems = [...cartItems];
-        updatedCartItems[existingItemIndex] = {
-          ...updatedCartItems[existingItemIndex],
-          quantity: updatedCartItems[existingItemIndex].quantity + params.quantity
-        };
-        setCartItems(updatedCartItems);
-        // Update local storage
-        saveCartItemsToLocalStorage(updatedCartItems);
-      } else if (productData) {
-        // Add new item with product data
-        const newItem = {
-          $id: `temp-${Date.now()}`,
-          product: {
-            _id: productId,
-            ...productData
+    const sampleProduct = {
+      "_id": "67cd66860a5f5c5c5067d11b",
+      "name": "Handmade Crochet Tote",
+      "price": 2500,
+      "category": "accessories",
+      "sellerId": "67cd4710002662124583",
+      "status": "active",
+      "rating": {
+          "average": 0,
+          "count": 0
+      },
+      "images": [
+          {
+              "url": "https://cloud.appwrite.io/v1/storage/buckets/product_images/files/67cd65ef00209cb88855/view?project=67271d60001a27af8ba4",
+              "id": "67cd65ef00209cb88855",
+              "isMain": true,
+              "_id": "67cf2637f1151a6b5463f652"
           },
-          quantity: params.quantity
-        };
-        const updatedCartItems = [...cartItems, newItem];
-        setCartItems(updatedCartItems);
-        // Update local storage
-        saveCartItemsToLocalStorage(updatedCartItems);
-      }
+          {
+              "url": "https://cloud.appwrite.io/v1/storage/buckets/product_images/files/67cd877400190b1dffa6/view?project=67271d60001a27af8ba4",
+              "id": "67cd877400190b1dffa6",
+              "isMain": false,
+              "_id": "67cf2637f1151a6b5463f653"
+          }
+      ],
+      "description": {
+          "short": "Carry your essentials in style with this handcrafted crochet tote bag. Featuring a unique open weave and durable construction, it's perfect for everyday use or special occasions. Grab yours now!",
+          "full": "<div style=\"font-family: Arial, sans-serif; color: #333333; line-height: 1.6;\">\r\n  <p style=\"margin-bottom: 15px;\">Isn't it time you treated yourself to a bag that's as unique as you are? A bag that whispers 'handmade with love' every time you carry it?</p>\r\n\r\n  <ul style=\"list-style-type: disc; padding-left: 20px; margin-bottom: 15px;\">\r\n    <li><b>Eye-Catching Design:</b> Stand out from the crowd with the intricate crochet work and unique open weave pattern.</li>\r\n    <li><b>Durable Construction:</b> Expertly crafted to withstand daily use, ensuring your essentials are always secure.</li>\r\n    <li><b>Versatile Style:</b> Complements any outfit, from casual daywear to elegant evening attire.</li>\r\n    <li><b>Comfortable to Carry:</b> Lightweight design and sturdy straps make it easy to carry all day long.</li>\r\n  </ul>\r\n\r\n  <p style=\"margin-bottom: 15px;\">This bag isn't just assembled; it's crafted with passion and meticulous attention to detail. Hours of expertise go into creating each piece, ensuring you receive a bag of unparalleled quality and charm.</p>\r\n\r\n  <p style=\"margin-bottom: 15px;\">Carry it to the farmer's market, use it as your everyday tote, or bring it on your next vacation. The possibilities are endless!</p>\r\n\r\n  <p style=\"margin-bottom: 15px;\">To keep your crochet bag looking its best, simply spot clean with a damp cloth and mild detergent. Air dry away from direct sunlight.</p>\r\n\r\n  <p style=\"margin-bottom: 15px;\">We stand behind the quality of our handcrafted items. Each bag is carefully inspected to meet our high standards of craftsmanship and durability.</p>\r\n\r\n  <p style=\"margin-bottom: 15px;\">Don't miss your chance to own this limited-edition crochet bag. Due to the handmade nature, only a few are available!</p>\r\n\r\n  <p style=\"font-weight: bold; margin-bottom: 0;\">Add this unique piece to your collection today and experience the joy of owning a truly special handmade creation.</p>\r\n</div>"
+      },
+      "specifications": {
+          "colors": [
+              "Yellow",
+              "Black"
+          ],
+          "patterns": [],
+          "dimensions": {
+              "length": 26,
+              "width": 26,
+              "height": 3
+          }
+      },
+      "inventory": {
+          "stockCount": 1,
+          "sku": "tote-bag-yellow",
+          "allowBackorder": false,
+          "lowStockThreshold": 5
+      },
+      "metadata": {
+          "searchKeywords": [
+              "Crochet tote bag",
+              "Handmade handbag",
+              "Woven shoulder bag",
+              "Summer tote",
+              "Beach bag",
+              "Market bag",
+              "Boho chic",
+              "Artisanal bag",
+              "Unique gift",
+              "Ethical fashion",
+              "Sustainable bag",
+              "Limited edition",
+              "Crochet fashion",
+              "Festival bag",
+              "Lightweight tote"
+          ]
+      },
+      "createdAt": "2025-03-09T09:59:34.223Z",
+      "relevanceScore": 3,
+      "seller": {
+          "_id": "67cd4d370a5f5c5c5067d094",
+          "userId": "67cd4710002662124583",
+          "businessName": "Anuradha Crochets",
+          "slug": "anuradha-crochets",
+          "description": "Anuradha Crochets is the heart and soul of Anuradha, who has been creating beautiful crochet pieces for over 30 years. From intricate doilies to cozy wearables and home décor, every piece is handcrafted with love and care. Her passion for crochet turns simple threads into timeless treasures, made just for you.",
+          "contactEmail": "anubengoor68@gmail.com",
+          "phoneNumber": "+91 9620893808",
+          "specialties": [],
+          "achievements": [],
+          "status": "active",
+          "address": {
+              "street": "Rajarajeshwari nagar",
+              "city": "Bangalore",
+              "state": "Karnataka",
+              "country": "India",
+              "postalCode": "560098"
+          },
+          "metadata": {
+              "productsCount": 1,
+              "ordersCount": 0,
+              "totalSales": 0,
+              "rating": {
+                  "average": 0,
+                  "count": 0
+              },
+              "followersCount": 0,
+              "followingCount": 0,
+              "featured": false
+          },
+          "createdAt": "2025-03-09T08:11:35.237Z",
+          "updatedAt": "2025-03-09T09:59:34.288Z",
+          "__v": 0
+      },
+      "mainImage": "https://cloud.appwrite.io/v1/storage/buckets/product_images/files/67cd65ef00209cb88855/view?project=67271d60001a27af8ba4"
+  }
+
+    try {
+      // Check stock availability
+      const stockCount = product.inventory?.stockCount || 0;
+      const existingItem = cart.items.find(item => item._id === product._id);
+      const currentQuantity = existingItem?.quantity || 0;
       
-      // Then sync with server
-      const result = await addToCartAction(params);
-      if (result.success) {
-        // If we didn't have product data, refresh from server
-        if (!productData) {
-          await refreshCart();
-        }
-        return result;
+      if (currentQuantity + quantity > stockCount) {
+        toast.error(`Only ${stockCount - currentQuantity} items available`);
+        return { success: false };
       }
+
+      setCart(prevCart => {
+        const existingItemIndex = prevCart.items.findIndex(item => item._id === product._id);
+        let newItems;
+
+        if (existingItemIndex > -1) {
+          // Update quantity if item exists
+          newItems = prevCart.items.map((item, index) => 
+            index === existingItemIndex 
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          );
+        } else {
+          // Add new item
+          newItems = [...prevCart.items, { 
+            _id: product._id,
+            name: product.name,
+            price: product.price,
+            salePrice: product.salePrice,
+            quantity,
+            image_urls: product.images,
+            inventory: product.inventory
+          }];
+        }
+
+        const totals = calculateTotals(newItems);
+        return { items: newItems, ...totals };
+      });
+      
+      toast.success('Added to cart');
+      return { success: true };
     } catch (error) {
       console.error('Error adding to cart:', error);
-      // Refresh cart to ensure consistency
-      refreshCart();
-      throw error;
+      toast.error('Failed to add to cart');
+      return { success: false };
     }
   };
 
-  // Remove from cart
-  const removeFromCart = async (itemId) => {
+  const removeFromCart = (productId) => {
     try {
-      // Update local cart immediately
-      const updatedCartItems = cartItems.filter(item => item.$id !== itemId);
-      setCartItems(updatedCartItems);
-      // Update local storage
-      saveCartItemsToLocalStorage(updatedCartItems);
+      setCart(prevCart => {
+        const newItems = prevCart.items.filter(item => item._id !== productId);
+        const totals = calculateTotals(newItems);
+        return { items: newItems, ...totals };
+      });
       
-      // Then sync with server
-      await removeFromCartAction(itemId);
+      toast.success('Removed from cart');
       return { success: true };
     } catch (error) {
       console.error('Error removing from cart:', error);
-      // Refresh cart to ensure consistency
-      refreshCart();
-      throw error;
+      toast.error('Failed to remove from cart');
+      return { success: false };
     }
   };
 
-  const updateCartItemQuantity = async (itemId, quantity) => {
+  const updateQuantity = (productId, newQuantity) => {
     try {
-      // Check if the item exists and if we have stock information
-      const itemIndex = cartItems.findIndex(item => item.$id === itemId);
-      if (itemIndex === -1) {
-        throw new Error('Item not found in cart');
+      if (newQuantity < 1) {
+        return removeFromCart(productId);
       }
-      
-      const item = cartItems[itemIndex];
-      const stockCount = item.product?.inventory?.stockCount;
-      
-      // If we have stock information, validate the requested quantity
-      if (typeof stockCount === 'number' && quantity > stockCount) {
-        return {
-          success: false,
-          error: `Only ${stockCount} items available in stock`
-        };
-      }
-      
-      // If quantity is 0 or less, remove the item
-      if (quantity <= 0) {
-        return removeFromCart(itemId);
-      }
-      
-      // Update local cart immediately
-      const updatedCartItems = cartItems.map(item => 
-        item.$id === itemId ? { ...item, quantity } : item
-      );
-      setCartItems(updatedCartItems);
-      // Update local storage
-      saveCartItemsToLocalStorage(updatedCartItems);
-      
-      // Then sync with server
-      await updateCartItemQuantityAction(itemId, quantity);
+
+      setCart(prevCart => {
+        const item = prevCart.items.find(item => item._id === productId);
+        if (!item) return prevCart;
+
+        // Check stock availability
+        if (newQuantity > (item.inventory?.stockCount || 0)) {
+          toast.error(`Only ${item.inventory.stockCount} items available`);
+          return prevCart;
+        }
+
+        const newItems = prevCart.items.map(item =>
+          item._id === productId ? { ...item, quantity: newQuantity } : item
+        );
+
+        const totals = calculateTotals(newItems);
+        return { items: newItems, ...totals };
+      });
+
+      toast.success('Quantity updated');
       return { success: true };
     } catch (error) {
-      console.error('Error updating cart item quantity:', error);
-      // Refresh cart to ensure consistency
-      refreshCart();
-      throw error;
+      console.error('Error updating quantity:', error);
+      toast.error('Failed to update quantity');
+      return { success: false };
     }
   };
 
-  // Get remaining stock for a product
-  const getRemainingStock = (productId, totalStock) => {
-    if (typeof totalStock !== 'number') return null;
-    
-    const existingItem = cartItems.find(item => item.product._id === productId);
-    const existingQuantity = existingItem ? existingItem.quantity : 0;
-    
-    return Math.max(0, totalStock - existingQuantity);
+  const clearCart = () => {
+    setCart({ items: [], totalItems: 0, totalAmount: 0 });
+    localStorage.removeItem('cart');
   };
 
   const value = {
-    cartItems,
+    cart,
     isLoading,
-    isSyncing,
-    refreshCart,
     addToCart,
     removeFromCart,
-    updateCartItemQuantity,
-    getRemainingStock,
-    checkStockAvailability,
-    itemCount: cartItems.reduce((total, item) => total + (item.quantity || 0), 0),
-    totalPrice: cartItems.reduce((total, item) => {
-      if (!item.product) return total;
-      const itemPrice = item.variant && item.variant.price_adjustment
-        ? item.product.price + item.variant.price_adjustment
-        : item.product.price;
-      return total + (itemPrice || 0) * (item.quantity || 0);
-    }, 0)
+    updateQuantity,
+    clearCart,
+    itemCount: cart.totalItems,
+    totalAmount: cart.totalAmount
   };
 
   return (
@@ -312,25 +268,10 @@ export function CartProvider({ children }) {
   );
 }
 
-// Helper functions for local storage
-function getLocalCartItems() {
-  if (typeof window === 'undefined') return [];
-  
-  try {
-    const cartItems = localStorage.getItem('cartItems');
-    return cartItems ? JSON.parse(cartItems) : [];
-  } catch (error) {
-    console.error('Error getting cart items from local storage:', error);
-    return [];
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (!context) {
+    throw new Error('useCart must be used within a CartProvider');
   }
-}
-
-function saveCartItemsToLocalStorage(cartItems) {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
-  } catch (error) {
-    console.error('Error saving cart items to local storage:', error);
-  }
-}
+  return context;
+};

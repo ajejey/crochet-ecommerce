@@ -1,80 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useCart } from '@/app/components/CartProvider';
-import { Star, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Minus, Plus, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatPrice } from '@/utils/format';
+import { useCart } from '@/app/components/CartProvider';
 
 export default function ProductInfo({ product, initialReviews }) {
   const [quantity, setQuantity] = useState(1);
-  const { addToCart, getRemainingStock, cartItems } = useCart();
+  const { addToCart, cart } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const stockQuantity = product.inventory?.stockCount || 0;
-  
-  // Calculate remaining stock (considering items already in cart)
-  const remainingStock = getRemainingStock(product._id, stockQuantity);
-  const maxQuantity = Math.min(10, remainingStock || stockQuantity);
-  
-  // Check if product can be added to cart
-  const isOutOfStock = stockQuantity === 0;
-  const canAddToCart = !isOutOfStock && (remainingStock === null || remainingStock > 0);
+  const currentQuantityInCart = cart.items.find(item => item._id === product._id)?.quantity || 0;
+  const remainingStock = stockQuantity - currentQuantityInCart;
 
-  // Adjust quantity if it exceeds available stock
-  useEffect(() => {
-    if (quantity > maxQuantity && maxQuantity > 0) {
-      setQuantity(maxQuantity);
+  const handleQuantityChange = (change) => {
+    const newQuantity = quantity + change;
+    if (newQuantity >= 1 && newQuantity <= remainingStock) {
+      setQuantity(newQuantity);
     }
-  }, [maxQuantity, quantity]);
+  };
 
   const handleAddToCart = async () => {
-    if (!canAddToCart) {
-      toast.error('Cannot add to cart', {
-        description: isOutOfStock ? 'Product is out of stock' : 'No more items available'
-      });
+    if (remainingStock < quantity) {
+      toast.error(`Only ${remainingStock} items available`);
       return;
     }
-    
-    try {
-      // Prepare product data to avoid database lookup
-      const productData = {
-        name: product.name,
-        price: product.price,
-        salePrice: product.salePrice,
-        description: product.description,
-        images: product.images || [{ url: product.mainImage || '/placeholder-product.jpg' }],
-        inventory: {
-          stockCount: stockQuantity
-        },
-        status: product.status || 'active'
-      };
 
-      const result = await addToCart({
-        productId: product._id,
-        quantity,
-        productData
-      });
-      
-      if (result.success) {
-        toast.success('Added to cart!');
-      } else {
-        if (result.stockCheck) {
-          toast.error('Limited stock', {
-            description: result.stockCheck.reason
-          });
-          
-          // If we can add some but not all requested items
-          if (result.stockCheck.canAdd && result.stockCheck.availableToAdd > 0) {
-            setQuantity(result.stockCheck.availableToAdd);
-          }
-        } else {
-          toast.error(result.error || 'Failed to add to cart');
-        }
-      }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Failed to add to cart. Please try again.');
+    const result = await addToCart(product, quantity);
+    if (result.success) {
+      toast.success('Added to cart!');
+      setQuantity(1); // Reset quantity after successful add
     }
   };
 
@@ -128,10 +84,10 @@ export default function ProductInfo({ product, initialReviews }) {
           {product.salePrice ? (
             <>
               <span className="text-3xl font-bold text-gray-900">
-                {formatPrice(product.salePrice)}
+                ₹{product.salePrice}
               </span>
               <span className="text-xl text-gray-500 line-through">
-                {formatPrice(product.price)}
+                ₹{product.price}
               </span>
               <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
                 Save {Math.round(((product.price - product.salePrice) / product.price) * 100)}%
@@ -139,7 +95,7 @@ export default function ProductInfo({ product, initialReviews }) {
             </>
           ) : (
             <span className="text-3xl font-bold text-gray-900">
-              {formatPrice(product.price)}
+              ₹{product.price}
             </span>
           )}
         </div>
@@ -185,52 +141,73 @@ export default function ProductInfo({ product, initialReviews }) {
 
       {/* Add to Cart Section */}
       <div className="space-y-4">
-        {canAddToCart && maxQuantity > 0 && (
+        {remainingStock > 0 && (
           <div className="flex items-center gap-4">
             <label htmlFor="quantity" className="text-sm font-medium text-gray-700">
               Quantity
             </label>
-            <select
-              id="quantity"
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="rounded-lg border-gray-300 text-gray-900 text-sm focus:ring-pink-500 focus:border-pink-500"
-            >
-              {[...Array(maxQuantity)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => handleQuantityChange(-1)}
+                disabled={quantity <= 1}
+                className={`p-2 rounded-full ${
+                  quantity <= 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="text-gray-900 text-lg font-medium">{quantity}</span>
+              <button
+                onClick={() => handleQuantityChange(1)}
+                disabled={quantity >= remainingStock}
+                className={`p-2 rounded-full ${
+                  quantity >= remainingStock
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                }`}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="flex gap-3">
+        {/* Stock status */}
+        <div className="mt-4">
+          {remainingStock > 0 ? (
+            <p className="text-sm text-gray-500">
+              {remainingStock < 5 ? `Only ${remainingStock} left in stock!` : 'In stock'}
+            </p>
+          ) : (
+            <p className="text-sm text-red-500">Out of stock</p>
+          )}
+        </div>
+
+        {/* Add to cart and wishlist buttons */}
+        <div className="mt-4 flex space-x-4">
           <button
             onClick={handleAddToCart}
-            disabled={!canAddToCart || maxQuantity === 0}
-            className={`flex-1 flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 ${
-              canAddToCart && maxQuantity > 0
-                ? 'bg-pink-600 text-white hover:bg-pink-700'
-                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+            disabled={remainingStock < 1}
+            className={`flex-1 flex items-center justify-center px-8 py-3 rounded-md text-base font-medium ${
+              remainingStock < 1
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-rose-600 text-white hover:bg-rose-700'
             }`}
           >
-            <ShoppingCart className="h-5 w-5" />
-            {isOutOfStock 
-              ? 'Out of Stock' 
-              : maxQuantity === 0 
-                ? 'Maximum in Cart' 
-                : 'Add to Cart'}
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            Add to Cart
           </button>
           <button
             onClick={toggleWishlist}
-            className={`p-3 rounded-lg border ${
+            className={`p-3 rounded-md border ${
               isWishlisted
-                ? 'bg-pink-50 border-pink-200 text-pink-600'
+                ? 'border-rose-600 text-rose-600 hover:bg-rose-50'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-current' : ''}`} />
+            <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-rose-600' : ''}`} />
           </button>
         </div>
       </div>

@@ -5,9 +5,14 @@ import { Menu, X, ShoppingCart, Heart } from 'lucide-react';
 import UserMenu from './UserMenu';
 import SearchBar from './SearchBar';
 import { useCart } from '@/app/components/CartProvider';
+import { useEffect } from 'react';
 
 export default function MainHeader({ isMenuOpen, onMenuToggle }) {
-  const { itemCount } = useCart();
+  const { itemCount, cartItems } = useCart();
+
+  useEffect(() => {
+    console.log('Cart items:', cartItems);
+  }, [cartItems]);
 
   return (
     <div className="border-b bg-white shadow-sm">

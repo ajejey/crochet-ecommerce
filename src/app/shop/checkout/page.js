@@ -1,96 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import useSWR from 'swr';
 import { useCart } from '@/app/components/CartProvider';
-import { createOrder } from './actions';
-import { getCartItems } from '../actions/cart';
-
-// Use server action directly
-const fetcher = async () => {
-  const result = await getCartItems();
-  if (!result.success) {
-    throw new Error('Failed to load cart items');
-  }
-  return result.items || [];
-};
+// import { createOrder } from '../actions/orders';
+import { addToCart } from '../actions/cart';
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { data: cartItems = [], error, isLoading } = useSWR('cart-items', fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 5000,
-    errorRetryCount: 3
-  });
-  
-  const { refreshCart } = useCart();
+  const { cart, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
     address: '',
     city: '',
     state: '',
-    pincode: '',
-    paymentMethod: 'cod' // cash on delivery by default
+    pincode: ''
   });
 
-  // Redirect if cart is empty
-  useEffect(() => {
-    if (!isLoading && (!cartItems || cartItems.length === 0)) {
-      toast.error('Your cart is empty');
-      router.push('/shop/cart');
-    }
-  }, [cartItems, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="relative py-8 md:py-12">
-          <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-center min-h-[400px]">
-              <Loader2 className="w-8 h-8 animate-spin text-rose-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Redirect to cart if cart is empty
+  if (!cart.items.length) {
+    router.push('/shop/cart');
+    return null;
   }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="relative py-8 md:py-12">
-          <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-lg mx-auto">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-                <p className="text-red-600 mb-6">Error loading cart items. Please try again later.</p>
-                <button
-                  onClick={() => router.push('/shop/cart')}
-                  className="px-6 py-3 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
-                >
-                  Return to Cart
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => {
-      const itemPrice = (item.product?.price || 0) + (item.variant?.price_adjustment || 0);
-      return sum + itemPrice * (item.quantity || 0);
-    }, 0);
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -105,201 +40,216 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-      // Calculate total
-      const total = calculateTotal();
+      // First, sync cart items with the server
+      for (const item of cart.items) {
+        await addToCart({
+          productId: item._id,
+          quantity: item.quantity,
+          productData: {
+            name: item.name,
+            price: item.price,
+            salePrice: item.salePrice,
+            image_urls: item.image_urls,
+            inventory: item.inventory
+          }
+        });
+      }
 
+      // Calculate totals
+      const subtotal = cart.totalAmount;
+      const shipping = subtotal >= 1000 ? 0 : 100;
+      const total = subtotal + shipping;
+
+      // Create order
       const orderData = {
         ...formData,
-        total,
-        items: cartItems.map(item => ({
-          productId: item.product._id,
-          variantId: item.variant?._id,
-          quantity: item.quantity,
-          price: (item.variant?.price || item.product.price)
-        })),
-        shipping_address: {
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode
-        }
+        items: cart.items,
+        subtotal,
+        shipping,
+        total
       };
 
-      const result = await createOrder(orderData);
+      // const result = await createOrder(orderData);
 
       if (result.success) {
-        await refreshCart();
-        toast.success('Orders created successfully!');
+        clearCart(); // Clear the cart after successful order
+        toast.success('Order created successfully!');
         router.push('/shop/orders');
       } else {
-        toast.error(result.message || 'Failed to create order');
+        toast.error(result.error || 'Failed to create order');
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Failed to process order. Please try again.');
+      console.error('Error processing order:', error);
+      toast.error('Failed to process order');
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="relative py-8 md:py-12">
-        <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">Checkout</h1>
+    <div className="min-h-screen bg-gray-100 pt-20">
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
           
-          <div className="grid lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Shipping Information</h2>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                    rows="3"
-                    placeholder="Enter your full address"
-                  ></textarea>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                      placeholder="Enter city"
-                    />
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
+            <div className="divide-y divide-gray-200">
+              {cart.items.map((item) => (
+                <div key={item._id} className="py-4 flex justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-base font-medium text-gray-900">{item.name}</h3>
+                    <p className="mt-1 text-sm text-gray-500">Quantity: {item.quantity}</p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                      placeholder="Enter state"
-                    />
-                  </div>
+                  <p className="ml-4 text-base font-medium text-gray-900">
+                    ₹{(item.salePrice || item.price) * item.quantity}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
-                  <input
-                    type="text"
-                    name="pincode"
-                    value={formData.pincode}
-                    onChange={handleInputChange}
-                    required
-                    pattern="[0-9]{6}"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                    placeholder="Enter 6-digit pincode"
-                  />
+              ))}
+              <div className="py-4">
+                <div className="flex justify-between text-base font-medium text-gray-900">
+                  <p>Subtotal</p>
+                  <p>₹{cart.totalAmount}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                  <select
-                    name="paymentMethod"
-                    value={formData.paymentMethod}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  >
-                    <option value="cod">Cash on Delivery</option>
-                    <option value="online" disabled>Online Payment (Coming Soon)</option>
-                  </select>
+                <div className="flex justify-between text-base font-medium text-gray-900 mt-2">
+                  <p>Shipping</p>
+                  <p>{cart.totalAmount >= 1000 ? 'Free' : '₹100'}</p>
                 </div>
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full px-6 py-4 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Processing...
-                    </span>
-                  ) : (
-                    'Place Order'
-                  )}
-                </button>
-              </form>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Order Summary</h2>
-              <div className="space-y-6">
-                {cartItems.map((item) => (
-                  <div key={item.$id} className="flex gap-4 pb-4 border-b border-gray-100">
-                    <div className="relative w-24 h-24 rounded-lg overflow-hidden">
-                      <img
-                        src={item.product.images?.[0]?.url || '/placeholder.jpg'}
-                        alt={item.product.name}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{item.product.name}</h3>
-                      {item.variant && (
-                        <p className="text-sm text-gray-600">
-                          Variant: {item.variant.name}
-                        </p>
-                      )}
-                      <p className="text-sm text-gray-600 mt-1">Quantity: {item.quantity}</p>
-                      <p className="text-rose-600 font-medium mt-1">
-                        ₹{((item.variant?.price || item.product.price) * item.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                <div className="space-y-4 pt-4">
-                  <div className="flex justify-between items-center pb-4 border-b border-gray-100">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium text-gray-900">₹{calculateTotal().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-4 border-b border-gray-100">
-                    <span className="text-gray-600">Shipping</span>
-                    <span className="text-sm text-gray-500">Calculated at next step</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-lg font-semibold text-gray-900">Total</span>
-                    <span className="text-xl font-bold text-rose-600">₹{calculateTotal().toFixed(2)}</span>
-                  </div>
+                <div className="flex justify-between text-lg font-bold text-gray-900 mt-4">
+                  <p>Total</p>
+                  <p>₹{cart.totalAmount + (cart.totalAmount >= 1000 ? 0 : 100)}</p>
                 </div>
               </div>
             </div>
           </div>
+
+          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Shipping Information</h2>
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                  Address
+                </label>
+                <textarea
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  required
+                  rows={3}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    id="state"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="pincode" className="block text-sm font-medium text-gray-700">
+                  PIN Code
+                </label>
+                <input
+                  type="text"
+                  id="pincode"
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleInputChange}
+                  required
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-rose-500 focus:ring-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <button
+                type="submit"
+                disabled={isProcessing}
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white ${
+                  isProcessing
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                {isProcessing ? 'Processing...' : 'Place Order'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>

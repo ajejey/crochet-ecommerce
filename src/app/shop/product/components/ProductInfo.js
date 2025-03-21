@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 import { Star, Minus, Plus, ShoppingCart, Heart } from 'lucide-react';
 import { toast } from 'sonner';
-import { useCart } from '@/app/components/CartProvider';
 
 export default function ProductInfo({ product, formatPrice }) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const { addToCart, getRemainingStock } = useCart();
+  // const { addToCart, getRemainingStock } = useCart();
 
   // Get stock count from product
   const stockCount = product.stock || 0;
@@ -61,11 +60,6 @@ export default function ProductInfo({ product, formatPrice }) {
         status: product.status || 'active'
       };
 
-      const result = await addToCart({
-        productId: product._id,
-        quantity,
-        productData
-      });
       
       if (result.success) {
         toast.success('Added to cart successfully!');
