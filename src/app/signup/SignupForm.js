@@ -9,6 +9,7 @@ import dbConnect from '@/lib/mongodb';
 import { ID } from 'node-appwrite';
 import { CartItem } from '@/models/CartItem';
 import { Product } from '@/models/Product';
+import { sendWelcomeEmail } from '@/lib/email-auth';
 
 async function getUser() {
   const sessionCookie = cookies().get('session');
@@ -42,6 +43,12 @@ async function createAccount(formData) {
       password,
       name
     );
+
+    // Send welcome email
+    await sendWelcomeEmail(email, name).catch(error => {
+      // Log error but don't fail signup if email fails
+      console.error('Error sending welcome email:', error);
+    });
 
     // Connect to MongoDB
     await dbConnect();

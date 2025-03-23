@@ -102,7 +102,7 @@ export default function ProductCard({ product }) {
         <button
           onClick={handleAddToCart}
           disabled={remainingStock < 1}
-          className={`w-full py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm
+          className={`w-full py-2 mb-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm
             ${remainingStock < 1
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-rose-600 hover:bg-rose-700 text-white'}`}
@@ -119,7 +119,7 @@ export default function ProductCard({ product }) {
         </div>
       )}
       {remainingStock === 0 && (
-        <div className="absolute bottom-0 left-0 right-0 bg-red-100 text-red-800 text-[10px] text-center py-0.5">
+        <div className="absolute mt-2 bottom-0 left-0 right-0 bg-red-100 text-red-800 text-[10px] text-center py-0.5">
           Out of Stock
         </div>
       )}

@@ -29,7 +29,7 @@ function isPublicRoute(pathname) {
     pathname === '/login' ||
     pathname === '/signup' ||
     pathname === '/become-seller' ||
-    pathname.startsWith('/shop') && !pathname.startsWith('/shop/cart') && !pathname.startsWith('/shop/orders')
+    pathname.startsWith('/shop') && !pathname.startsWith('/shop/orders')
   );
 }
 

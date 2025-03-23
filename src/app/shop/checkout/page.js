@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
-// import { createOrder } from '../actions/orders';
 import { addToCart } from '../actions/cart';
 
 export default function CheckoutPage() {
