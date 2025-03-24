@@ -1,7 +1,0 @@
-# Ignore everything
-*
-
-# But include these directories and files
-!public/
-!public/images/
-!public/images/*

@@ -79,7 +79,7 @@ const HomePage = () => {
             {/* Right Column - Featured Image */}
             <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
               <Image
-                src="/images/crochet-yarn.png"
+                src={"/images/crochet-yarn.png"}
                 alt="Handcrafted Crochet Items"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
