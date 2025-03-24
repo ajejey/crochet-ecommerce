@@ -140,7 +140,7 @@ export default function RootLayout({ children }) {
         <CartProvider>
           {children}
           <Footer />
-          <Toaster richColors position="top-center" />
+          <Toaster richColors closeButton position="bottom-right" />
           <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
         </CartProvider>
       </body>

@@ -24,8 +24,9 @@ export default function ProductCard({ product }) {
     }
 
     const result = await addToCart(product, 1);
-    if (!result.success) {
-      toast.error('Failed to add to cart');
+    console.log("result product card", result);
+    if (!result) {
+      toast.error('Failed to add to cart product card');
     }
   };
 

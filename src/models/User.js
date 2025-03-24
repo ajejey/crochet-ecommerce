@@ -18,6 +18,19 @@ const userSchema = new mongoose.Schema({
     default: 'user',
     index: true
   },
+  phone: String,
+  // shippingAddress: String,
+  // shippingCity: String,
+  // shippingState: String,
+  // shippingPincode: String,
+  addresses: [
+    {
+      address: String,
+      city: String,
+      state: String,
+      pincode: String
+    }
+  ],
   lastSync: Date,
   metadata: {
     lastLogin: Date,
