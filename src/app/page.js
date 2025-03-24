@@ -1,4 +1,3 @@
-
 import Link from 'next/link';
 import Image from 'next/image';
 import HeaderSection from './(header)/HeaderSection';
@@ -83,6 +82,8 @@ const HomePage = () => {
                 src="/images/crochet-yarn.png"
                 alt="Handcrafted Crochet Items"
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                quality={90}
                 className="object-contain md:object-cover"
                 priority
               />
