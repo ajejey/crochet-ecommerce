@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
-import { createOrder, checkInventoryAvailability, getUserDetails, addNewAddress, deleteAddress } from './actions';
+import { getUserDetails, checkInventoryAvailability, createOrder, updateUserDetails, addNewAddress, deleteAddress } from './actions';
 import { getLocationByPincode } from '@/lib/postal-service';
 
 export default function CheckoutPage() {
@@ -34,7 +34,29 @@ export default function CheckoutPage() {
 
     setIsLoading(true);
     try {
-      // Need to write an action in ./actions.js to update user details first
+      // 1. Update User Details (name, email, phone, and maybe address if new)
+      // This runs in the background and doesn't need to block the order creation
+      updateUserDetails(formData)
+        .then(result => {
+          if (result.success) {
+            console.log('User details updated successfully');
+          } else {
+            // Log error but don't necessarily block the user
+            console.error('Failed to update user details:', result.message);
+            // Optional: toast.info('Could not save updated profile information.');
+          }
+        })
+        .catch(err => {
+          console.error('Error calling updateUserDetails:', err);
+        });
+
+      // 2. Check cart and inventory
+      if (!cart || cart.items.length === 0) {
+        toast.error('Your cart is empty');
+        router.push('/shop/cart');
+        return;
+      }
+
       // First check inventory availability
       const inventoryCheck = await checkInventoryAvailability(cart.items);
       

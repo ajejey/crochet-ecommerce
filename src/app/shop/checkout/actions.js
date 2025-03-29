@@ -292,6 +292,32 @@ export async function verifyRazorpayPayment(paymentData) {
       return acc;
     }, {});
     console.log('Order items map:', orderItemsMap);
+    
+    // Update product inventory - decrement stock for each purchased item
+    console.log('Updating product inventory...');
+    try {
+      // Create a list of inventory updates to perform
+      const inventoryUpdates = orderItems.map(item => {
+        const productId = item.productId._id;
+        const quantity = item.quantity;
+        
+        // Return the update operation for this product
+        return Product.findByIdAndUpdate(
+          productId,
+          { $inc: { 'inventory.stockCount': -quantity } },
+          { new: true }
+        );
+      });
+      
+      // Execute all inventory updates in parallel
+      const inventoryResults = await Promise.all(inventoryUpdates);
+      console.log('Inventory updated successfully for', inventoryResults.length, 'products');
+    } catch (inventoryError) {
+      console.error('Error updating inventory:', inventoryError);
+      // We'll continue the process even if inventory update fails
+      // The order is already confirmed, and we'll need manual inventory adjustment
+    }
+    
     // Attach items to each order
     const ordersWithItems = updatedOrders.map(order => {
       return {
