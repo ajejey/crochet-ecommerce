@@ -9,6 +9,8 @@ import { uploadProductImage } from '../actions';
 import { PRODUCT_CATEGORIES, PRODUCT_STATUSES } from '@/constants/product';
 import { useAIAssist } from '@/lib/hooks/useAIAssist';
 import RichTextEditor, { RichTextEditorStyles } from '@/app/components/RichTextEditor';
+import { convertToWebP } from '@/lib/img-to-webp';
+import ProductImageUpload from './ProductImageUpload';
 
 const MAX_IMAGES = 5;
 
@@ -95,13 +97,16 @@ export default function ProductForm({
 
   async function handleImageChange(e) {
     const files = Array.from(e.target.files);
+
+    // Convert files to WebP
+    const webPFiles = await Promise.all(files.map(convertToWebP));
     
     if (images.length + files.length > MAX_IMAGES) {
       toast.error(`You can only upload up to ${MAX_IMAGES} images`);
       return;
     }
 
-    for (const file of files) {
+    for (const file of webPFiles) {
       const formData = new FormData();
       formData.append('image', file);
 
@@ -206,7 +211,7 @@ export default function ProductForm({
             </button>
           )}
         </div>
-        <div className="flex flex-wrap gap-4">
+        {/* <div className="flex flex-wrap gap-4">
           {images.map((image, index) => (
             <div key={index} className="relative w-24 h-24">
               <Image
@@ -240,7 +245,14 @@ export default function ProductForm({
               )}
             </label>
           )}
-        </div>
+        </div> */}
+        <ProductImageUpload
+          images={images}
+          removeImage={removeImage}
+          handleImageChange={handleImageChange}
+          uploadingImages={uploadingImages}
+          MAX_IMAGES={MAX_IMAGES}
+        />
         <p className="text-sm text-gray-500">
           Upload up to {MAX_IMAGES} images. First image will be the main product image.
         </p>

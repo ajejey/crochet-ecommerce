@@ -143,7 +143,7 @@ export async function createProduct(formData) {
         patterns: formData.get('patterns')?.split(',').map(pattern => pattern.trim()).filter(Boolean) || []
       },
       inventory: {
-        stockCount: parseInt(formData.get('quantity')) || 0,
+        stockCount: parseInt(formData.get('stockCount')) || 0,
         lowStockThreshold: parseInt(formData.get('lowStockThreshold')) || 5,
         sku: formData.get('sku'),
         allowBackorder: formData.get('allowBackorders') === 'on'

@@ -176,7 +176,8 @@ async function analyzeProductImages(images) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp",
+      // model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-pro-exp-03-25",
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: productAnalysisSchema,
@@ -192,7 +193,7 @@ async function analyzeProductImages(images) {
       }))
     );
 
-    const prompt = `Analyze these handcrafted crochet items and create irresistible product content that converts browsers into buyers.
+    const prompt = `Analyze these handcrafted crochet items and create irresistible product content that converts browsers into buyers for buyers in India. You write in simple but effective words that buyers in India can understand and relate to.
 
 WRITING STYLE:
 - Write in a warm, personal tone that connects emotionally with shoppers
@@ -207,25 +208,25 @@ For the product name:
 - Use power words that trigger emotional response
 - Keep it clear and memorable
 - Keep it under 4 words
-- Example: "Heirloom-quality Baby Blanket"
 
 For the short description:
 - Open with a compelling hook that addresses a specific need or desire
 - Highlight the most impressive feature or unique selling point
 - End with a clear call-to-action
-- Example: "Wrap your little one in pure comfort with this heirloom-quality baby blanket. Expertly crocheted from premium merino wool, each stitch carries the warmth of handmade love. Order now to give a gift that will be treasured for generations."
+- Keep the text simple for audience in India to understand.
+- Example: "Keep your little one warm and cozy with this beautifully handwoven baby blanket. Made from soft, premium wool, it’s crafted with love and care by skilled artisans. A perfect gift for your baby or a loved one. Order now and make it a cherished memory!"
 
 For the full description, write in HTML, well formatted and styled format (give inline styling where needed) and structure it as follows (but don't include the headings):
 
 EMOTIONAL HOOK:
 - Start with an engaging scenario or question
 - Address a specific pain point or desire
-- Example: "Imagine wrapping your precious little one in a blanket so soft, it feels like a warm hug..."
+- Example: "Imagine wrapping your little one in a blanket as soft as a mother’s hug, keeping them warm and cozy all night..."
 
 KEY FEATURES (3-4 bullet points):
 - Transform features into benefits
 - Use sensory language
-- Example: "Buttery-soft merino wool that gets softer with each wash"
+- Example: "Soft, breathable cotton that stays gentle on your skin, even in hot weather."
 
 CRAFTSMANSHIP HIGHLIGHT:
 - Emphasize the artisanal nature
@@ -235,16 +236,16 @@ CRAFTSMANSHIP HIGHLIGHT:
 VERSATILITY & USAGE:
 - Describe multiple ways to use the item
 - Paint pictures of different scenarios
-- Example: "Perfect for nursery decor, tummy time, or outdoor picnics..."
+- Example: "Perfect for cozy naps, playtime, or carrying on family outings..."
 
 CARE INSTRUCTIONS:
 - Frame as preserving their investment
 - Keep it simple but specific
-- Example: "Simple care keeps this heirloom piece beautiful for generations..."
+- Example: "Keep it soft and beautiful for years with simple care..."
 
 GUARANTEE/QUALITY PROMISE:
 - Build trust and reduce purchase anxiety
-- Example: "Each stitch is carefully inspected to ensure heirloom quality..."
+- Example: Handcrafted with love and checked for the finest quality..."
 
 URGENCY & SCARCITY:
 - Mention limited availability or seasonal relevance
@@ -252,9 +253,9 @@ URGENCY & SCARCITY:
 
 CALL TO ACTION:
 - Clear, compelling closing statement
-- Example: "Secure this one-of-a-kind piece today to add warmth and charm to your nursery."
+- Example: "Order now and bring home comfort and warmth!"
 
-Generate at least 15 SEO-optimized keywords that target:
+Generate at least 15 SEO-optimized keywords that target (in the Indian context):
 - Product type and variations
 - Materials and techniques
 - Occasions and uses
@@ -267,6 +268,8 @@ Remember to:
 - Emphasize the quality of materials and craftsmanship
 - Create emotional connections through storytelling
 - Address potential buyer concerns preemptively
+- Keep the words simple yet effective
+- You don't need to use the word "Indian" or "India" in the response. Just know that you are writing for buyers in India
 - Use power words that trigger buying behavior`;
 
     const result = await model.generateContent([...imageContents, prompt]);

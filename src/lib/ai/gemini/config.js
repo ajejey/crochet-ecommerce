@@ -26,7 +26,7 @@ export class GeminiService {
       const availableCategories = PRODUCT_CATEGORIES.map(cat => cat.id);
 
       // Craft a detailed prompt for product analysis
-      const prompt = `You are a professional e-commerce product description writer and crochet expert. 
+      const prompt = `You are a professional e-commerce product description writer and crochet expert for buyers in India. 
       Analyze these product images of a crochet item and generate the following details:
 
       1. Category Detection:
@@ -41,12 +41,12 @@ export class GeminiService {
          - Detect colors used
 
       3. Generate:
-         a) A compelling short description (2-3 sentences) that:
+         a) A compelling short description for buyers in India (2-3 sentences) that:
             - Highlights key features
             - Emphasizes handmade quality
             - Appeals to emotion and usefulness
          
-         b) A detailed full description that includes:
+         b) A detailed full description for buyers in India that includes:
             - Detailed craftsmanship description
             - Materials and texture
             - Size and fit information

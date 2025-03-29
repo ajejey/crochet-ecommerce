@@ -16,12 +16,16 @@ export async function generateMetadata({ params }) {
   }
 
   return {
-    title: `${product.name} | KnitKart`,
+    title: `${product.name}`,
     description: product.description?.short || product.description?.full || product.name,
+    keywords: product.metadata.searchKeywords,
+    alternates: {
+      canonical: `https://www.knitkart.in/shop/product/${product.slug}`
+    },
     openGraph: {
       title: product.name,
       description: product.description?.short || product.description?.full || product.name,
-      images: [product.mainImage],
+      images: [product.images[0].url],
     },
   };
 }
