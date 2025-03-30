@@ -10,15 +10,17 @@ import { formatPrice } from '@/utils/format';
 export default function ProductCard({ product }) {
   const { addToCart, cart } = useCart();
 
-  // Get stock count from product
+  // Get inventory details from product
   const stockCount = product.inventory?.stockCount || 0;
+  const allowBackorder = product.inventory?.allowBackorder || false;
+  const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
   const currentQuantityInCart = cart.items.find(item => item._id === product._id)?.quantity || 0;
   const remainingStock = stockCount - currentQuantityInCart;
 
   const handleAddToCart = async (e) => {
     e.preventDefault(); // Prevent navigation when clicking the button
 
-    if (remainingStock < 1) {
+    if (remainingStock < 1 && !allowBackorder) {
       toast.error('Product is out of stock');
       return;
     }
@@ -102,14 +104,14 @@ export default function ProductCard({ product }) {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={remainingStock < 1}
+          disabled={remainingStock < 1 && !allowBackorder}
           className={`w-full py-2 mb-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm
-            ${remainingStock < 1
+            ${remainingStock < 1 && !allowBackorder
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-rose-600 hover:bg-rose-700 text-white'}`}
         >
           <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-          {remainingStock < 1 ? 'Out of Stock' : 'Add to Cart'}
+          {remainingStock < 1 ? (allowBackorder ? 'Made to Order' : 'Out of Stock') : 'Add to Cart'}
         </button>
       </div>
 
@@ -121,7 +123,7 @@ export default function ProductCard({ product }) {
       )}
       {remainingStock === 0 && (
         <div className="absolute mt-2 bottom-0 left-0 right-0 bg-red-100 text-red-800 text-[10px] text-center py-0.5">
-          Out of Stock
+          {allowBackorder ? `Made to Order (${madeToOrderDays} days)` : 'Out of Stock'}
         </div>
       )}
     </Link>

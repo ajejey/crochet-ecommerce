@@ -11,6 +11,8 @@ export default function ProductInfo({ product, initialReviews }) {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const stockQuantity = product.inventory?.stockCount || 0;
+  const allowBackorder = product.inventory?.allowBackorder || false;
+  const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
   const currentQuantityInCart = cart.items.find(item => item._id === product._id)?.quantity || 0;
   const remainingStock = stockQuantity - currentQuantityInCart;
 
@@ -22,9 +24,14 @@ export default function ProductInfo({ product, initialReviews }) {
   };
 
   const handleAddToCart = async () => {
-    if (remainingStock < quantity) {
+    if (remainingStock < quantity && !allowBackorder) {
       toast.error(`Only ${remainingStock} items available`);
       return;
+    }
+    
+    // If made-to-order is allowed but there's not enough stock, show a made-to-order message
+    if (remainingStock < quantity && allowBackorder) {
+      toast.info(`${quantity - remainingStock} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
     }
 
     const result = await addToCart(product, quantity);
@@ -50,6 +57,11 @@ export default function ProductInfo({ product, initialReviews }) {
           {stockQuantity <= 5 && stockQuantity > 0 && (
             <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
               Only {stockQuantity} left
+            </span>
+          )}
+          {stockQuantity === 0 && allowBackorder && (
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+              Made to Order ({madeToOrderDays} days)
             </span>
           )}
           {remainingStock !== null && remainingStock < stockQuantity && (
@@ -106,11 +118,11 @@ export default function ProductInfo({ product, initialReviews }) {
             <span className="text-green-600 flex items-center gap-1">
               <Package className="h-4 w-4" />
               In Stock
-              {remainingStock !== null && remainingStock < stockQuantity && (
-                <span className="ml-1 text-blue-600">
-                  ({remainingStock} available to add)
-                </span>
-              )}
+            </span>
+          ) : allowBackorder ? (
+            <span className="text-amber-600 flex items-center gap-1">
+              <Package className="h-4 w-4" />
+              Made to Order ({madeToOrderDays} days delivery)
             </span>
           ) : (
             <span className="text-red-600 flex items-center gap-1">
@@ -161,9 +173,9 @@ export default function ProductInfo({ product, initialReviews }) {
               <span className="text-gray-900 text-lg font-medium">{quantity}</span>
               <button
                 onClick={() => handleQuantityChange(1)}
-                disabled={quantity >= remainingStock}
+                disabled={quantity >= remainingStock && !allowBackorder}
                 className={`p-2 rounded-full ${
-                  quantity >= remainingStock
+                  quantity >= remainingStock && !allowBackorder
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                 }`}
@@ -180,6 +192,8 @@ export default function ProductInfo({ product, initialReviews }) {
             <p className="text-sm text-gray-500">
               {remainingStock < 5 ? `Only ${remainingStock} left in stock!` : 'In stock'}
             </p>
+          ) : allowBackorder ? (
+            <p className="text-sm text-amber-500">Made to order - will be delivered in {madeToOrderDays} days</p>
           ) : (
             <p className="text-sm text-red-500">Out of stock</p>
           )}
@@ -189,15 +203,15 @@ export default function ProductInfo({ product, initialReviews }) {
         <div className="mt-4 flex space-x-4">
           <button
             onClick={handleAddToCart}
-            disabled={remainingStock < 1}
+            disabled={remainingStock < 1 && !allowBackorder}
             className={`flex-1 flex items-center justify-center px-8 py-3 rounded-md text-base font-medium ${
-              remainingStock < 1
+              remainingStock < 1 && !allowBackorder
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 : 'bg-rose-600 text-white hover:bg-rose-700'
             }`}
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            Add to Cart
+            {remainingStock < 1 && allowBackorder ? 'Order Now (Made to Order)' : 'Add to Cart'}
           </button>
           <button
             onClick={toggleWishlist}

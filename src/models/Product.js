@@ -110,7 +110,8 @@ const ProductSchema = new mongoose.Schema({
     stockCount: { type: Number, default: 0, required: true },
     lowStockThreshold: { type: Number, default: 5 },
     sku: { type: String, unique: true },
-    allowBackorder: { type: Boolean, default: false }
+    allowBackorder: { type: Boolean, default: false },
+    madeToOrderDays: { type: Number, default: 7 } // Estimated days to make the product when it's made-to-order
   },
   metadata: {
     salesCount: { type: Number, default: 0 },

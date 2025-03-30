@@ -21,7 +21,8 @@ export default function PaymentPage() {
   useEffect(() => {
     const orderIds = searchParams.get('orderIds')?.split(',') || [];
     if (!orderIds.length) {
-      toast.error('No orders found');
+      toast.error('No orders found paymentPage useEffect');
+      console.log("No orders found ", orderIds);
       router.push('/shop/cart');
       return;
     }
@@ -43,6 +44,7 @@ export default function PaymentPage() {
         } else {
           setError(result.message);
           toast.error(result.message);
+          console.log("Order details not found ", result);
           router.push('/shop/cart');
         }
       } catch (error) {
@@ -87,14 +89,23 @@ export default function PaymentPage() {
             clearCart();
             
             // Pass the full order objects with items to avoid redundant database queries
-            const emailResult = await sendOrderConfirmationEmails(verificationResult.orders);
-            
-            if (emailResult.success) {
-              toast.success('Order confirmation emails sent successfully!');
-            } else {
-              // Even if email sending fails, the order was still successful
-              toast.error('Order placed successfully, but confirmation email could not be sent.');
-              console.error('Email sending error:', emailResult.message);
+            console.log('Sending confirmation emails for orders:', verificationResult.orders);
+            try {
+              const emailResult = await sendOrderConfirmationEmails(verificationResult.orders);
+              
+              console.log('Email sending result:', emailResult);
+              
+              if (emailResult.success) {
+                toast.success('Order confirmation emails sent successfully!');
+              } else {
+                // Even if email sending fails, the order was still successful
+                toast.error('Order placed successfully, but confirmation email could not be sent.');
+                console.error('Email sending error:', emailResult.message);
+                console.error('Email sending details:', emailResult);
+              }
+            } catch (emailError) {
+              console.error('Exception during email sending:', emailError);
+              toast.error('Order placed successfully, but there was an error sending confirmation emails.');
             }
             
             setPaymentStatus('success');
@@ -203,17 +214,34 @@ export default function PaymentPage() {
                     <div key={order._id} className="py-4">
                       <h3 className="text-lg font-medium text-gray-900 mb-2">Order #{orderIndex + 1}</h3>
                       
-                      {order.items?.map((item) => (
-                        <div key={item._id} className="flex justify-between py-2">
-                          <div className="flex-1">
-                            <h4 className="text-base font-medium text-gray-900">{item.productId?.name || 'Product'}</h4>
-                            <p className="mt-1 text-sm text-gray-500">Quantity: {item.quantity}</p>
+                      {order.items?.map((item) => {
+                        const isMadeToOrder = item.isMadeToOrder;
+                        return (
+                          <div key={item._id} className="flex justify-between py-2">
+                            <div className="flex-1">
+                              <h4 className="text-base font-medium text-gray-900">{item.productId?.name || 'Product'}</h4>
+                              <p className="mt-1 text-sm text-gray-500">Quantity: {item.quantity}</p>
+                              {isMadeToOrder && (
+                                <div className="mt-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md inline-flex items-center">
+                                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                                  Made to order ({item.madeToOrderDays || 7} days)
+                                  {item.estimatedDeliveryDate && (
+                                    <span className="ml-1 text-xs text-gray-500">
+                                      • Est. delivery: {new Date(item.estimatedDeliveryDate).toLocaleDateString('en-IN', {
+                                        day: 'numeric',
+                                        month: 'short'
+                                      })}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <p className="ml-4 text-base font-medium text-gray-900">
+                              ₹{item.price * item.quantity}
+                            </p>
                           </div>
-                          <p className="ml-4 text-base font-medium text-gray-900">
-                            ₹{item.price * item.quantity}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                       
                       <div className="mt-2 text-sm text-gray-600">
                         <p>Shipping to: {order.shippingAddress}, {order.shippingCity}, {order.shippingState} - {order.shippingPincode}</p>
@@ -237,6 +265,50 @@ export default function PaymentPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Made to Order Notice */}
+              {orders.some(order => order.items?.some(item => item.isMadeToOrder)) && (
+                <div className="bg-white rounded-lg shadow p-6 mb-6">
+                  <h2 className="text-xl font-semibold text-amber-800 mb-2">Made-to-Order Items</h2>
+                  <p className="text-gray-600 mb-2">
+                    Your order contains items that will be made to order. These items will be crafted specially for you and may take additional time to deliver.
+                  </p>
+                  
+                  {/* List of made-to-order items with their estimated delivery dates */}
+                  <div className="mt-3 mb-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Estimated Delivery Timeline:</h3>
+                    <ul className="space-y-2">
+                      {orders.flatMap(order => 
+                        order.items
+                          .filter(item => item.isMadeToOrder)
+                          .map(item => {
+                            const estimatedDate = item.estimatedDeliveryDate 
+                              ? new Date(item.estimatedDeliveryDate) 
+                              : new Date(Date.now() + ((item.madeToOrderDays || 7) * 24 * 60 * 60 * 1000));
+                            
+                            return (
+                              <li key={item._id} className="flex items-start">
+                                <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mt-1.5 mr-2"></span>
+                                <div>
+                                  <span className="font-medium">{item.productId?.name || 'Product'}</span>
+                                  <span className="text-gray-600"> - Estimated delivery by {estimatedDate.toLocaleDateString('en-IN', { 
+                                    day: 'numeric', 
+                                    month: 'long', 
+                                    year: 'numeric'
+                                  })}</span>
+                                </div>
+                              </li>
+                            );
+                          })
+                      )}
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-amber-50 p-3 rounded-md border border-amber-200 text-sm text-amber-700">
+                    <p>Standard items will be shipped immediately, while made-to-order items will be shipped once they are ready. You'll receive email updates about your order status.</p>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Payment Method</h2>

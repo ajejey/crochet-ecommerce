@@ -23,6 +23,22 @@ const orderItemSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true
+  },
+  isMadeToOrder: {
+    type: Boolean,
+    default: false
+  },
+  madeToOrderDays: {
+    type: Number,
+    default: 7
+  },
+  estimatedDeliveryDate: {
+    type: Date
+  },
+  productionStatus: {
+    type: String,
+    enum: ['pending', 'in_production', 'completed', 'shipped'],
+    default: 'pending'
   }
 }, {
   timestamps: true

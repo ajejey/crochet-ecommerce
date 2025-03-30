@@ -13,6 +13,7 @@ export default function CheckoutPage() {
   const { cart } = useCart();
   const [isLoading, setIsLoading] = useState(false);
   const [inventoryIssues, setInventoryIssues] = useState(null);
+  const [madeToOrderItems, setMadeToOrderItems] = useState([]);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
@@ -27,7 +28,7 @@ export default function CheckoutPage() {
 
   const onSubmit = async (formData) => {
     if (!cart.items.length) {
-      toast.error('Your cart is empty');
+      toast.error('Your cart is empty onsubmit checkoutt');
       router.push('/shop/cart');
       return;
     }
@@ -52,7 +53,7 @@ export default function CheckoutPage() {
 
       // 2. Check cart and inventory
       if (!cart || cart.items.length === 0) {
-        toast.error('Your cart is empty');
+        toast.error('Your cart is empty checkouttt');
         router.push('/shop/cart');
         return;
       }
@@ -70,6 +71,11 @@ export default function CheckoutPage() {
         toast.error('Some items in your cart are no longer available');
         return;
       }
+      
+      // Notify user about made-to-order items
+      if (inventoryCheck.hasMadeToOrderItems) {
+        toast.info('Some items in your order will be made to order and may take longer to deliver');
+      }
 
       // Calculate totals
       const subtotal = cart.totalAmount;
@@ -77,23 +83,53 @@ export default function CheckoutPage() {
       const total = subtotal + shipping;
 
       // Create order
-      const result = await createOrder({
-        ...formData,
-        items: cart.items,
-        subtotal,
-        shipping,
-        total
-      });
+      console.log('Submitting order with items:', cart.items.length);
+      
+      try {
+        const result = await createOrder({
+          ...formData,
+          items: cart.items,
+          subtotal,
+          shipping,
+          total
+        });
 
-      if (result.success) {
-        // Redirect to payment page
-        router.push(`/shop/payment?orderIds=${result.orderIds.join(',')}`);
-      } else {
-        toast.error(result.message || 'Failed to create order');
+        if (result.success) {
+          // Verify we have order IDs before redirecting
+          if (result.orderIds && result.orderIds.length > 0) {
+            console.log('Order created successfully, redirecting to payment page with order IDs:', result.orderIds);
+            router.push(`/shop/payment?orderIds=${result.orderIds.join(',')}`);
+          } else {
+            console.error('Order creation succeeded but no order IDs returned:', result);
+            toast.error('Order created but payment information is missing. Please contact support.');
+          }
+        } else {
+          console.error('Order creation failed:', result);
+          toast.error(result.message || 'Failed to create order');
+          
+          // If there's an authentication error, redirect to login
+          if (result.message?.includes('login') || result.errorType === 'AuthenticationError') {
+            toast.error('Please log in again to continue');
+            setTimeout(() => router.push('/login'), 2000);
+          }
+        }
+      } catch (orderError) {
+        console.error('Exception during order creation:', orderError);
+        toast.error('An unexpected error occurred. Please try again.');
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error('Something went wrong during checkout');
+      
+      // Provide more specific error messages based on the error type
+      if (error.message?.includes('authentication') || error.message?.includes('login')) {
+        toast.error('Authentication error. Please log in again.');
+        setTimeout(() => router.push('/login'), 2000);
+      } else if (error.message?.includes('inventory') || error.message?.includes('stock')) {
+        toast.error('Some items in your cart are no longer available in the requested quantities.');
+        setInventoryIssues([{ name: 'One or more items', message: 'Inventory changed' }]);
+      } else {
+        toast.error('Something went wrong during checkout. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -103,6 +139,25 @@ export default function CheckoutPage() {
   const subtotal = cart.totalAmount;
   const shipping = subtotal >= 1000 ? 0 : 100;
   const total = subtotal + shipping;
+
+  // Check inventory status when cart changes
+  useEffect(() => {
+    const checkInventory = async () => {
+      if (cart.items.length > 0) {
+        const inventoryCheck = await checkInventoryAvailability(cart.items);
+        if (inventoryCheck.success) {
+          if (!inventoryCheck.isAvailable) {
+            setInventoryIssues(inventoryCheck.unavailableItems);
+          } else {
+            setInventoryIssues(null);
+          }
+          setMadeToOrderItems(inventoryCheck.madeToOrderItems || []);
+        }
+      }
+    };
+    
+    checkInventory();
+  }, [cart.items]);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -386,17 +441,28 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
               <div className="divide-y divide-gray-200">
-                {cart.items.map((item) => (
-                  <div key={item._id} className="py-4 flex items-center">
-                    <div className="flex-1">
-                      <h3 className="text-base font-medium text-gray-900">{item.name}</h3>
-                      <p className="mt-1 text-sm text-gray-500">Quantity: {item.quantity}</p>
+                {cart.items.map((item) => {
+                  const isMadeToOrder = madeToOrderItems.some(mto => mto.productId === item._id);
+                  const madeToOrderInfo = madeToOrderItems.find(mto => mto.productId === item._id);
+                  
+                  return (
+                    <div key={item._id} className="py-4 flex items-center">
+                      <div className="flex-1">
+                        <h3 className="text-base font-medium text-gray-900">{item.name}</h3>
+                        <p className="mt-1 text-sm text-gray-500">Quantity: {item.quantity}</p>
+                        {isMadeToOrder && (
+                          <div className="mt-1 text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-md inline-flex items-center">
+                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                            {madeToOrderInfo?.message || `Made to order (${madeToOrderInfo?.madeToOrderDays || 7} days)`}
+                          </div>
+                        )}
+                      </div>
+                      <p className="ml-4 text-base font-medium text-gray-900">
+                        ₹{item.price * item.quantity}
+                      </p>
                     </div>
-                    <p className="ml-4 text-base font-medium text-gray-900">
-                      ₹{item.price * item.quantity}
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 <div className="py-4">
                   <div className="flex justify-between text-base font-medium text-gray-900">
@@ -415,6 +481,23 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Made to Order Notice */}
+            {madeToOrderItems.length > 0 && (
+              <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <h3 className="text-sm font-medium text-amber-800">Made-to-Order Items</h3>
+                <p className="text-xs text-amber-700 mt-1">
+                  Your order contains items that will be made to order. These items will be crafted specially for you and may take additional time to deliver.
+                </p>
+                <ul className="mt-2 text-xs text-amber-700 list-disc pl-5 space-y-1">
+                  {madeToOrderItems.map(item => (
+                    <li key={item.productId}>
+                      {item.name}: {item.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             {/* Submit Button */}
             <div className="mt-6">
               <button

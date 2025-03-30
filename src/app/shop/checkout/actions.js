@@ -31,19 +31,40 @@ export async function updateUserDetails(orderData) {
       pincode: orderData.shippingPincode
     };
 
-    // Update user details and add new address if it doesn't exist
+    // First, get the current user to check existing addresses
+    const currentUser = await User.findById(user._id);
+    if (!currentUser) {
+      return { success: false, message: 'User not found' };
+    }
+    
+    // Check if this address already exists (normalized comparison)
+    const addressExists = currentUser.addresses.some(addr => {
+      return (
+        addr.address?.trim().toLowerCase() === addressData.address?.trim().toLowerCase() &&
+        addr.city?.trim().toLowerCase() === addressData.city?.trim().toLowerCase() &&
+        addr.state?.trim().toLowerCase() === addressData.state?.trim().toLowerCase() &&
+        addr.pincode?.trim() === addressData.pincode?.trim()
+      );
+    });
+
+    // Update operations to perform
+    const updateOps = {
+      $set: {
+        name: orderData.buyerName,
+        phone: orderData.buyerPhone,
+        email: orderData.buyerEmail,
+      }
+    };
+    
+    // Only add the address if it doesn't already exist
+    if (!addressExists) {
+      updateOps.$push = { addresses: addressData };
+    }
+
+    // Update user details
     await User.updateOne(
       { _id: user._id },
-      {
-        $set: {
-          name: orderData.buyerName,
-          phone: orderData.buyerPhone,
-          email: orderData.buyerEmail,
-        },
-        $addToSet: { // Only adds if the address doesn't exist
-          addresses: addressData
-        }
-      }
+      updateOps
     );
 
     return { success: true, message: 'User details updated successfully' };
@@ -72,7 +93,7 @@ export async function getUserDetails() {
 
     console.log('User details:', userDetails);
 
-    return { success: true, userDetails };
+    return { success: true, userDetails: JSON.parse(JSON.stringify(userDetails)) };
   } catch (error) {
     console.error('Error getting user details:', error);
     return { success: false, message: 'Failed to retrieve user details' };
@@ -83,12 +104,31 @@ export async function createOrder(orderData) {
   try {
     await dbConnect();
     
+    console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
+    
     const user = await getAuthUser();
+    console.log('User authentication result:', user ? 'User authenticated' : 'No user found');
+    
     if (!user) {
+      console.error('Authentication failed: No user found');
       return { success: false, message: 'Please login to create order' };
     }
+    
+    console.log('Authenticated user ID:', user._id, 'Appwrite ID:', user.$id);
 
     // Group items by seller
+    if (!orderData.items || !Array.isArray(orderData.items)) {
+      console.error('Invalid cart items:', orderData.items);
+      return { success: false, message: 'Invalid cart items' };
+    }
+    
+    // Check if all items have sellerId
+    const missingSellerItems = orderData.items.filter(item => !item.sellerId);
+    if (missingSellerItems.length > 0) {
+      console.error('Items missing sellerId:', missingSellerItems);
+      return { success: false, message: 'Some items are missing seller information' };
+    }
+    
     const itemsBySeller = orderData.items.reduce((acc, item) => {
       const sellerId = item.sellerId;
       if (!acc[sellerId]) {
@@ -97,12 +137,22 @@ export async function createOrder(orderData) {
       acc[sellerId].push(item);
       return acc;
     }, {});
+    
+    console.log('Items grouped by seller:', Object.keys(itemsBySeller).length, 'sellers');
 
     const orders = [];
     const orderItems = [];
 
+    // Check inventory for made-to-order items
+    const inventoryCheck = await checkInventoryAvailability(orderData.items);
+    if (!inventoryCheck.success || !inventoryCheck.isAvailable) {
+      return { success: false, message: 'Some items are no longer available' };
+    }
+
     // Create orders for each seller
     for (const [sellerId, items] of Object.entries(itemsBySeller)) {
+      console.log(`Creating order for seller ${sellerId} with ${items.length} items`);
+      
       // Calculate total for this seller's items
       const sellerTotal = items.reduce((sum, item) => {
         return sum + (item.price * item.quantity);
@@ -112,10 +162,24 @@ export async function createOrder(orderData) {
       const platformFeePercentage = 0.10; // 10% platform fee
       const platformFee = sellerTotal * platformFeePercentage;
       const sellerAmount = sellerTotal - platformFee;
+      
+      console.log('Order financial details:', {
+        sellerTotal,
+        platformFee,
+        sellerAmount
+      });
 
       // Create order for this seller
-      const order = await Order.create({
-        buyerId: user.$id,
+      // Use appwriteId as buyerId if _id is not available
+      const buyerId = user._id ? user._id.toString() : user.$id;
+      
+      if (!buyerId) {
+        console.error('No valid user ID found:', user);
+        throw new Error('User ID not found');
+      }
+      
+      const orderDetails = {
+        buyerId: buyerId,
         buyerEmail: orderData.buyerEmail,
         buyerName: orderData.buyerName,
         buyerPhone: orderData.buyerPhone,
@@ -133,40 +197,100 @@ export async function createOrder(orderData) {
         shippingPincode: orderData.shippingPincode,
         createdAt: new Date(),
         updatedAt: new Date()
-      });
+      };
+      
+      console.log('Creating order with data:', orderDetails);
+      const order = await Order.create(orderDetails);
 
       orders.push(order);
 
-      // Create order items for this seller
-      const orderItemsForSeller = items.map(item => ({
-        orderId: order._id,
-        productId: item._id,
-        quantity: item.quantity,
-        price: item.price,
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }));
-
-      orderItems.push(...orderItemsForSeller);
+      // Create order items and update inventory
+      for (const item of items) {
+        // Get inventory information for this item
+        const itemInventoryInfo = inventoryCheck.items.find(i => i.productId === item._id);
+        const isMadeToOrder = itemInventoryInfo?.isMadeToOrder || false;
+        const madeToOrderDays = itemInventoryInfo?.madeToOrderDays || 7;
+        const madeToOrderQuantity = itemInventoryInfo?.madeToOrderQuantity || 0;
+        
+        // Calculate estimated delivery date
+        const estimatedDeliveryDate = isMadeToOrder ? 
+          new Date(Date.now() + (madeToOrderDays * 24 * 60 * 60 * 1000)) : 
+          new Date(Date.now() + (3 * 24 * 60 * 60 * 1000)); // 3 days for regular items
+        
+        // Set production status based on whether it's made to order
+        const productionStatus = isMadeToOrder ? 'pending' : 'completed';
+        
+        // Create the order item
+        const orderItem = await OrderItem.create({
+          orderId: order._id,
+          productId: new mongoose.Types.ObjectId(item._id),
+          variantId: item.variantId ? new mongoose.Types.ObjectId(item.variantId) : undefined,
+          quantity: item.quantity,
+          price: item.price,
+          isMadeToOrder: isMadeToOrder,
+          madeToOrderDays: madeToOrderDays,
+          estimatedDeliveryDate: estimatedDeliveryDate,
+          productionStatus: productionStatus
+        });
+        orderItems.push(orderItem);
+        
+        // Update product inventory
+        // For made-to-order items, we only reduce the stock by what's available
+        // The rest will be made to order
+        const product = await Product.findById(item._id);
+        if (product) {
+          const currentStock = product.inventory.stockCount;
+          const stockToReduce = isMadeToOrder ? 
+            Math.min(currentStock, item.quantity) : // Only reduce available stock for made-to-order
+            item.quantity; // Reduce full quantity for regular items
+          
+          if (stockToReduce > 0) {
+            await Product.updateOne(
+              { _id: item._id },
+              { $inc: { 'inventory.stockCount': -stockToReduce } }
+            );
+          }
+        }
+      }
     }
 
-    // Create all order items in bulk
-    await OrderItem.insertMany(orderItems);
+    // Clear the user's cart after successful order creation
+    const userIdForCart = user._id || user.$id;
+    if (userIdForCart) {
+      await CartItem.deleteMany({ userId: userIdForCart });
+    }
 
+    console.log('Order creation completed successfully');
+    console.log('Created orders:', orders.length);
+    console.log('Order IDs:', orders.map(order => order._id.toString()));
+    
     return {
       success: true,
       message: 'Orders created successfully',
       orders: orders,
-      orderIds: orders.map(order => order._id)
+      orderIds: orders.map(order => order._id.toString())
     };
 
   } catch (error) {
     console.error('Error creating order:', error);
+    console.error('Error stack:', error.stack);
+    
+    // More detailed error message based on error type
+    let errorMessage = 'Failed to create order';
+    
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Invalid order data: ' + Object.values(error.errors).map(e => e.message).join(', ');
+    } else if (error.name === 'MongoServerError' && error.code === 11000) {
+      errorMessage = 'Duplicate order detected';
+    } else if (error.message.includes('authentication')) {
+      errorMessage = 'Authentication error: Please log in again';
+    }
+    
     return {
       success: false,
-      message: 'Failed to create order',
-      error: error.message
+      message: errorMessage,
+      error: error.message,
+      errorType: error.name
     };
   }
 }
@@ -181,10 +305,14 @@ export async function createRazorpayOrder(orderIds) {
       return { success: false, message: 'Please login to complete your purchase' };
     }
 
+    console.log('Creating Razorpay order for IDs:', orderIds);
+    
     // Find all orders by IDs
     const orders = await Order.find({ _id: { $in: orderIds } });
+    console.log('Found orders for Razorpay:', orders.length);
+    
     if (!orders.length) {
-      return { success: false, message: 'No orders found' };
+      return { success: false, message: 'No orders found for Razorpay payment' };
     }
 
     // Calculate total amount for all orders
@@ -349,14 +477,39 @@ export async function getOrderDetails(orderIds) {
       return { success: false, message: 'Please login to view orders' };
     }
 
+    console.log('Getting order details for IDs:', orderIds);
+    console.log('User ID for lookup:', user._id, 'Appwrite ID:', user.$id);
+    
     // Find all orders by IDs and ensure they belong to this user
+    // We need to check both MongoDB ID and Appwrite ID since we might have used either one
     const orders = await Order.find({ 
-      _id: { $in: orderIds }, 
-      buyerId: user.$id 
+      _id: { $in: orderIds },
+      $or: [
+        { buyerId: user._id ? user._id.toString() : null },
+        { buyerId: user.$id }
+      ]
     });
     
+    console.log('Found orders:', orders.length);
+    
     if (!orders.length) {
-      return { success: false, message: 'No orders found' };
+      // Try to find the orders without the user ID filter to see if they exist at all
+      const allOrders = await Order.find({ _id: { $in: orderIds } });
+      console.log('Orders exist but might belong to different user:', allOrders.length);
+      
+      if (allOrders.length > 0) {
+        console.log('Order buyer IDs:', allOrders.map(o => o.buyerId));
+        return { 
+          success: false, 
+          message: 'Orders found but they do not belong to the current user',
+          debug: {
+            userIds: [user._id?.toString(), user.$id],
+            orderBuyerIds: allOrders.map(o => o.buyerId)
+          }
+        };
+      }
+      
+      return { success: false, message: 'No orders found with the provided IDs' };
     }
 
     // Get order items
@@ -391,6 +544,7 @@ export async function getOrderDetails(orderIds) {
 
 /**
  * Checks if all items in the cart are still available in the requested quantities
+ * or available for made-to-order if backorder is allowed
  * Returns detailed information about any inventory issues
  */
 export async function checkInventoryAvailability(cartItems) {
@@ -408,35 +562,70 @@ export async function checkInventoryAvailability(cartItems) {
             available: false,
             message: 'Product no longer exists',
             requestedQuantity: item.quantity,
-            availableQuantity: 0
+            availableQuantity: 0,
+            isMadeToOrder: false,
+            madeToOrderDays: 0
           };
         }
 
-        const isAvailable = product.inventory.stockCount >= item.quantity;
+        const allowBackorder = product.inventory?.allowBackorder || false;
+        const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
+        const stockCount = product.inventory.stockCount;
+        
+        // Product is available if either:
+        // 1. There's enough stock, or
+        // 2. Backorder is allowed (made-to-order)
+        const isAvailable = stockCount >= item.quantity || allowBackorder;
+        const isMadeToOrder = allowBackorder && stockCount < item.quantity;
+        
+        // Calculate how many items will be made to order
+        const madeToOrderQuantity = isMadeToOrder ? item.quantity - stockCount : 0;
+        
+        let message = '';
+        if (isAvailable) {
+          if (isMadeToOrder) {
+            if (stockCount > 0) {
+              message = `${stockCount} in stock, ${madeToOrderQuantity} will be made to order (${madeToOrderDays} days)`;
+            } else {
+              message = `Made to order - will be delivered in ${madeToOrderDays} days`;
+            }
+          } else {
+            message = 'In stock';
+          }
+        } else {
+          message = `Only ${stockCount} items available`;
+        }
+        
         return {
           productId: item._id,
           name: item.name,
           available: isAvailable,
-          message: isAvailable 
-            ? 'In stock' 
-            : `Only ${product.inventory.stockCount} items available`,
+          message: message,
           requestedQuantity: item.quantity,
-          availableQuantity: product.inventory.stockCount
+          availableQuantity: stockCount,
+          isMadeToOrder: isMadeToOrder,
+          madeToOrderDays: madeToOrderDays,
+          madeToOrderQuantity: madeToOrderQuantity
         };
       })
     );
 
     const allAvailable = inventoryChecks.every(check => check.available);
     const unavailableItems = inventoryChecks.filter(check => !check.available);
+    const madeToOrderItems = inventoryChecks.filter(check => check.isMadeToOrder);
 
     return {
       success: true,
       isAvailable: allAvailable,
       items: inventoryChecks,
       unavailableItems,
+      madeToOrderItems,
+      hasMadeToOrderItems: madeToOrderItems.length > 0,
       message: allAvailable 
-        ? 'All items are available' 
-        : `Some items are no longer available in requested quantities`
+        ? madeToOrderItems.length > 0
+          ? 'Some items will be made to order'
+          : 'All items are available'
+        : 'Some items are no longer available in requested quantities'
     };
   } catch (error) {
     console.error('Error checking inventory:', error);

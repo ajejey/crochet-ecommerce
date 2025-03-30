@@ -11,19 +11,33 @@ export function CartProvider({ children }) {
     totalAmount: 0,
     totalItems: 0
   });
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        if (parsedCart && parsedCart.items && Array.isArray(parsedCart.items)) {
+          setCart(parsedCart);
+        }
+      } catch (error) {
+        console.error('Error parsing cart from localStorage:', error);
+      }
     }
+    setIsInitialized(true);
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes, but only after initialization
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    // Only save to localStorage if:
+    // 1. The component has been initialized (loaded from localStorage)
+    // 2. The cart has items OR we explicitly cleared the cart (not just empty on initial load)
+    if (isInitialized && (cart.items.length > 0 || cart.explicitlyClearedFlag)) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  }, [cart, isInitialized]);
 
   const calculateTotals = (items) => {
     return {
@@ -37,21 +51,39 @@ export function CartProvider({ children }) {
 
   const addToCart = async (product, quantity = 1) => {
     try {
-      // Check if we have enough inventory
-      if (product.inventory.stockCount < quantity) {
-        toast.error(`Sorry, only ${product.inventory.stockCount} items available`);
+      // Check if we have enough inventory or if backorder is allowed
+      const stockCount = product.inventory?.stockCount || 0;
+      const allowBackorder = product.inventory?.allowBackorder || false;
+      const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
+      
+      if (stockCount < quantity && !allowBackorder) {
+        toast.error(`Sorry, only ${stockCount} items available`);
         return false;
+      }
+      
+      // If made-to-order is allowed but there's not enough stock, show a made-to-order message
+      if (stockCount < quantity && allowBackorder) {
+        toast.info(`${quantity - stockCount} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
       }
 
       setCart(prevCart => {
         const existingItem = prevCart.items.find(item => item._id === product._id);
         
         if (existingItem) {
-          // Check if adding more would exceed inventory
+          // Check if adding more would exceed inventory, unless backorder is allowed
           const newQuantity = existingItem.quantity + quantity;
-          if (newQuantity > product.inventory.stockCount) {
-            toast.error(`Sorry, only ${product.inventory.stockCount} items available`);
+          const stockCount = product.inventory?.stockCount || 0;
+          const allowBackorder = product.inventory?.allowBackorder || false;
+          const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
+          
+          if (newQuantity > stockCount && !allowBackorder) {
+            toast.error(`Sorry, only ${stockCount} items available`);
             return prevCart;
+          }
+          
+          // If made-to-order is allowed but there's not enough stock, show a made-to-order message
+          if (newQuantity > stockCount && allowBackorder) {
+            toast.info(`${newQuantity - stockCount} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
           }
 
           // Update existing item
@@ -107,10 +139,19 @@ export function CartProvider({ children }) {
         return prevCart;
       }
 
-      // Check if new quantity is within inventory limits
-      if (newQuantity > item.inventory.stockCount) {
-        toast.error(`Sorry, only ${item.inventory.stockCount} items available`);
+      // Check if new quantity is within inventory limits or if backorder is allowed
+      const stockCount = item.inventory?.stockCount || 0;
+      const allowBackorder = item.inventory?.allowBackorder || false;
+      const madeToOrderDays = item.inventory?.madeToOrderDays || 7;
+      
+      if (newQuantity > stockCount && !allowBackorder) {
+        toast.error(`Sorry, only ${stockCount} items available`);
         return prevCart;
+      }
+      
+      // If made-to-order is allowed but there's not enough stock, show a made-to-order message
+      if (newQuantity > stockCount && allowBackorder) {
+        toast.info(`${newQuantity - stockCount} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
       }
 
       if (newQuantity < 1) {
@@ -154,10 +195,12 @@ export function CartProvider({ children }) {
   };
 
   const clearCart = () => {
+    console.log('Clearing cart...');
     setCart({
       items: [],
       totalAmount: 0,
-      totalItems: 0
+      totalItems: 0,
+      explicitlyClearedFlag: true // Flag to indicate this was an explicit clear action
     });
   };
 
