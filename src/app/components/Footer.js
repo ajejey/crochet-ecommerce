@@ -21,16 +21,16 @@ export default function Footer() {
             </p>
             <div className="flex space-x-4">
               {/* TODO: Add actual social media links */}
-              <a href="#" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
+              <a href="https://www.facebook.com/people/Knitkartin/61574881434675/" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
                 <Facebook className="w-6 h-6" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
+              <a href="https://www.instagram.com/knitkart.in/" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
                 <Instagram className="w-6 h-6" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
+              {/* <a href="#" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
                 <Twitter className="w-6 h-6" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
+              </a> */}
+              <a href="https://www.youtube.com/@knitkart" className="text-gray-400 hover:text-rose-600 transition-colors duration-200">
                 <Youtube className="w-6 h-6" />
               </a>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { sendContactForm } from '../actions';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -26,20 +27,29 @@ export default function ContactForm() {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically make an API call to your backend
-      // For now, we'll just simulate a success response
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Send the contact form email using the email-auth.js function
+      const result = await sendContactForm(formData);
       
-      toast.success('Thank you for your message! We\'ll get back to you soon.');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-      });
+      if (result.success) {
+        toast.success('Thank you for your message! We\'ll get back to you soon.');
+        // Reset form after successful submission
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        });
+      } else {
+        // Handle specific error cases
+        if (result.configError) {
+          toast.error('Our email system is currently unavailable. Please try again later or contact us directly.');
+        } else {
+          toast.error(result.error || 'Something went wrong. Please try again later.');
+        }
+      }
     } catch (error) {
+      console.error('Contact form submission error:', error);
       toast.error('Something went wrong. Please try again later.');
     } finally {
       setIsSubmitting(false);

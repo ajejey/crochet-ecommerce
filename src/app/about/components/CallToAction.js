@@ -22,7 +22,7 @@ export default function CallToAction() {
                   <p className="text-gray-600 text-sm">
                     Every purchase directly supports an artisan and helps preserve traditional crochet techniques.
                   </p>
-                  <Link href="/products" className="text-rose-600 font-medium mt-2 inline-block hover:text-rose-700">
+                  <Link href="/shop" className="text-rose-600 font-medium mt-2 inline-block hover:text-rose-700">
                     Explore Products →
                   </Link>
                 </div>
@@ -32,7 +32,7 @@ export default function CallToAction() {
                   <p className="text-gray-600 text-sm">
                     If you're a crochet artist looking to reach new customers and grow your business, join our platform.
                   </p>
-                  <Link href="/artisans/join" className="text-rose-600 font-medium mt-2 inline-block hover:text-rose-700">
+                  <Link href="/become-seller" className="text-rose-600 font-medium mt-2 inline-block hover:text-rose-700">
                     Apply Now →
                   </Link>
                 </div>
@@ -45,12 +45,12 @@ export default function CallToAction() {
                 >
                   Contact Us
                 </Link>
-                <Link 
+                {/* <Link 
                   href="/newsletter" 
                   className="inline-block px-6 py-3 bg-white text-rose-600 rounded-lg border border-rose-200 hover:border-rose-600 transition-colors duration-300"
                 >
                   Join Newsletter
-                </Link>
+                </Link> */}
               </div>
             </div>
             
@@ -87,8 +87,8 @@ export default function CallToAction() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Fair Compensation</p>
-                      <p className="text-xs text-gray-500">3x more than local markets</p>
+                      <p className="text-sm font-medium text-gray-900">Find Customers</p>
+                      <p className="text-xs text-gray-500">Connect with buyers quicker and easier</p>
                     </div>
                   </div>
                 </div>

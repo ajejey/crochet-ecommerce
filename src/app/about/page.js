@@ -66,7 +66,7 @@ export default function AboutPage() {
       <TeamSection />
       
       {/* Testimonials Section */}
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> */}
       
       {/* Call To Action Section */}
       <CallToAction />

@@ -202,3 +202,77 @@ export async function sendSellerOrderNotificationEmail(orderData) {
     return { success: false, error: error.message };
   }
 }
+
+// Send contact form email function
+export async function sendContactFormEmail(formData) {
+  console.log('Preparing contact form email with data:', formData);
+  
+  try {
+    // Extract form data
+    const { name, email, phone, subject, message } = formData;
+    
+    // Validate required data
+    if (!name || !email || !subject || !message) {
+      console.error('Missing required contact form fields');
+      return { 
+        success: false, 
+        error: 'Missing required contact form fields' 
+      };
+    }
+    
+    // Create HTML content for the email
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #E11D48; color: white; padding: 10px 20px; }
+          .content { padding: 20px; border: 1px solid #ddd; border-top: none; }
+          .field { margin-bottom: 10px; }
+          .label { font-weight: bold; }
+          .message { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>New Contact Form Submission</h2>
+          </div>
+          <div class="content">
+            <div class="field">
+              <span class="label">Name:</span> ${name}
+            </div>
+            <div class="field">
+              <span class="label">Email:</span> ${email}
+            </div>
+            <div class="field">
+              <span class="label">Phone:</span> ${phone || 'Not provided'}
+            </div>
+            <div class="field">
+              <span class="label">Subject:</span> ${subject}
+            </div>
+            <div class="field">
+              <span class="label">Message:</span>
+              <div class="message">${message.replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Send the email to the admin
+    return await sendEmail({
+      from: `"Knitkart.in Contact Form" <${process.env.GMAIL_USERNAME}>`,
+      to: process.env.ADMIN_EMAIL || process.env.GMAIL_USERNAME, // Send to admin email or fall back to the sender email
+      subject: `New Contact Form: ${subject}`,
+      html: htmlContent,
+    });
+  } catch (error) {
+    console.error('Error sending contact form email:', error);
+    return { success: false, error: error.message };
+  }
+}

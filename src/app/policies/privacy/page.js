@@ -261,9 +261,7 @@ export default function PrivacyPolicy() {
             If you have any questions about this Privacy Policy or our data practices, please contact us at:
           </p>
           <ul className="list-none space-y-2 text-lg sm:text-xl">
-            <li>Email: privacy@knitkart.com</li>
-            <li>Phone: +91-XXXXXXXXXX</li>
-            <li>Address: [Your Business Address]</li>
+            <li>Email: knottedwithlove0@gmail.com</li>
           </ul>
         </div>
       </section>

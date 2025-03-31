@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSessionClient } from "./appwrite/config";
 
-// Define protected paths
-const protectedPaths = ['/seller', '/shop/cart', '/shop/orders', '/admin'];
+// Define protected paths that require authentication
+const protectedPaths = ['/seller', '/shop/checkout', '/shop/orders', '/admin', '/profile', '/account'];
 const sellerPaths = ['/seller'];
 const adminPaths = ['/admin'];
 
@@ -20,24 +20,18 @@ async function getUser(request) {
   }
 }
 
-function isPublicRoute(pathname) {
-  return (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/static') ||
-    pathname === '/' ||
-    pathname === '/login' ||
-    pathname === '/signup' ||
-    pathname === '/become-seller' ||
-    pathname.startsWith('/shop') && !pathname.startsWith('/shop/orders')
+function isProtectedRoute(pathname) {
+  // Check if the path starts with any of the protected paths
+  return protectedPaths.some(protectedPath => 
+    pathname === protectedPath || pathname.startsWith(`${protectedPath}/`)
   );
 }
 
 export async function middleware(request) {
   const path = request.nextUrl.pathname;
 
-  // Skip public routes
-  if (isPublicRoute(path)) {
+  // Only check authentication for protected routes
+  if (!isProtectedRoute(path)) {
     return NextResponse.next();
   }
 

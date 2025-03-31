@@ -21,7 +21,7 @@ export default function StorySection() {
               <div>
                 <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">The Beginning</h3>
                 <p className="text-lg text-gray-700">
-                  KnitKart began with a simple observation: countless talented crochet artisans across India lacked access to markets that appreciated their craftsmanship and would pay them fairly. Our founder witnessed firsthand how these skilled artisans struggled to find customers beyond local markets.
+                  KnitKart began with a simple observation: countless talented crochet artisans across India lacked access to markets that appreciated their craftsmanship and would pay them fairly. We witnessed firsthand how these skilled artisans struggled to find customers beyond local markets.
                 </p>
               </div>
             </div>
@@ -32,7 +32,7 @@ export default function StorySection() {
               <div>
                 <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Building the Foundation</h3>
                 <p className="text-lg text-gray-700">
-                  After extensive research and consultation with artisans, designers, and e-commerce experts, we developed the concept for KnitKart – a dedicated platform that would bridge the gap between talented creators and appreciative consumers while leveraging technology to enhance the creative process.
+                  After extensive research and consultation with artisans, and designers, we developed the concept for KnitKart – a dedicated platform that would bridge the gap between talented creators and appreciative consumers while leveraging technology to enhance the creative process.
                 </p>
               </div>
             </div>
@@ -41,9 +41,9 @@ export default function StorySection() {
             <div className="relative pl-10 border-l-2 border-rose-200 py-2">
               <div className="absolute top-0 left-0 w-6 h-6 bg-rose-600 rounded-full -ml-3 mt-2"></div>
               <div>
-                <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Launch and Growth</h3>
+                <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Expertise & Vision</h3>
                 <p className="text-lg text-gray-700">
-                  KnitKart launched with a small cohort of 20 artisans from 5 states. Their beautiful creations resonated with customers immediately, and word spread rapidly. Within the first year, our community grew to over 100 artisans from 15 states, and we fulfilled orders to customers in every corner of India.
+                  Our co-founder brings over 30 years of experience in knitting and crocheting to KnitKart. This deep expertise has shaped our understanding of both the craft's traditions and the challenges artisans face in the modern marketplace. Her passion for these traditional crafts forms the backbone of KnitKart's mission.
                 </p>
               </div>
             </div>
@@ -54,7 +54,7 @@ export default function StorySection() {
               <div>
                 <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">KnitKart Today</h3>
                 <p className="text-lg text-gray-700">
-                  Today, KnitKart is India's first AI-powered platform for handcrafted crochet products, featuring hundreds of artisans from across the country. Our technology helps artisans create innovative designs, reach wider audiences, and earn sustainable incomes while giving customers access to unique, high-quality handcrafted products.
+                  As we launch KnitKart, we're focused on creating India's first AI-powered platform for handcrafted crochet products. Our mission is to empower talented artisans across the country to build sustainable businesses of their own. By combining traditional craftsmanship with innovative technology, we're creating new opportunities for artisans and unique products for customers.
                 </p>
               </div>
             </div>

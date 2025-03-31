@@ -77,7 +77,7 @@ export default function ValuesSection() {
                 <div className="ml-4">
                   <h4 className="text-xl font-semibold text-gray-900 mb-2">Fair Trade Practices</h4>
                   <p className="text-gray-600">
-                    Every artisan on our platform receives fair compensation for their work, typically 2-3 times what they would earn in local markets. We maintain transparent pricing policies and ensure prompt payments.
+                    Every artisan on our platform receives fair compensation for their work. We maintain transparent pricing policies and ensure prompt payments.
                   </p>
                 </div>
               </div>
@@ -88,7 +88,7 @@ export default function ValuesSection() {
                 <div className="ml-4">
                   <h4 className="text-xl font-semibold text-gray-900 mb-2">Skill Development</h4>
                   <p className="text-gray-600">
-                    We provide ongoing training and resources to help artisans enhance their skills, learn new techniques, and adapt to market trends while preserving traditional methods.
+                    We provide resources to help artisans enhance their skills, learn new techniques, and adapt to market trends while preserving traditional methods.
                   </p>
                 </div>
               </div>

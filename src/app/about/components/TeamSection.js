@@ -122,7 +122,7 @@ export default function TeamSection() {
         </div> */}
 
         {/* Join Team CTA */}
-        <div className="mt-20 bg-rose-50 rounded-2xl p-8 sm:p-12 text-center">
+        {/* <div className="mt-20 bg-rose-50 rounded-2xl p-8 sm:p-12 text-center">
           <h3 className="text-2xl font-bold text-gray-900 mb-4">Join Our Team</h3>
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             Are you passionate about Indian crafts, technology, or creating sustainable livelihoods for artisans?
@@ -131,7 +131,7 @@ export default function TeamSection() {
           <Link href="/careers" className="inline-block px-8 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors duration-300">
             View Open Positions
           </Link>
-        </div>
+        </div> */}
       </div>
     </section>
   );

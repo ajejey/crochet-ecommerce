@@ -211,8 +211,7 @@ export default function CancellationRefundPolicy() {
             If you have any questions or concerns about our Cancellation & Refund Policy, please contact our customer support team at:
           </p>
           <ul className="list-none space-y-2 text-lg sm:text-xl">
-            <li>Email: support@knitkart.com</li>
-            <li>Phone: +91-XXXXXXXXXX</li>
+            <li>Email: knottedwithlove0@gmail.com</li>
             <li>Hours: Monday to Saturday, 9:00 AM to 6:00 PM IST</li>
           </ul>
           <p className="text-lg sm:text-xl">
