@@ -39,7 +39,7 @@ export default function AboutPage() {
             <div className="order-1 md:order-2">
               <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl">
                 <Image 
-                  src="/images/about-hero.jpg" 
+                  src="/images/about-hero.png" 
                   alt="Artisan creating crochet products"
                   fill
                   className="object-cover"
