@@ -38,8 +38,13 @@ export async function revalidateSitemaps() {
     revalidatePath('/server-sitemap-index.xml');
     
     // Revalidate product sitemaps (first few are most likely to change)
+    // These are the URLs that users will access, which get rewritten
     revalidatePath('/product-sitemap-0.xml');
     revalidatePath('/product-sitemap-1.xml');
+    // Also revalidate the actual route paths
+    revalidatePath('/sitemap/0');
+    revalidatePath('/sitemap/1');
+    // Add more as your product count grows
     
     console.log('Sitemaps revalidated successfully');
   } catch (error) {

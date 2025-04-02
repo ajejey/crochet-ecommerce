@@ -23,6 +23,7 @@ export async function GET() {
     ];
     
     // Add product sitemaps
+    // These URLs will be rewritten to /sitemap/:id via the rewrites in next.config.js
     for (let i = 0; i < productSitemapCount; i++) {
       sitemaps.push(`${siteUrl}/product-sitemap-${i}.xml`);
     }

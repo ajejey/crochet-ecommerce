@@ -13,6 +13,15 @@ const nextConfig = {
   images: {
     domains: ["images.unsplash.com", "firebasestorage.googleapis.com", "cloud.appwrite.io", "cloud.appwrite.io"],
   },
+  // Add rewrites for sitemap URLs
+  async rewrites() {
+    return [
+      {
+        source: '/product-sitemap-:id.xml',
+        destination: '/sitemap/:id',
+      },
+    ];
+  },
 };
 
 module.exports = withPWA(nextConfig);
