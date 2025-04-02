@@ -24,13 +24,13 @@ async function generateSitemap() {
     
     // Sample the first few products to verify
     const sampleProducts = await Product.find({ status: 'active' })
-      .select('name slug updatedAt')
+      .select('name _id updatedAt')
       .limit(5)
       .lean();
     
     console.log('Sample products that will be included in sitemap:');
     sampleProducts.forEach(product => {
-      console.log(`- ${product.name} (${product.slug}), last updated: ${new Date(product.updatedAt).toISOString()}`);
+      console.log(`- ${product.name} (ID: ${product._id}), last updated: ${new Date(product.updatedAt).toISOString()}`);
     });
     
     console.log('Sitemap generation test complete.');
