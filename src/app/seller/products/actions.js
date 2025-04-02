@@ -1,13 +1,14 @@
 'use server';
 
-import { getAuthUser } from '@/lib/auth-context';
+import dbConnect from '@/lib/mongodb';
 import { Product } from '@/models/Product';
 import { SellerProfile } from '@/models/SellerProfile';
-import dbConnect from '@/lib/mongodb';
+import { getAuthUser } from '@/lib/auth-context';
 import { revalidatePath } from 'next/cache';
+import slugify from 'slugify';
+import { revalidateSitemaps, pingSearchEngines } from '@/lib/sitemap-utils';
 import { createAdminClient } from '@/appwrite/config';
 import { ID } from 'node-appwrite';
-import slugify from 'slugify';
 
 export async function getProduct(productId) {
   try {
@@ -182,6 +183,13 @@ export async function createProduct(formData) {
     console.log('Updated seller profile:', sellerProfile);
 
     revalidatePath('/seller/products');
+    
+    // Revalidate sitemaps and ping search engines for new product
+    if (product.status === 'active') {
+      await revalidateSitemaps();
+      await pingSearchEngines();
+    }
+    
     return { success: true, productId: product._id };
   } catch (error) {
     console.error('Error creating product:', error);
@@ -286,6 +294,12 @@ export async function updateProduct(productId, formData) {
     revalidatePath('/seller/products');
     revalidatePath(`/shop/product/${productId}`);
     
+    // Revalidate sitemaps and ping search engines for updated product
+    await revalidateSitemaps();
+    if (updatedProduct.status === 'active') {
+      await pingSearchEngines();
+    }
+    
     return { success: true, product: plainProduct };
   } catch (error) {
     console.error('Error updating product:', error);
@@ -344,6 +358,12 @@ export async function updateProductStatus(productId, newStatus) {
       return { error: 'Product not found' };
     }
 
+    // If product was activated, revalidate sitemaps and ping search engines
+    if (newStatus === 'active') {
+      await revalidateSitemaps();
+      await pingSearchEngines();
+    }
+    
     return { 
       success: true,
       product: {

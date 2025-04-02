@@ -66,15 +66,23 @@ export async function getInitialProducts() {
   try {
     await dbConnect();
     const products = await Product.find({ status: 'active' })
-      .select('name price images category')
+      .select('name price images category sellerId')
       .sort({ createdAt: -1 })
       .limit(PRODUCTS_PER_PAGE)
       .lean();
+
+    // Get seller profiles
+    const sellerIds = [...new Set(products.map(p => p.sellerId))];
+    const sellerProfiles = await SellerProfile.find({ userId: { $in: sellerIds } }).lean();
+    const sellerMap = Object.fromEntries(
+      sellerProfiles.map(seller => [seller.userId, seller])
+    );
 
     return {
       products: products.map(product => ({
         ...product,
         _id: product._id.toString(),
+        seller: sellerMap[product.sellerId],
         mainImage: product.images?.find(img => img.isMain)?.url || 
                   product.images?.[0]?.url || 
                   '/placeholder-product.jpg'
@@ -390,6 +398,13 @@ export async function getActiveProducts() {
       .limit(6)
       .lean();
 
+    // Get seller profiles
+    const sellerIds = [...new Set(products.map(p => p.sellerId))];
+    const sellerProfiles = await SellerProfile.find({ userId: { $in: sellerIds } }).lean();
+    const sellerMap = Object.fromEntries(
+      sellerProfiles.map(seller => [seller.userId, seller])
+    );
+
     // Transform the data for frontend
     return products.map(product => ({
       _id: product._id.toString(),
@@ -398,7 +413,11 @@ export async function getActiveProducts() {
       images: product.images || [],
       rating: product.rating?.average || 0,
       numReviews: product.rating?.count || 0,
-      sellerId: product.sellerId
+      sellerId: product.sellerId,
+      seller: sellerMap[product.sellerId],
+      mainImage: product.images?.find(img => img.isMain)?.url || 
+                product.images?.[0]?.url || 
+                '/placeholder-product.jpg'
     }));
   } catch (error) {
     console.error('Error fetching active products:', error);

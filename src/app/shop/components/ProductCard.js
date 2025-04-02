@@ -68,6 +68,20 @@ export default function ProductCard({ product }) {
         <div className="text-[10px] sm:text-xs font-medium text-rose-600 tracking-wider uppercase mb-1">
           {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
         </div>
+        
+        {/* Seller/Artisan Name */}
+        {product.seller && (
+          <div className="text-[10px] sm:text-xs text-gray-500 mb-1 flex items-center">
+            <span className="truncate">By </span>
+            <Link 
+              href={`/creators/${product.sellerId}`} 
+              className="truncate ml-1 hover:text-rose-600 transition-colors"
+              onClick={(e) => e.stopPropagation()} // Prevent triggering the parent link
+            >
+              {product.seller.businessName}
+            </Link>
+          </div>
+        )}
 
         {/* Title */}
         <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 line-clamp-1 group-hover:text-rose-600 transition-colors">

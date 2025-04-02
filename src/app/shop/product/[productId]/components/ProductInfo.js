@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Star, Minus, Plus, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
+import Link from 'next/link';
 
 export default function ProductInfo({ product, initialReviews }) {
   const [quantity, setQuantity] = useState(1);
@@ -85,7 +86,7 @@ export default function ProductInfo({ product, initialReviews }) {
           </div>
           <span className="text-gray-300">•</span>
           <span className="text-sm text-gray-600">
-            By <span className="font-medium text-gray-900">{product.sellerName}</span>
+            By <Link href={`/creators/${product.sellerId}`} className="font-medium text-gray-900 hover:text-rose-600 transition-colors">{product.sellerName}</Link>
           </span>
         </div>
       </div>

@@ -20,7 +20,7 @@ export async function generateMetadata({ params }) {
     description: product.description?.short || product.description?.full || product.name,
     keywords: product.metadata.searchKeywords,
     alternates: {
-      canonical: `https://www.knitkart.in/shop/product/${product.slug}`
+      canonical: `https://www.knitkart.in/shop/product/${product._id}`
     },
     openGraph: {
       title: product.name,
