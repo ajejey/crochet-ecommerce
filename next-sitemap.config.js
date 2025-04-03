@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: process.env.SITE_URL || 'https://knitkart.in',
+  siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://knitkart.in',
   generateRobotsTxt: true,
   sitemapSize: 5000,
   exclude: [

@@ -9,7 +9,7 @@
  */
 export async function pingSearchEngines(url) {
   try {
-    const siteUrl = process.env.SITE_URL || 'https://knitkart.in';
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://knitkart.in';
     const sitemapUrl = url || `${siteUrl}/server-sitemap-index.xml`;
     
     // Ping Google

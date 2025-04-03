@@ -14,7 +14,7 @@ export async function GET() {
     const productSitemapCount = Math.ceil(totalProducts / PRODUCTS_PER_SITEMAP);
     
     // Base URL from environment or default
-    const siteUrl = process.env.SITE_URL || 'https://knitkart.in';
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://knitkart.in';
     
     // Create an array of sitemap URLs
     const sitemaps = [

@@ -29,7 +29,7 @@ export async function GET(request, { params }) {
     console.log(`Generated sitemap for page ${pageIndex} with ${products.length} products`);
     
     // Base URL from environment or default
-    const siteUrl = process.env.SITE_URL || 'https://knitkart.in';
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://knitkart.in';
     
     // Create sitemap entries for each product
     const fields = products.map(product => ({

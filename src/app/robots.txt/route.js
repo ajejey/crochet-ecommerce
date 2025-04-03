@@ -2,7 +2,7 @@
 
 export async function GET() {
   // Base URL from environment or default
-  const siteUrl = process.env.SITE_URL || 'https://knitkart.in';
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://knitkart.in';
   
   const robotsTxt = `# https://www.robotstxt.org/robotstxt.html
 User-agent: *
