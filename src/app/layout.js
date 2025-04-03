@@ -135,6 +135,7 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="google-site-verification" content="OSiP0raE4FrsOpdM-vX7zkup2ShHBtRz2bzaXX0lvk4" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${playfair.variable} ${dmSans.variable} ${plusJakarta.variable} ${leckerli.variable} ${allura.variable} font-sans antialiased`}>
         <CartProvider>
