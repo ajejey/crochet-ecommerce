@@ -26,10 +26,10 @@ export default function CategoryNav({ isMenuOpen }) {
           </Link>
           {PRODUCT_CATEGORIES.map((category, index) => (
             <Link
-              key={`${category.value}-${index}`}
-              href={`/shop?category=${category.value}`}
+              key={`${category.id}-${index}`}
+              href={`/shop?category=${category.id}`}
               className={`text-sm font-medium transition-colors hover:text-rose-600 ${
-                isActive(`/shop?category=${category.value}`)
+                isActive(`/shop?category=${category.id}`)
                   ? 'text-rose-600'
                   : 'text-gray-700'
               }`}
