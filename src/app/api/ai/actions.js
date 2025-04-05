@@ -86,7 +86,7 @@ async function convertImageToBase64(imageUrl) {
 // Job store to track async jobs
 const jobs = new Map();
 
-export async function initiateProductImageAnalysis(imageUrls, jobId) {
+export async function initiateProductImageAnalysis(imageUrls, jobId, userInput = '') {
   'use server';
   
   try {
@@ -96,8 +96,8 @@ export async function initiateProductImageAnalysis(imageUrls, jobId) {
       startTime: Date.now() 
     });
 
-    // Start the analysis process asynchronously
-    processProductImageAnalysis(imageUrls, jobId)
+    // Start the analysis process asynchronously, passing the user input
+    processProductImageAnalysis(imageUrls, jobId, userInput)
       .catch(error => {
         // Update job status if processing fails
         jobs.set(jobId, { 
@@ -119,12 +119,12 @@ export async function initiateProductImageAnalysis(imageUrls, jobId) {
   }
 }
 
-async function processProductImageAnalysis(imageUrls, jobId) {
+async function processProductImageAnalysis(imageUrls, jobId, userInput = '') {
   'use server';
   
   try {
-    // Simulate AI processing with a timeout to prevent blocking
-    const result = await analyzeProductImages(imageUrls);
+    // Process AI analysis with user input if provided
+    const result = await analyzeProductImages(imageUrls, userInput);
 
     // Update job with result
     jobs.set(jobId, { 
@@ -171,7 +171,9 @@ export async function checkProductImageAnalysisJob(jobId) {
   };
 }
 
-async function analyzeProductImages(images) {
+async function analyzeProductImages(images, userInput = '') {
+  'use server';
+  
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
@@ -193,7 +195,15 @@ async function analyzeProductImages(images) {
       }))
     );
 
-    const prompt = `Analyze these handcrafted crochet items and create irresistible product content that converts browsers into buyers for buyers in India. You write in simple but effective words that buyers in India can understand and relate to.
+    // Add seller's guidance to the prompt if provided
+    const sellerGuidance = userInput ? `
+
+SELLER'S GUIDANCE:
+${userInput}
+
+Please pay special attention to the seller's guidance above when creating the product content. Incorporate their specific requirements, keywords, and descriptions while maintaining the overall quality and structure of the content.` : '';
+
+    const prompt = `Analyze these handcrafted crochet items and create irresistible product content that converts browsers into buyers for buyers in India. You write in simple but effective words that buyers in India can understand and relate to.${sellerGuidance}
 
 WRITING STYLE:
 - Write in a warm, personal tone that connects emotionally with shoppers

@@ -15,7 +15,7 @@ export function useAIAssist() {
   const isJobInProgressRef = useRef(false);
 
   // Initiate AI product content generation
-  const generateProductContent = async (images) => {
+  const generateProductContent = async (images, userInput = '') => {
     // Prevent multiple simultaneous job initiations
     if (isJobInProgressRef.current) {
       return null;
@@ -36,8 +36,8 @@ export function useAIAssist() {
       // Mark job as in progress
       isJobInProgressRef.current = true;
 
-      // Initiate the job without waiting
-      const initiationResult = await initiateProductImageAnalysis(images, newJobId);
+      // Initiate the job without waiting, passing the user input
+      const initiationResult = await initiateProductImageAnalysis(images, newJobId, userInput);
       
       if (!initiationResult.success) {
         throw new Error(initiationResult.error || 'Failed to initiate image analysis');

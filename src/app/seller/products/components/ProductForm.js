@@ -23,6 +23,8 @@ export default function ProductForm({
   const [uploadingImages, setUploadingImages] = useState(new Set());
   const [images, setImages] = useState(product?.images || []);
   const [fullDescription, setFullDescription] = useState(product?.description?.full || '');
+  const [aiGuidance, setAiGuidance] = useState('');
+  const [showAiGuidanceInput, setShowAiGuidanceInput] = useState(false);
   const router = useRouter();
   const { 
     generateProductContent, 
@@ -181,8 +183,11 @@ export default function ProductForm({
       // Reset any previous job state
       reset();
 
-      // Initiate AI content generation
-      await generateProductContent(images.map(img => img.url));
+      // Initiate AI content generation with user guidance if provided
+      await generateProductContent(images.map(img => img.url), aiGuidance);
+      
+      // Hide the guidance input after submission
+      setShowAiGuidanceInput(false);
       
       // Show loading toast
       toast.loading('Generating product details...', {
@@ -193,22 +198,66 @@ export default function ProductForm({
       toast.error('Failed to generate AI suggestions. Please try again.');
     }
   };
+  
+  const toggleAiGuidanceInput = () => {
+    setShowAiGuidanceInput(prev => !prev);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
       {/* Product Images */}
-      <div className="space-y-2">
+      <div className="mb-6">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Product Images</h2>
           {images.length > 0 && (
-            <button
-              type="button"
-              onClick={handleAIAssist}
-              disabled={isSubmitting}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              AI Assist
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={toggleAiGuidanceInput}
+                disabled={isSubmitting}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                AI Assist
+              </button>
+              
+              {showAiGuidanceInput && (
+                <div className="absolute right-0 mt-2 w-96 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-4 z-10">
+                  <div className="mb-3">
+                    <label htmlFor="aiGuidance" className="block text-sm font-medium text-gray-700 mb-1">
+                      Guidance for AI (Optional)
+                    </label>
+                    <textarea
+                      id="aiGuidance"
+                      name="aiGuidance"
+                      rows="3"
+                      value={aiGuidance}
+                      onChange={(e) => setAiGuidance(e.target.value)}
+                      placeholder="Provide keywords or description to guide the AI. For example: 'This is a baby blanket made with soft wool, perfect for winter.'" 
+                      className="p-2 shadow-sm focus:ring-rose-500 focus:outline-none block w-full sm:text-sm border border-rose-300 hover:border-rose-300 focus:border-rose-400 rounded-md transition-colors duration-200"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Add specific details to help the AI generate more accurate descriptions.
+                    </p>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <button 
+                      type="button" 
+                      onClick={toggleAiGuidanceInput}
+                      className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleAIAssist}
+                      className="px-3 py-1.5 text-sm text-white bg-rose-600 border border-transparent rounded-md shadow-sm hover:bg-rose-700"
+                    >
+                      Generate Content
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
         <ProductImageUpload
