@@ -5,26 +5,32 @@ import { ArrowRight, Star } from 'lucide-react';
 
 const HomePage = () => {
   const categories = [
-    { 
-      name: 'All Products', 
-      image: 'https://images.unsplash.com/photo-1530396333989-24c5b8f805dd?q=80&w=2070&auto=format&fit=crop',
-      href: '/shop'
-    },
+    // { 
+    //   name: 'All Products', 
+    //   image: '/images/crochet-products.jpg',
+    //   href: '/shop'
+    // },
     { 
       name: 'Baby Items', 
-      image: 'https://images.unsplash.com/photo-1619704685668-5570c998688a?q=80&w=1473&auto=format&fit=crop',
+      image: '/images/babycrochet.jpg',
       href: '/shop?category=baby'
     },
     { 
       name: 'Accessories', 
-      image: 'https://images.unsplash.com/photo-1517496267011-39d56c54984d?q=80&w=1074&auto=format&fit=crop',
+      image: '/images/crochet-accessories.jpg',
       href: '/shop?category=accessories'
     },
     { 
       name: 'Home Decor', 
-      image: 'https://images.unsplash.com/photo-1513519245088-0e12902e35a6?q=80&w=1470&auto=format&fit=crop',
+      image: '/images/crochet-home-decor.jpg',
       href: '/shop?category=home-decor'
-    }
+    },
+    { 
+      name: 'Amigurumi', 
+      image: '/images/crochet-amigurumi.jpg',
+      href: '/shop?category=amigurumi'
+    },
+    
   ];
 
   const trustFeatures = [

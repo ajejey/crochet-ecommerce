@@ -147,7 +147,8 @@ export async function createProduct(formData) {
         stockCount: parseInt(formData.get('stockCount')) || 0,
         lowStockThreshold: parseInt(formData.get('lowStockThreshold')) || 5,
         sku: formData.get('sku'),
-        allowBackorder: formData.get('allowBackorders') === 'on'
+        allowBackorder: formData.get('allowBackorders') === 'on',
+        madeToOrderDays: parseInt(formData.get('madeToOrderDays')) || 7
       },
       metadata: {
         views: 0,
@@ -241,6 +242,7 @@ export async function updateProduct(productId, formData) {
           stockCount: parseInt(formData.get('stockCount'), 10) || 0,
           sku: formData.get('sku'),
           allowBackorder: formData.get('allowBackorders') === 'on',
+          madeToOrderDays: parseInt(formData.get('madeToOrderDays')) || 7,
           lowStockThreshold: parseInt(formData.get('lowStockThreshold'), 10) || 5
         },
         specifications: {

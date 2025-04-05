@@ -48,7 +48,7 @@ export const getAuthUser = cache(async () => {
     // Merge Appwrite and MongoDB user data
     return {
       ...appwriteUser,
-      _id: mongoUser._id,
+      _id: JSON.parse(JSON.stringify(mongoUser._id)),
       role: mongoUser.role || 'user',
       sellerProfile: mongoUser.sellerProfile,
       metadata: mongoUser.metadata

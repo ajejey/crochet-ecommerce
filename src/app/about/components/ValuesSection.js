@@ -66,72 +66,50 @@ export default function ValuesSection() {
         </div>
         
         {/* Detail section */}
-        <div className="mt-20 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">How Our Values Shape KnitKart</h3>
-            <div className="space-y-6">
-              <div className="flex">
-                <div className="flex-shrink-0 mt-1">
-                  <div className="w-4 h-4 bg-rose-600 rounded-full"></div>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">Fair Trade Practices</h4>
-                  <p className="text-gray-600">
-                    Every artisan on our platform receives fair compensation for their work. We maintain transparent pricing policies and ensure prompt payments.
-                  </p>
-                </div>
+        <div className="mt-20">
+          <div className="max-w-4xl mx-auto">
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center">How Our Values Shape KnitKart</h3>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-rose-50 rounded-xl p-6 hover:shadow-md transition-all duration-300">
+                <h4 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="w-3 h-3 bg-rose-600 rounded-full mr-3"></span>
+                  Fair Trade Practices
+                </h4>
+                <p className="text-gray-600 pl-6">
+                  Every artisan on our platform receives fair compensation for their work. We maintain transparent pricing policies and ensure prompt payments.
+                </p>
               </div>
-              <div className="flex">
-                <div className="flex-shrink-0 mt-1">
-                  <div className="w-4 h-4 bg-rose-600 rounded-full"></div>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">Skill Development</h4>
-                  <p className="text-gray-600">
-                    We provide resources to help artisans enhance their skills, learn new techniques, and adapt to market trends while preserving traditional methods.
-                  </p>
-                </div>
+              
+              <div className="bg-rose-50 rounded-xl p-6 hover:shadow-md transition-all duration-300">
+                <h4 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="w-3 h-3 bg-rose-600 rounded-full mr-3"></span>
+                  Skill Development
+                </h4>
+                <p className="text-gray-600 pl-6">
+                  We provide resources to help artisans enhance their skills, learn new techniques, and adapt to market trends while preserving traditional methods.
+                </p>
               </div>
-              <div className="flex">
-                <div className="flex-shrink-0 mt-1">
-                  <div className="w-4 h-4 bg-rose-600 rounded-full"></div>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">Eco-Friendly Materials</h4>
-                  <p className="text-gray-600">
-                    We encourage and support the use of sustainable, natural fibers and eco-friendly materials, minimizing environmental impact while creating products that last.
-                  </p>
-                </div>
+              
+              <div className="bg-rose-50 rounded-xl p-6 hover:shadow-md transition-all duration-300">
+                <h4 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="w-3 h-3 bg-rose-600 rounded-full mr-3"></span>
+                  Eco-Friendly Materials
+                </h4>
+                <p className="text-gray-600 pl-6">
+                  We encourage and support the use of sustainable, natural fibers and eco-friendly materials, minimizing environmental impact while creating products that last.
+                </p>
               </div>
-              <div className="flex">
-                <div className="flex-shrink-0 mt-1">
-                  <div className="w-4 h-4 bg-rose-600 rounded-full"></div>
-                </div>
-                <div className="ml-4">
-                  <h4 className="text-xl font-semibold text-gray-900 mb-2">AI-Enhanced Design</h4>
-                  <p className="text-gray-600">
-                    Our proprietary AI tools help artisans create innovative designs, predict trends, and streamline production while maintaining the unique human touch that makes each piece special.
-                  </p>
-                </div>
+              
+              <div className="bg-rose-50 rounded-xl p-6 hover:shadow-md transition-all duration-300">
+                <h4 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                  <span className="w-3 h-3 bg-rose-600 rounded-full mr-3"></span>
+                  AI-Enhanced Design
+                </h4>
+                <p className="text-gray-600 pl-6">
+                  Our proprietary AI tools help artisans create innovative designs, predict trends, and streamline production while maintaining the unique human touch that makes each piece special.
+                </p>
               </div>
             </div>
-          </div>
-          <div className="relative">
-            <div className="relative h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-lg">
-              <Image 
-                src="/images/values-image.jpg" 
-                alt="KnitKart values in action" 
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-            </div>
-            {/* <div className="absolute -bottom-8 -left-8 w-64 h-32 bg-rose-50 rounded-lg p-6 shadow-md hidden md:block">
-              <p className="text-gray-700 italic text-sm">
-                "KnitKart's commitment to fair trade and artisan welfare isn't just talk—it's built into every aspect of how they operate."
-              </p>
-              <p className="text-gray-900 font-semibold text-sm mt-2">— Craft Council of India</p>
-            </div> */}
           </div>
         </div>
       </div>

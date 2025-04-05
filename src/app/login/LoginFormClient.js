@@ -1,24 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, AtSign, KeyRoundIcon } from 'lucide-react';
+import { ArrowRight, AtSign, KeyRoundIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 
 export default function LoginFormClient({ createSession, redirectTo }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   async function onSubmit(data) {
-    // This is just for the UI transition
     setIsSubmitting(true);
     setError('');
     
-    // The actual form submission will be handled by the server action
-    // This client wrapper just provides better UX with validation and loading states
     try {
-      // Create a FormData object to pass to the server action
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         formData.append(key, value);
@@ -80,7 +78,7 @@ export default function LoginFormClient({ createSession, redirectTo }) {
                   <input
                     className={`block w-full rounded-lg border ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-rose-500 focus:ring-rose-500'} py-3 pl-11 pr-4 text-gray-600 text-lg sm:text-xl transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-20`}
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="Enter your password"
                     {...register("password", { 
@@ -92,6 +90,18 @@ export default function LoginFormClient({ createSession, redirectTo }) {
                     })}
                   />
                   <KeyRoundIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 group-focus-within:text-rose-600 transition-colors duration-200" />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex="-1"
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="h-5 w-5" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
               </div>
@@ -113,6 +123,12 @@ export default function LoginFormClient({ createSession, redirectTo }) {
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
+
+            <div className="flex justify-between mt-4">
+              <Link href="/forgot-password" className="text-sm text-rose-600 hover:text-rose-700 font-medium transition-colors duration-200">
+                Forgot password?
+              </Link>
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-gray-600">

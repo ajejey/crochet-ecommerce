@@ -211,41 +211,6 @@ export default function ProductForm({
             </button>
           )}
         </div>
-        {/* <div className="flex flex-wrap gap-4">
-          {images.map((image, index) => (
-            <div key={index} className="relative w-24 h-24">
-              <Image
-                src={image.url}
-                alt={`Product image ${index + 1}`}
-                fill
-                className="object-cover rounded-lg"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
-              >
-                <X className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          ))}
-          {images.length < MAX_IMAGES && (
-            <label className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-                multiple
-              />
-              {uploadingImages.size > 0 ? (
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-              ) : (
-                <Plus className="w-6 h-6 text-gray-400" />
-              )}
-            </label>
-          )}
-        </div> */}
         <ProductImageUpload
           images={images}
           removeImage={removeImage}
@@ -454,30 +419,46 @@ export default function ProductForm({
             />
           </div>
 
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="allowBackorders"
-                id="allowBackorders"
-                defaultChecked={product?.inventory?.allowBackorder}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="allowBackorders" className="ml-2 block text-sm text-gray-700">
-                Allow Backorders
-              </label>
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="allowBackorders"
+                  id="allowBackorders"
+                  defaultChecked={product?.inventory?.allowBackorder}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="allowBackorders" className="ml-2 block text-sm text-gray-700">
+                  Allow Made-to-Order
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="featured"
+                  id="featured"
+                  defaultChecked={product?.featured}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="featured" className="ml-2 block text-sm text-gray-700">
+                  Featured Product
+                </label>
+              </div>
             </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                name="featured"
-                id="featured"
-                defaultChecked={product?.featured}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="featured" className="ml-2 block text-sm text-gray-700">
-                Featured Product
+            <div id="madeToOrderSection" className="mt-2">
+              <label htmlFor="madeToOrderDays" className="block text-sm font-medium text-gray-700">
+                Made-to-Order Days
               </label>
+              <input
+                type="number"
+                name="madeToOrderDays"
+                id="madeToOrderDays"
+                min="1"
+                defaultValue={product?.inventory?.madeToOrderDays || 7}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+              />
+              <p className="mt-1 text-xs text-gray-500">Days needed to create made-to-order items when stock is depleted</p>
             </div>
           </div>
         </div>

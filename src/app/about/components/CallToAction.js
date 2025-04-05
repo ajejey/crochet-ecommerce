@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { Clock, Sparkles, Target } from 'lucide-react';
 
 export default function CallToAction() {
   return (
@@ -55,42 +56,16 @@ export default function CallToAction() {
             </div>
             
             <div className="md:w-1/2 relative">
-              <div className="relative h-64 md:h-full min-h-[320px]">
-                <Image
-                  src="/images/cta-image.jpg"
-                  alt="Join the KnitKart community"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
+              <div className="relative h-64 md:h-full min-h-[320px] bg-gradient-to-br from-rose-100 to-rose-50 rounded-2xl overflow-hidden flex items-center justify-center">
+                <div className="absolute inset-0 bg-[url('/pattern-bg.svg')] opacity-10"></div>
                 
-                {/* Floating elements */}
-                <div className="absolute top-12 right-12 bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg hidden md:block">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Quick Onboarding</p>
-                      <p className="text-xs text-gray-500">Start selling in 24 hours</p>
-                    </div>
+                {/* Central content */}
+                <div className="text-center px-6 z-10">
+                  <div className="w-16 h-16 bg-rose-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="w-8 h-8 text-white" />
                   </div>
-                </div>
-                
-                <div className="absolute bottom-12 left-12 bg-white/90 backdrop-blur-sm rounded-lg p-4 shadow-lg hidden md:block">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Find Customers</p>
-                      <p className="text-xs text-gray-500">Connect with buyers quicker and easier</p>
-                    </div>
-                  </div>
+                  <h3 className="text-2xl font-serif font-bold text-gray-900 mb-2">Grow Your Craft Business</h3>
+                  <p className="text-gray-700 max-w-md mx-auto">Join our community of artisans and turn your passion into a thriving online business.</p>
                 </div>
               </div>
             </div>
