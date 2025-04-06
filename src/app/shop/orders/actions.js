@@ -11,6 +11,7 @@ import dbConnect from '@/lib/mongodb';
 export async function getOrders() {
   try {
     const user = await getAuthUser();
+    console.log("User in Orders page", user);
     if (!user) {
       return { 
         success: false, 
@@ -20,10 +21,13 @@ export async function getOrders() {
 
     await dbConnect();
 
+    console.log("User ID:", user.$id);
     // Find all orders for this user
     const orders = await Order.find({ buyerId: user.$id })
       .sort({ createdAt: -1 })
       .lean();
+
+    console.log("Orders found:", orders.map(order => order.createdAt.toISOString()));
 
     // Get all order items for these orders
     const orderItems = await OrderItem.find({
@@ -36,6 +40,7 @@ export async function getOrders() {
       })
       .lean();
 
+
     // Group order items by order ID
     const orderItemsMap = orderItems.reduce((acc, item) => {
       if (!acc[item.orderId.toString()]) {
@@ -44,6 +49,7 @@ export async function getOrders() {
       acc[item.orderId.toString()].push(item);
       return acc;
     }, {});
+
 
     // Transform the orders data
     const transformedOrders = await Promise.all(orders.map(async order => {
@@ -84,9 +90,9 @@ export async function getOrders() {
         shipping,
         total,
         shippingAddress,
-        _id: order._id.toString(),
-        createdAt: order.createdAt.toISOString(),
-        updatedAt: order.updatedAt.toISOString()
+        _id: JSON.parse(JSON.stringify(order._id.toString())),
+        createdAt: JSON.parse(JSON.stringify(order.createdAt.toISOString())),
+        updatedAt: JSON.parse(JSON.stringify(order.updatedAt.toISOString()))
       };
     }));
 

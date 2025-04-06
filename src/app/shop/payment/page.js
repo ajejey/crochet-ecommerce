@@ -4,13 +4,15 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { getOrderDetails, createRazorpayOrder, verifyRazorpayPayment } from '../checkout/actions';
-import { sendOrderConfirmationEmails } from '../checkout/email-actions';
+import { sendOrderConfirmationEmails, createShipwayOrder } from '../checkout/email-actions';
 import { useCart } from '@/app/components/CartProvider';
+import useBreakpoint from '@/hooks/useBreakpoint';
 
 export default function PaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { clearCart } = useCart();
+  const { isMobile, isTablet } = useBreakpoint();
   
   const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState([]);
@@ -103,6 +105,24 @@ export default function PaymentPage() {
                 console.error('Email sending error:', emailResult.message);
                 console.error('Email sending details:', emailResult);
               }
+              
+              // Create Shipway shipping orders (non-blocking)
+              // This runs after email confirmation but doesn't block the user flow
+              verificationResult.orders.forEach(order => {
+                // Process each order separately to avoid one failure affecting others
+                createShipwayOrder(order, order.items)
+                  .then(shipwayResult => {
+                    if (shipwayResult.success) {
+                      console.log(`Shipway order created for order ${order._id}:`, shipwayResult);
+                    } else {
+                      console.error(`Failed to create Shipway order for order ${order._id}:`, shipwayResult.message);
+                    }
+                  })
+                  .catch(error => {
+                    // Log error but don't affect user flow
+                    console.error(`Error creating Shipway order for order ${order._id}:`, error);
+                  });
+              });
             } catch (emailError) {
               console.error('Exception during email sending:', emailError);
               toast.error('Order placed successfully, but there was an error sending confirmation emails.');
@@ -151,7 +171,7 @@ export default function PaymentPage() {
   const total = subtotal + shipping;
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen pt-8 pb-24 lg:pb-0">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
           {/* <h1 className="font-serif text-5xl lg:text-7xl text-gray-900 mb-8">Payment</h1> */}
@@ -316,7 +336,8 @@ export default function PaymentPage() {
                   We accept credit/debit cards, UPI, and other payment methods through our secure payment gateway.
                 </p>
                 
-                <div className="mt-6">
+                {/* Desktop Payment Button */}
+                <div className={`mt-6 ${isMobile || isTablet ? 'hidden' : 'block'}`}>
                   <button
                     onClick={handlePayment}
                     disabled={paymentStatus === 'processing' || !paymentData}
@@ -326,7 +347,7 @@ export default function PaymentPage() {
                         : 'bg-rose-600 hover:bg-rose-700'
                     }`}
                   >
-                    {paymentStatus === 'processing' ? 'Processing...' : `Pay ₹${total}`}
+                    {paymentStatus === 'processing' ? 'Processing...' : `Make Payment ₹${total}`}
                   </button>
                 </div>
                 
@@ -339,6 +360,34 @@ export default function PaymentPage() {
                   </button>
                 </div>
               </div>
+              
+              {/* Sticky Payment Button for Mobile */}
+              {(isMobile || isTablet) && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 pb-8 z-50">
+                  {orders.some(order => order.items?.some(item => item.isMadeToOrder)) && (
+                    <div className="mb-2 flex items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                      <span className="text-xs text-amber-700">Some items will be made to order</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-base font-medium text-gray-900">Total:</span>
+                    <span className="text-base font-medium text-gray-900">₹{total}</span>
+                  </div>
+                  <button
+                    onClick={handlePayment}
+                    disabled={paymentStatus === 'processing' || !paymentData}
+                    className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white ${
+                      paymentStatus === 'processing' || !paymentData
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-rose-600 hover:bg-rose-700'
+                    }`}
+                  >
+                    {paymentStatus === 'processing' ? 'Processing...' : `Make Payment ₹${total}`}
+                  </button>
+                </div>
+                
+              )}
             </>
           )}
         </div>

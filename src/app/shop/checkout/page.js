@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
 import { getUserDetails, checkInventoryAvailability, createOrder, updateUserDetails, addNewAddress, deleteAddress } from './actions';
 import { getLocationByPincode } from '@/lib/postal-service';
+import useBreakpoint from '@/hooks/useBreakpoint';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const { isMobile, isTablet } = useBreakpoint();
   
   const {
     register,
@@ -255,7 +257,7 @@ export default function CheckoutPage() {
   }, [pincode, setValue]);
 
   return (
-    <div className="min-h-screen py-4 mb-48">
+    <div className="min-h-screen pt-8 pb-24 lg:pb-0"> {/* Added padding bottom for mobile sticky button */}
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto">
           {/* Show inventory issues if any */}
@@ -287,7 +289,27 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {/* Made to Order Notice */}
+            {madeToOrderItems.length > 0 && (
+              <div className="mb-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <h3 className="text-sm font-medium text-amber-800">Made-to-Order Items</h3>
+                <p className="text-xs text-amber-700 mt-1">
+                  {madeToOrderItems.some(item => item.availableQuantity === 0) 
+                    ? "Your order contains items that will be made to order. These items will be crafted specially for you and may take additional time to deliver."
+                    : "Some items in your order have limited stock and part of your order will be made to order. This may affect delivery time."}
+                </p>
+                <ul className="mt-2 text-xs text-amber-700 list-disc pl-5 space-y-1">
+                  {madeToOrderItems.map(item => (
+                    <li key={item.productId} className="flex flex-col">
+                      <span className="font-medium">{item.name}</span>
+                      <span className="text-amber-600">{item.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+          <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Personal Information */}
             <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
               <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
@@ -481,25 +503,10 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Made to Order Notice */}
-            {madeToOrderItems.length > 0 && (
-              <div className="mt-6 bg-amber-50 p-4 rounded-lg border border-amber-200">
-                <h3 className="text-sm font-medium text-amber-800">Made-to-Order Items</h3>
-                <p className="text-xs text-amber-700 mt-1">
-                  Your order contains items that will be made to order. These items will be crafted specially for you and may take additional time to deliver.
-                </p>
-                <ul className="mt-2 text-xs text-amber-700 list-disc pl-5 space-y-1">
-                  {madeToOrderItems.map(item => (
-                    <li key={item.productId}>
-                      {item.name}: {item.message}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          
             
-            {/* Submit Button */}
-            <div className="mt-6">
+            {/* Submit Button - Desktop */}
+            <div className={`my-6 pb-8 ${isMobile || isTablet ? 'hidden' : 'block'}`}>
               <button
                 type="submit"
                 disabled={isLoading || inventoryIssues}
@@ -522,6 +529,45 @@ export default function CheckoutPage() {
               </button>
             </div>
           </form>
+          
+          {/* Sticky Submit Button for Mobile */}
+          {(isMobile || isTablet) && (
+            <div className="fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] p-4 pb-8 z-50">
+              {madeToOrderItems.length > 0 && (
+                <div className="mb-2 flex items-center">
+                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                  <span className="text-xs text-amber-700">Some items will be made to order</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-base font-medium text-gray-900">Total:</span>
+                <span className="text-base font-medium text-gray-900">
+                  ₹{cart.totalAmount + (cart.totalAmount >= 1000 ? 0 : 100)}
+                </span>
+              </div>
+              <button
+                type="submit"
+                form="checkout-form"
+                disabled={isLoading || inventoryIssues}
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white ${
+                  isLoading || inventoryIssues
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                    Checking availability...
+                  </div>
+                ) : inventoryIssues ? (
+                  'Update cart to proceed'
+                ) : (
+                  'Place Order'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

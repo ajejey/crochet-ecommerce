@@ -171,7 +171,8 @@ export async function createOrder(orderData) {
 
       // Create order for this seller
       // Use appwriteId as buyerId if _id is not available
-      const buyerId = user._id ? user._id.toString() : user.$id;
+      // const buyerId = user._id ? user._id.toString() : user.$id;
+      const buyerId = user.$id;
       
       if (!buyerId) {
         console.error('No valid user ID found:', user);
@@ -554,6 +555,7 @@ export async function checkInventoryAvailability(cartItems) {
     const inventoryChecks = await Promise.all(
       cartItems.map(async (item) => {
         const product = await Product.findById(item._id);
+        console.log('Checking inventory for product:', product);
         
         if (!product) {
           return {

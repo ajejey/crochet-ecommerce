@@ -72,7 +72,7 @@ export const requireAuth = async (redirectTo = '/login') => {
 export const requireSeller = async () => {
   const user = await requireAuth('/login');
 
-  console.log("user in requireSeller", user)
+  // console.log("user in requireSeller", user)
   
   if (user.role !== 'seller' && user.role !== 'admin') {
     redirect('/become-seller');
