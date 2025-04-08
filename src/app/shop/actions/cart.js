@@ -7,6 +7,7 @@ import { CartItem } from '@/models/CartItem';
 import { Product } from '@/models/Product';
 import { Variant } from '@/models/Variant';
 import mongoose from 'mongoose';
+import { recordCartAdd } from '@/lib/social-proof';
 
 const CART_ITEMS_COLLECTION = process.env.NEXT_PUBLIC_COLLECTION_CART_ITEMS;
 
@@ -203,6 +204,14 @@ export async function addToCart(data) {
         } : null,
         quantity
       };
+      
+      // Record social proof event (non-blocking)
+      recordCartAdd({
+        _id: productId,
+        name: productData.name,
+        images: productData.images || [],
+        seller: productData.seller || {}
+      }, quantity);
       
       return { success: true, item: transformedItem };
     }

@@ -6,27 +6,48 @@ import { toast } from 'sonner';
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState({
-    items: [],
-    totalAmount: 0,
-    totalItems: 0
-  });
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        if (parsedCart && parsedCart.items && Array.isArray(parsedCart.items)) {
-          setCart(parsedCart);
+  // Initialize cart with a function to avoid the empty cart initial state
+  const [cart, setCart] = useState(() => {
+    // Try to load cart from localStorage during initialization
+    if (typeof window !== 'undefined') {
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        try {
+          const parsedCart = JSON.parse(savedCart);
+          if (parsedCart && parsedCart.items && Array.isArray(parsedCart.items)) {
+            return parsedCart;
+          }
+        } catch (error) {
+          console.error('Error parsing cart from localStorage:', error);
         }
-      } catch (error) {
-        console.error('Error parsing cart from localStorage:', error);
       }
     }
-    setIsInitialized(true);
+    // Default empty cart
+    return {
+      items: [],
+      totalAmount: 0,
+      totalItems: 0
+    };
+  });
+  const [isInitialized, setIsInitialized] = useState(true);
+
+  // Sync with localStorage if it changes in another tab
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'cart') {
+        try {
+          const parsedCart = JSON.parse(e.newValue);
+          if (parsedCart && parsedCart.items && Array.isArray(parsedCart.items)) {
+            setCart(parsedCart);
+          }
+        } catch (error) {
+          console.error('Error parsing cart from localStorage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Save cart to localStorage whenever it changes, but only after initialization

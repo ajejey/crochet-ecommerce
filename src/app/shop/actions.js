@@ -66,7 +66,7 @@ export async function getInitialProducts() {
   try {
     await dbConnect();
     const products = await Product.find({ status: 'active' })
-      .select('name price images category sellerId')
+      .select('name price images category sellerId inventory salePrice')
       .sort({ createdAt: -1 })
       .limit(PRODUCTS_PER_PAGE)
       .lean();

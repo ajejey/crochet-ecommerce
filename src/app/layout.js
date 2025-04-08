@@ -5,6 +5,7 @@ import { CartProvider } from './components/CartProvider';
 import { Toaster } from 'sonner';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import Footer from './components/Footer';
+import SocialProofNotifications from '@/components/SocialProofNotifications';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -142,6 +143,7 @@ export default function RootLayout({ children }) {
           {children}
           <Footer />
           <Toaster richColors closeButton position="bottom-right" />
+          {/* <SocialProofNotifications /> */}
           <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
         </CartProvider>
       </body>

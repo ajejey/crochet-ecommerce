@@ -155,3 +155,74 @@ export function endOfMonth(date) {
   newDate.setHours(23, 59, 59, 999);
   return newDate;
 }
+
+// formatDistanceToNow
+/**
+ * Format distance from a date to now in a human-readable format
+ * @param {Date|string} date - The date to calculate distance from
+ * @param {Object} options - Options for formatting
+ * @param {boolean} [options.addSuffix=false] - Whether to add 'ago' suffix
+ * @param {boolean} [options.includeSeconds=false] - Whether to include seconds for recent times
+ * @returns {string} Human-readable time distance
+ */
+export function formatDistanceToNow(date, options = {}) {
+  try {
+    if (!date) return 'Date not available';
+    
+    const targetDate = date instanceof Date ? date : new Date(date);
+    
+    // Check if date is valid
+    if (isNaN(targetDate.getTime())) {
+      return 'Invalid date';
+    }
+    
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - targetDate) / 1000);
+    const { addSuffix = false, includeSeconds = false } = options;
+    
+    // Define time units in seconds
+    const minute = 60;
+    const hour = minute * 60;
+    const day = hour * 24;
+    const month = day * 30;
+    const year = day * 365;
+    
+    let result;
+    
+    if (diffInSeconds < minute) {
+      result = includeSeconds
+        ? diffInSeconds < 5
+          ? 'just now'
+          : diffInSeconds < 10
+            ? 'less than 10 seconds'
+            : diffInSeconds < 20
+              ? 'less than 20 seconds'
+              : diffInSeconds < 40
+                ? 'half a minute'
+                : 'less than a minute'
+        : 'less than a minute';
+    } else if (diffInSeconds < hour) {
+      const minutes = Math.floor(diffInSeconds / minute);
+      result = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    } else if (diffInSeconds < day) {
+      const hours = Math.floor(diffInSeconds / hour);
+      result = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    } else if (diffInSeconds < month) {
+      const days = Math.floor(diffInSeconds / day);
+      result = `${days} ${days === 1 ? 'day' : 'days'}`;
+    } else if (diffInSeconds < year) {
+      const months = Math.floor(diffInSeconds / month);
+      result = `${months} ${months === 1 ? 'month' : 'months'}`;
+    } else {
+      const years = Math.floor(diffInSeconds / year);
+      result = `${years} ${years === 1 ? 'year' : 'years'}`;
+    }
+    
+    return addSuffix ? `${result} ago` : result;
+  } catch (error) {
+    console.error('Error formatting distance to now:', error);
+    return 'Time calculation error';
+  }
+}
+
+

@@ -5,7 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import { Star, Loader2 } from 'lucide-react';
 import { getProductReviews, createReview } from '../../actions';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from '@/utils/format';
 
 export default function ReviewSection({ productId, initialReviews }) {
   const [reviews, setReviews] = useState(initialReviews.reviews);

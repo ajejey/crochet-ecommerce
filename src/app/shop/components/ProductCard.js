@@ -11,9 +11,12 @@ export default function ProductCard({ product }) {
   const { addToCart, cart } = useCart();
 
   // Get inventory details from product
-  const stockCount = product.inventory?.stockCount || 0;
-  const allowBackorder = product.inventory?.allowBackorder || false;
-  const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
+  // Ensure these values are properly extracted from the product object
+  const stockCount = product.inventory?.stockCount ?? 0;
+  const allowBackorder = product.inventory?.allowBackorder ?? false;
+  const madeToOrderDays = product.inventory?.madeToOrderDays ?? 7;
+  
+  // Memoize the cart quantity calculation to avoid unnecessary recalculations
   const currentQuantityInCart = cart.items.find(item => item._id === product._id)?.quantity || 0;
   const remainingStock = stockCount - currentQuantityInCart;
 
@@ -118,9 +121,9 @@ export default function ProductCard({ product }) {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={remainingStock < 1 && !allowBackorder}
+          disabled={!allowBackorder && remainingStock < 1}
           className={`w-full py-2 mb-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 shadow-sm
-            ${remainingStock < 1 && !allowBackorder
+            ${!allowBackorder && remainingStock < 1
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-rose-600 hover:bg-rose-700 text-white'}`}
         >
