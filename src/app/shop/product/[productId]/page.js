@@ -1,12 +1,13 @@
 
-import { getProduct, getProductReviews } from '../../actions';
+import { getProduct } from '../../actions';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import MainLayout from './components/MainLayout';
 
 export async function generateMetadata({ params }) {
-  const product = await getProduct(params.productId);
+  // Using the cached getProduct function - only minimal data needed for metadata
+  const product = await getProduct(params.productId, { includeSeller: false });
   
   if (!product) {
     return {
@@ -18,34 +19,30 @@ export async function generateMetadata({ params }) {
   return {
     title: `${product.name}`,
     description: product.description?.short || product.description?.full || product.name,
-    keywords: product.metadata.searchKeywords,
+    keywords: product.metadata?.searchKeywords || [],
     alternates: {
       canonical: `https://www.knitkart.in/shop/product/${product._id}`
     },
     openGraph: {
       title: product.name,
       description: product.description?.short || product.description?.full || product.name,
-      images: [product.images[0].url],
+      images: product.images && product.images.length > 0 ? [product.images[0].url] : [],
     },
   };
 }
 
 export default async function ProductPage({ params }) {
-  const [product, initialReviews] = await Promise.all([
-    getProduct(params.productId),
-    getProductReviews(params.productId, 1)
-  ]);
+  // Only fetch the product data initially - reviews will be loaded later
+  const product = await getProduct(params.productId);
 
   if (!product) {
     notFound();
   }
 
-  
-
   return (
     <div className="max-w-7xl mx-auto">
       <Suspense fallback={<LoadingSpinner />}>
-        <MainLayout product={product} initialReviews={initialReviews} params={params} />
+        <MainLayout product={product} productId={params.productId} params={params} />
       </Suspense>
     </div>
   );

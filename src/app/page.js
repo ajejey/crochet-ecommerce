@@ -56,7 +56,7 @@ const HomePage = () => {
       <HeaderSection />
       
       {/* Hero Section */}
-      <section className="relative py-16 md:py-24 overflow-hidden">
+      <section className="relative py-10 sm:py-16 md:py-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-rose-50 to-white"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-2 gap-8 items-center">
@@ -70,12 +70,12 @@ const HomePage = () => {
                 Discover unique, handmade crochet creations that bring warmth and character to your home
               </p>
               <div className="flex flex-wrap gap-4">
-                <Link className="px-8 py-4 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl" href="/shop" prefetch={true}>
+                <Link className="px-6 py-3 sm:px-8 sm:py-4 bg-rose-600 text-white rounded-full text-lg font-medium hover:bg-rose-700 transition-colors duration-200 shadow-lg hover:shadow-xl" href="/shop" prefetch={true}>
                   <button>
                     Shop Now
                   </button>
                 </Link>
-                <Link className="px-8 py-4 bg-white text-rose-600 border-2 border-rose-600 rounded-full text-lg font-medium hover:bg-rose-50 transition-colors duration-200" href="/become-seller" prefetch={true}>
+                <Link className="px-6 py-3 sm:px-8 sm:py-4 bg-white text-rose-600 border-2 border-rose-600 rounded-full text-lg font-medium hover:bg-rose-50 transition-colors duration-200" href="/become-seller" prefetch={true}>
                   <button>
                     Become a Seller
                   </button>
@@ -90,7 +90,7 @@ const HomePage = () => {
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 quality={90}
-                className="object-contain md:object-cover"
+                className="object-cover"
                 priority
               />
             </div>

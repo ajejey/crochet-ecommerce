@@ -425,7 +425,10 @@ export async function getActiveProducts() {
   }
 }
 
-export async function getProduct(productId) {
+import { cache } from 'react';
+
+// Cached version of getProduct to avoid duplicate DB calls
+export const getProduct = cache(async function(productId, options = { includeSeller: true }) {
   try {
     await dbConnect();
 
@@ -435,16 +438,11 @@ export async function getProduct(productId) {
       throw new Error('Product not found');
     }
 
-    // Get seller profile
-    const sellerProfile = await SellerProfile.findOne({ userId: product.sellerId }).lean();
-
-    // Transform for client
-    return {
+    // Basic product data transformation
+    const transformedProduct = {
       ...product,
       _id: product._id.toString(),
       sellerId: product.sellerId,
-      sellerName: sellerProfile?.businessName || 'Unknown Seller',
-      sellerEmail: sellerProfile?.contactEmail,
       averageRating: product.rating?.average || 0,
       totalReviews: product.rating?.count || 0,
       inventory: {
@@ -454,13 +452,22 @@ export async function getProduct(productId) {
         allowBackorder: product.inventory?.allowBackorder || false
       }
     };
+    
+    // Only fetch seller profile if needed
+    if (options.includeSeller) {
+      const sellerProfile = await SellerProfile.findOne({ userId: product.sellerId }).lean();
+      transformedProduct.sellerName = sellerProfile?.businessName || 'Unknown Seller';
+      transformedProduct.sellerEmail = sellerProfile?.contactEmail;
+    }
+
+    return transformedProduct;
   } catch (error) {
     console.error('Error fetching product:', error);
     throw new Error('Failed to fetch product');
   }
-}
+})
 
-export async function getProductReviews(productId, page = 1) {
+export const getProductReviews = cache(async function(productId, page = 1) {
   try {
     await dbConnect();
     
@@ -496,7 +503,7 @@ export async function getProductReviews(productId, page = 1) {
     console.error('Error fetching reviews:', error);
     throw new Error('Failed to fetch reviews');
   }
-}
+})
 
 export async function createReview(productId, rating, comment) {
   try {

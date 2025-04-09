@@ -1,18 +1,26 @@
 'use client';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import useBreakpoint from '@/hooks/useBreakpoint';
-import React, { Suspense } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import ProductGallery from './ProductGallery';
 import ProductInfo from './ProductInfo';
 import ProductReviews from './ProductReviews';
 import DesktopLayout from './DesktopLayout';
 import Link from 'next/link';
+import useSWR from 'swr';
 
-const MainLayout = ({ product, initialReviews, params }) => {
+const MainLayout = ({ product, productId, params }) => {
     const { isMobile } = useBreakpoint();
 
     console.log("isMobile", isMobile)
 
+    // Lazy load reviews with SWR
+const fetcher = (...args) => fetch(...args).then(res => res.json());
+const { data: initialReviews, error } = useSWR(
+  `/api/products/${productId}/reviews?page=1`,
+  fetcher,
+  { suspense: false, revalidateOnFocus: false }
+);
     const galleryComponent = (
         <Suspense fallback={<LoadingSpinner />}>
           <ProductGallery images={product.images} name={product.name} />
@@ -21,18 +29,24 @@ const MainLayout = ({ product, initialReviews, params }) => {
     
       const productInfoComponent = (
         <Suspense fallback={<LoadingSpinner />}>
-          <ProductInfo product={product} initialReviews={initialReviews} />
-        </Suspense>
-      );
-    
-      const reviewsComponent = (
-        <Suspense fallback={<LoadingSpinner />}>
-          <ProductReviews
-            productId={params.productId}
-            initialReviews={initialReviews}
+          <ProductInfo 
+            product={product} 
+            initialReviews={initialReviews} 
+            reviewCount={product.totalReviews} 
+            averageRating={product.averageRating} 
           />
         </Suspense>
       );
+    
+  
+  const reviewsComponent = (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ProductReviews
+        productId={params.productId}
+        initialReviews={initialReviews}
+      />
+    </Suspense>
+  );
     
       if (isMobile === false) {
         return (
@@ -47,7 +61,7 @@ const MainLayout = ({ product, initialReviews, params }) => {
       return (
         <div className="min-h-screen flex flex-col">
           {/* Sticky Header */}
-          <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100">
+          {/* <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-gray-100">
             <nav className="flex items-center gap-2 p-4 text-sm">
               <Link href="/shop" className="text-rose-600 hover:text-rose-800">Shop</Link>
               <span className="text-gray-400">/</span>
@@ -55,7 +69,7 @@ const MainLayout = ({ product, initialReviews, params }) => {
                 {product.category}
               </Link>
             </nav>
-          </header>
+          </header> */}
     
           {/* Main Content */}
           <main className="flex-1">
