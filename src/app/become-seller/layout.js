@@ -1,8 +1,12 @@
+import { SuspendedPostHogPageView } from '@/components/PostHogProvider'
 import React from 'react'
 
 const layout = ({ children }) => {
   return (
-    <div>{children}</div>
+    <div>
+      <SuspendedPostHogPageView />
+      {children}
+    </div>
   )
 }
 

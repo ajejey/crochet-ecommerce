@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { getProduct } from '../../actions';
 import { notFound } from 'next/navigation';
+import { SuspendedPostHogPageView } from '@/components/PostHogProvider';
 
 export default async function ProductLayout({ children, params }) {
   const product = await getProduct(params.productId);
@@ -11,6 +11,7 @@ export default async function ProductLayout({ children, params }) {
 
   return (
     <div className="max-w-7xl mx-auto">
+      <SuspendedPostHogPageView />
       {/* Breadcrumb */}
       {/* <nav className="mb-4">
         <ol className="flex items-center space-x-2 text-sm text-gray-500">

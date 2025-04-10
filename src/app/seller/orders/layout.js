@@ -1,5 +1,6 @@
 import React from 'react'
 import { requireSeller } from '@/lib/auth-context';
+import { SuspendedPostHogPageView } from '@/components/PostHogProvider';
 
 export default async function OrdersLayout({ children }) {
   // Ensure only authenticated sellers can access this route
@@ -7,6 +8,7 @@ export default async function OrdersLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SuspendedPostHogPageView />
       {children}
     </div>
   )

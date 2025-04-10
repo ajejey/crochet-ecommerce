@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { redirect } from 'next/navigation';
 import { requireSeller } from '@/lib/auth-context';
 import SellerNavigation from './components/SellerNavigation';
+import { SuspendedPostHogPageView } from '@/components/PostHogProvider';
 
 export default async function SellerLayout({ children }) {
   try {
@@ -11,6 +12,7 @@ export default async function SellerLayout({ children }) {
 
     return (
       <div className="min-h-screen bg-gray-50">
+        <SuspendedPostHogPageView />
         <SellerNavigation user={user} />
         
         {/* Main Content */}

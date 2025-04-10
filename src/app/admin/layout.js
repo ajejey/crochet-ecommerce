@@ -1,6 +1,7 @@
 import React from 'react';
 import AdminNavigation from './components/AdminNavigation';
 import { requireAdmin } from '@/lib/auth-context';
+import { SuspendedPostHogPageView } from '@/components/PostHogProvider';
 
 export default async function AdminLayout({ children }) {
   // Check if user is admin
@@ -18,6 +19,7 @@ export default async function AdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
+        <SuspendedPostHogPageView />
         <AdminNavigation />
         <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8">
           {children}

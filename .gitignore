@@ -37,3 +37,5 @@ yarn-error.log*
 next-env.d.ts
 
 amplified-acre-455718-p0-ad7172e0649e.json
+
+.env.local

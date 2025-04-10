@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { GoogleAnalytics } from '@next/third-parties/google';
 import Footer from './components/Footer';
 import SocialProofNotifications from '@/components/SocialProofNotifications';
+import { PostHogProvider } from '@/components/PostHogProvider';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -139,13 +140,15 @@ export default function RootLayout({ children }) {
         <meta name="google-site-verification" content="OSiP0raE4FrsOpdM-vX7zkup2ShHBtRz2bzaXX0lvk4" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${playfair.variable} ${dmSans.variable} ${plusJakarta.variable} ${leckerli.variable} ${allura.variable} font-sans antialiased`}>
-        <CartProvider>
-          {children}
-          <Footer />
-          <Toaster richColors closeButton position="bottom-right" />
-          {/* <SocialProofNotifications /> */}
-          <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
-        </CartProvider>
+        <PostHogProvider>
+          <CartProvider>
+            {children}
+            <Footer />
+            <Toaster richColors closeButton position="bottom-right" />
+            {/* <SocialProofNotifications /> */}
+            <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
+          </CartProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

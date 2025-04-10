@@ -1,3 +1,4 @@
+import { SuspendedPostHogPageView } from '@/components/PostHogProvider';
 import { getAuthUser } from '@/lib/auth-context';
 import { redirect } from 'next/navigation';
 
@@ -8,5 +9,8 @@ export default async function CheckoutLayout({ children }) {
     redirect('/login?redirect=/shop/checkout');
   }
 
-  return <>{children}</>;
+  return <>
+    <SuspendedPostHogPageView />
+    {children}
+  </>;
 }
