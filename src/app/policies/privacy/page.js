@@ -221,6 +221,32 @@ export default function PrivacyPolicy() {
             <li>The right to data portability</li>
             <li>The right to withdraw consent at any time</li>
           </ul>
+          <p className="text-lg sm:text-xl mt-4">
+            <strong>How to Request Data Deletion:</strong>
+          </p>
+          <p className="text-lg sm:text-xl">
+            You can request deletion of your personal information in two ways:
+          </p>
+          <ol className="list-decimal pl-6 space-y-2 text-lg sm:text-xl">
+            <li>
+              <strong>Through Your Account Settings:</strong> Log into your account and navigate to the "Account Settings" section where you can find the "Delete Account" option. This will permanently delete all your personal information from our system.
+            </li>
+            <li>
+              <strong>By Contacting Us:</strong> If you prefer to request deletion through email, please contact us at knottedwithlove0@gmail.com with the subject line "Data Deletion Request". Include your account email address and any other identifying information to help us locate your data.
+            </li>
+          </ol>
+          <p className="text-lg sm:text-xl mt-4">
+            Once we receive your request, we will:
+          </p>
+          <ul className="list-disc pl-6 space-y-2 text-lg sm:text-xl">
+            <li>Verify your identity to protect your privacy</li>
+            <li>Process your request within a reasonable time frame</li>
+            <li>Delete all your personal information from our system</li>
+            <li>Inform you once the deletion process is complete</li>
+          </ul>
+          <p className="text-lg sm:text-xl mt-4">
+            Please note that we may need to retain certain information as required by law or for legitimate business purposes, such as maintaining transaction records for legal compliance.
+          </p>
           <p className="text-lg sm:text-xl">
             To exercise these rights, please contact us using the information provided in the "Contact Us" section below.
           </p>
