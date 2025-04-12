@@ -65,15 +65,19 @@ export function useAIAssist() {
       switch (result.status) {
         case 'completed':
           setJobResult(result.data);
+          console.log('Job completed:', result.data);
           setIsGenerating(false);
           setJobId(null);
           isJobInProgressRef.current = false;
           return result.data;
         case 'pending':
+          console.log('Job pending...');
           return null;
         case 'error':
+          console.log('Job error:', result.error);
           throw new Error(result.error || 'Job processing failed');
         default:
+          console.log('Unknown job status:', result.status);
           throw new Error('Unknown job status');
       }
     } catch (error) {
@@ -93,6 +97,7 @@ export function useAIAssist() {
     let intervalId;
 
     const pollJobStatus = async () => {
+      console.log('Polling job status...');
       const result = await checkJobStatus(jobId);
       
       if (isMounted && result) {

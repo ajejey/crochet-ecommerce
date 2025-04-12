@@ -173,7 +173,7 @@ export async function checkProductImageAnalysisJob(jobId) {
 
 async function analyzeProductImages(images, userInput = '') {
   'use server';
-  
+  console.log('Starting Google Gemini analysis...')
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
@@ -284,6 +284,7 @@ Remember to:
 
     const result = await model.generateContent([...imageContents, prompt]);
     const response = result.response.text();
+    console.log('AI response:', response);
     
     try {
       return { success: true, data: JSON.parse(response) };
