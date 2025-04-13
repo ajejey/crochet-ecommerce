@@ -59,7 +59,7 @@ export const metadata = {
     siteName: 'KnitKart',
     images: [
       {
-        url: '/opengraph-image.png', 
+        url: '/opengraph-image.webp', 
         width: 1200,
         height: 630,
         alt: 'KnitKart - Modern Crochet & Knitted Essentials',
@@ -83,7 +83,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'KnitKart | Modern Crochet & Knitted Essentials',
     description: 'Discover modern, handcrafted crochet and knitted items. From cozy sweaters to contemporary accessories, each piece is crafted with precision.',
-    images: ['/opengraph-image.png'],
+    images: ['/opengraph-image.webp'],
   },
   verification: {
     google: 'snj5gapw5rZUnRp7exOcGk-dSyY6kaorMwWYOvSA9nM',
