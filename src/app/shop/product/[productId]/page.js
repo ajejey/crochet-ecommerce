@@ -16,13 +16,6 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  // Ensure we have absolute URLs for images for WhatsApp sharing
-  const productImageUrl = product.images && product.images.length > 0 
-    ? (product.images[0].url.startsWith('http') 
-        ? product.images[0].url 
-        : `https://knitkart.in${product.images[0].url.startsWith('/') ? '' : '/'}${product.images[0].url}`)
-    : null;
-    
   return {
     title: `${product.name}`,
     description: product.description?.short || product.description?.full || product.name,
@@ -33,13 +26,12 @@ export async function generateMetadata({ params }) {
     openGraph: {
       title: product.name,
       description: product.description?.short || product.description?.full || product.name,
-      images: productImageUrl ? [{
-        url: productImageUrl,
+      images: product.images && product.images.length > 0 ? [{
+        url: product.images[0].url,
         width: 1200,
         height: 630,
         alt: product.name
       }] : [],
-      type: 'product',
     },
   };
 }
