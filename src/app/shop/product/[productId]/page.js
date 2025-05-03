@@ -30,14 +30,9 @@ export async function generateMetadata({ params }) {
         url: product.images[0].url,
         width: 1200,
         height: 630,
-        alt: product.name,
-        type: 'image/webp',
+        alt: product.name
       }] : [],
-      type: 'product',
-      'product:price:amount': product.price.toString(),
-      'product:price:currency': 'INR',
-      'product:availability': product.inventory?.stockCount > 0 ? 'instock' : 'outofstock',
-    }
+    },
   };
 }
 
