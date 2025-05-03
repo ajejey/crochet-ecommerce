@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, Minus, Plus, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
 import Link from 'next/link';
+import ShareButton from './ShareButton';
 
 export default function ProductInfo({ product, initialReviews }) {
+  const [productUrl, setProductUrl] = useState('');
+  
+  // Get the current URL for sharing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setProductUrl(window.location.href);
+    }
+  }, []);
   const [quantity, setQuantity] = useState(1);
   const { addToCart, cart } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -200,7 +209,7 @@ export default function ProductInfo({ product, initialReviews }) {
           )}
         </div>
 
-        {/* Add to cart and wishlist buttons */}
+        {/* Add to cart, wishlist, and share buttons */}
         <div className="mt-4 flex space-x-4">
           <button
             onClick={handleAddToCart}
@@ -221,9 +230,13 @@ export default function ProductInfo({ product, initialReviews }) {
                 ? 'border-rose-600 text-rose-600 hover:bg-rose-50'
                 : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
+            aria-label="Add to wishlist"
           >
             <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-rose-600' : ''}`} />
           </button>
+          
+          {/* Share Button */}
+          <ShareButton product={product} url={productUrl} />
         </div>
       </div>
 
