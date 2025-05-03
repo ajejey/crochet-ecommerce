@@ -16,22 +16,27 @@ export async function generateMetadata({ params }) {
     };
   }
 
+  // Generate the absolute URL for our optimized OG image
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.knitkart.in';
+  const optimizedImageUrl = `${baseUrl}/api/og-image/${params.productId}`;
+
   return {
     title: `${product.name}`,
     description: product.description?.short || product.description?.full || product.name,
     keywords: product.metadata?.searchKeywords || [],
     alternates: {
-      canonical: `https://www.knitkart.in/shop/product/${product._id}`
+      canonical: `${baseUrl}/shop/product/${product._id}`
     },
     openGraph: {
       title: product.name,
       description: product.description?.short || product.description?.full || product.name,
-      images: product.images && product.images.length > 0 ? [{
-        url: product.images[0].url,
+      images: [{
+        url: optimizedImageUrl,
         width: 1200,
         height: 630,
-        alt: product.name
-      }] : [],
+        alt: product.name,
+        type: 'image/webp',
+      }],
     },
   };
 }

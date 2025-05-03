@@ -37,6 +37,7 @@
     "react-dom": "^18",
     "react-hook-form": "^7.54.2",
     "react-intersection-observer": "^9.13.1",
+    "sharp": "^0.34.1",
     "slugify": "^1.6.6",
     "sonner": "^1.7.0",
     "swiper": "^11.2.5",

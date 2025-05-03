@@ -1,0 +1,16 @@
+# *
+User-agent: *
+Allow: /
+
+# *
+User-agent: *
+Disallow: /admin
+Disallow: /seller/dashboard
+Disallow: /api
+
+# Host
+Host: https://knitkart.in
+
+# Sitemaps
+Sitemap: https://knitkart.in/sitemap.xml
+Sitemap: https://knitkart.in/server-sitemap-index.xml
