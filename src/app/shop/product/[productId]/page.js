@@ -16,10 +16,6 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  // Generate the absolute URL for our optimized OG image
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.knitkart.in';
-  const optimizedImageUrl = `${baseUrl}/api/og-image/${params.productId}`;
-
   return {
     title: `${product.name}`,
     description: product.description?.short || product.description?.full || product.name,
@@ -34,9 +30,14 @@ export async function generateMetadata({ params }) {
         url: product.images[0].url,
         width: 1200,
         height: 630,
-        alt: product.name
+        alt: product.name,
+        type: 'image/webp',
       }] : [],
-    },
+      type: 'product',
+      'product:price:amount': product.price.toString(),
+      'product:price:currency': 'INR',
+      'product:availability': product.inventory?.stockCount > 0 ? 'instock' : 'outofstock',
+    }
   };
 }
 
