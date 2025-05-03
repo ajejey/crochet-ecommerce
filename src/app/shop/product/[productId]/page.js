@@ -25,18 +25,17 @@ export async function generateMetadata({ params }) {
     description: product.description?.short || product.description?.full || product.name,
     keywords: product.metadata?.searchKeywords || [],
     alternates: {
-      canonical: `${baseUrl}/shop/product/${product._id}`
+      canonical: `https://www.knitkart.in/shop/product/${product._id}`
     },
     openGraph: {
       title: product.name,
       description: product.description?.short || product.description?.full || product.name,
-      images: [{
-        url: optimizedImageUrl,
+      images: product.images && product.images.length > 0 ? [{
+        url: product.images[0].url,
         width: 1200,
         height: 630,
-        alt: product.name,
-        type: 'image/webp',
-      }],
+        alt: product.name
+      }] : [],
     },
   };
 }
