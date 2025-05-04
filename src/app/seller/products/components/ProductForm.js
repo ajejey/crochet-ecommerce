@@ -152,6 +152,11 @@ export default function ProductForm({
   function removeImage(index) {
     setImages(prev => prev.filter((_, i) => i !== index));
   }
+  
+  // Handle image reordering
+  function handleImageReorder(newImages) {
+    setImages(newImages);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -204,11 +209,11 @@ export default function ProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
+    <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 sm:px-0">
       {/* Product Images */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Product Images</h2>
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-row justify-between items-center gap-3">
+          <h2 className="text-lg sm:text-xl font-semibold">Product Images</h2>
           {images.length > 0 && (
             <div className="relative">
               <button
@@ -221,7 +226,7 @@ export default function ProductForm({
               </button>
               
               {showAiGuidanceInput && (
-                <div className="absolute right-0 mt-2 w-96 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-4 z-10">
+                <div className="absolute right-0 mt-2 w-64 sm:w-96 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 p-3 sm:p-4 z-10">
                   <div className="mb-3">
                     <label htmlFor="aiGuidance" className="block text-sm font-medium text-gray-700 mb-1">
                       Guidance for AI (Optional)
@@ -232,8 +237,8 @@ export default function ProductForm({
                       rows="3"
                       value={aiGuidance}
                       onChange={(e) => setAiGuidance(e.target.value)}
-                      placeholder="Provide keywords or description to guide the AI. For example: 'This is a baby blanket made with soft wool, perfect for winter.'" 
-                      className="p-2 shadow-sm focus:ring-rose-500 focus:outline-none block w-full sm:text-sm border border-rose-300 hover:border-rose-300 focus:border-rose-400 rounded-md transition-colors duration-200"
+                      placeholder="Provide keywords to guide the AI. E.g: 'Baby blanket, soft wool, winter.'" 
+                      className="p-2 shadow-sm focus:ring-rose-500 focus:outline-none block w-full text-sm border border-rose-300 hover:border-rose-300 focus:border-rose-400 rounded-md transition-colors duration-200"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Add specific details to help the AI generate more accurate descriptions.
@@ -266,6 +271,7 @@ export default function ProductForm({
           handleImageChange={handleImageChange}
           uploadingImages={uploadingImages}
           MAX_IMAGES={MAX_IMAGES}
+          onReorder={setImages}
         />
         <p className="text-sm text-gray-500">
           Upload up to {MAX_IMAGES} images. First image will be the main product image.
@@ -273,11 +279,11 @@ export default function ProductForm({
       </div>
 
       {/* Basic Information */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Basic Information</h2>
+      <div className="space-y-4 sm:space-y-6">
+        <h2 className="text-lg sm:text-xl font-semibold">Basic Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
               Product Name
             </label>
             <input
@@ -292,7 +298,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
             <select
@@ -313,13 +319,13 @@ export default function ProductForm({
         </div>
 
         <div>
-          <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700 mb-1">
             Short Description
           </label>
           <textarea
             name="shortDescription"
             id="shortDescription"
-            rows={2}
+            rows={4}
             required
             defaultValue={product?.description?.short}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
@@ -349,7 +355,7 @@ export default function ProductForm({
         </div>
 
         <div>
-          <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
             Tags
           </label>
           <input
@@ -364,7 +370,7 @@ export default function ProductForm({
         </div>
 
         <div>
-          <label htmlFor="searchKeywords" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="searchKeywords" className="block text-sm font-medium text-gray-700 mb-1">
             Search Keywords
           </label>
           <input
@@ -380,11 +386,11 @@ export default function ProductForm({
       </div>
 
       {/* Pricing and Inventory */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Pricing and Inventory</h2>
+      <div className="space-y-4 sm:space-y-6">
+        <h2 className="text-lg sm:text-xl font-semibold">Pricing and Inventory</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
               Regular Price
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
@@ -406,8 +412,8 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="salePrice" className="block text-sm font-medium text-gray-700">
-              Sale Price
+            <label htmlFor="salePrice" className="block text-sm font-medium text-gray-700 mb-1">
+              Sale Price (Optional)
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -418,16 +424,68 @@ export default function ProductForm({
                 name="salePrice"
                 id="salePrice"
                 min="0"
-                step="0.01"
-                defaultValue={product?.salePrice}
-                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                defaultValue={product?.salePrice || ''}
+                className="block w-full pl-7 pr-12 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
-            <p className="mt-1 text-xs text-gray-500">Optional. Must be less than regular price.</p>
+          </div>
+          
+          {/* Multi-pack pricing toggle */}
+          <div className="md:col-span-2">
+            <div className="flex items-center">
+              <input
+                id="isMultiPack"
+                name="isMultiPack"
+                type="checkbox"
+                defaultChecked={product?.isMultiPack || false}
+                className="h-4 w-4 text-rose-600 focus:ring-rose-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isMultiPack" className="ml-2 block text-sm text-gray-700">
+                This product is sold in multi-packs (e.g., set of scrunchies, coasters)
+              </label>
+            </div>
+          </div>
+          
+          {/* Multi-pack fields */}
+          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="packSize" className="block text-sm font-medium text-gray-700 mb-1">
+                Number of Pieces in Pack
+              </label>
+              <input
+                type="number"
+                name="packSize"
+                id="packSize"
+                min="1"
+                defaultValue={product?.packSize || '1'}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+              />
+              <p className="mt-1 text-sm text-gray-500">How many pieces come in one pack?</p>
+            </div>
+            
+            <div>
+              <label htmlFor="pricePerPiece" className="block text-sm font-medium text-gray-700 mb-1">
+                Price Per Piece (Optional)
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="pricePerPiece"
+                  id="pricePerPiece"
+                  min="0"
+                  defaultValue={product?.pricePerPiece || ''}
+                  className="block w-full pl-7 pr-12 py-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              <p className="mt-1 text-sm text-gray-500">Will be calculated automatically if left empty</p>
+            </div>
           </div>
 
           <div>
-            <label htmlFor="stockCount" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="stockCount" className="block text-sm font-medium text-gray-700 mb-1">
               Quantity in Stock
             </label>
             <input
@@ -442,7 +500,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="lowStockThreshold" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="lowStockThreshold" className="block text-sm font-medium text-gray-700 mb-1">
               Low Stock Alert Threshold
             </label>
             <input
@@ -456,7 +514,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="sku" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="sku" className="block text-sm font-medium text-gray-700 mb-1">
               SKU (Stock Keeping Unit)
             </label>
             <input
@@ -468,9 +526,9 @@ export default function ProductForm({
             />
           </div>
 
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center">
+          <div className="flex flex-col space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+              <div className="flex items-center w-full sm:w-auto">
                 <input
                   type="checkbox"
                   name="allowBackorders"
@@ -482,7 +540,7 @@ export default function ProductForm({
                   Allow Made-to-Order
                 </label>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center w-full sm:w-auto">
                 <input
                   type="checkbox"
                   name="featured"
@@ -496,7 +554,7 @@ export default function ProductForm({
               </div>
             </div>
             <div id="madeToOrderSection" className="mt-2">
-              <label htmlFor="madeToOrderDays" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="madeToOrderDays" className="block text-sm font-medium text-gray-700 mb-1">
                 Made-to-Order Days
               </label>
               <input
@@ -514,11 +572,11 @@ export default function ProductForm({
       </div>
 
       {/* Product Details */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Product Details</h2>
+      <div className="space-y-4 sm:space-y-6">
+        <h2 className="text-lg sm:text-xl font-semibold">Product Details</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="material" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="material" className="block text-sm font-medium text-gray-700 mb-1">
               Material
             </label>
             <input
@@ -533,7 +591,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="size" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-1">
               Size
             </label>
             <input
@@ -548,7 +606,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="colors" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="colors" className="block text-sm font-medium text-gray-700 mb-1">
               Available Colors
             </label>
             <input
@@ -562,7 +620,7 @@ export default function ProductForm({
           </div>
 
           <div>
-            <label htmlFor="patterns" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="patterns" className="block text-sm font-medium text-gray-700 mb-1">
               Available Patterns
             </label>
             <input
@@ -578,7 +636,7 @@ export default function ProductForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Dimensions</label>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label htmlFor="length" className="block text-xs text-gray-500">Length</label>
               <input
@@ -618,10 +676,10 @@ export default function ProductForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="weight" className="block text-sm font-medium text-gray-700">Weight</label>
-            <div className="flex gap-2">
+            <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1">
                 <input
                   type="number"
@@ -651,30 +709,30 @@ export default function ProductForm({
       </div>
 
       {/* Submit Section */}
-      <div className="flex justify-between items-center pt-6 border-t">
-        <div className="flex items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-6 border-t">
+        <div className="flex items-center w-full sm:w-auto">
           <select
             name="status"
             defaultValue={product?.status || 'draft'}
-            className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+            className="w-full sm:w-auto rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
           >
             <option value="draft">Save as Draft</option>
             <option value="active">Publish Now</option>
           </select>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-3 w-full sm:w-auto mt-4 sm:mt-0">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || uploadingImages.size > 0}
-            className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full sm:w-auto inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
             {isSubmitting ? (
               <>

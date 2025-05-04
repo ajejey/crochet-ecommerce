@@ -1,27 +1,232 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import Image from 'next/image';
-import { Plus, X, Loader2, RotateCw, RotateCcw, Crop, Maximize2, Check } from 'lucide-react';
+import { Plus, X, Loader2, RotateCw, RotateCcw, Crop, Maximize2, Check, AlertCircle, GripVertical } from 'lucide-react';
+import { toast } from 'sonner';
+import { deleteProductImage } from '../actions';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-const ProductImageUpload = ({ images, removeImage, handleImageChange, uploadingImages, MAX_IMAGES }) => {
+// Sortable image item component
+const SortableImageItem = ({ image, index, onRemove, onImageClick }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: image.id || image.fileId || `image-${index}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 1 : 0,
+    touchAction: 'none', // Critical for mobile drag to work properly
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="relative w-24 h-24 group"
+    >
+      <Image
+        src={image.url}
+        alt={`Product image ${index + 1}`}
+        fill
+        className="object-cover rounded-lg cursor-pointer"
+        onClick={() => onImageClick(image, index)}
+      />
+      <button
+        type="button"
+        onClick={(e) => onRemove(image, index, e)}
+        className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+      >
+        <X className="w-4 h-4 text-white" />
+      </button>
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity cursor-grab active:cursor-grabbing rounded-lg"
+        style={{ touchAction: 'none' }} /* This is critical for mobile drag to work */
+      >
+        <GripVertical className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 sm:opacity-50 transition-opacity" />
+      </div>
+      {index === 0 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-rose-600 text-white text-[10px] text-center py-0.5">
+          Main
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Draggable image item for the overlay
+const DraggableImageItem = ({ image, index }) => {
+  return (
+    <div className="relative w-24 h-24 shadow-xl rounded-lg" style={{ touchAction: 'none' }}>
+      <Image
+        src={image.url}
+        alt={`Product image ${index + 1}`}
+        fill
+        className="object-cover rounded-lg"
+      />
+      {index === 0 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-rose-600 text-white text-[10px] text-center py-0.5">
+          Main
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ProductImageUpload = ({ images, removeImage, handleImageChange, uploadingImages, MAX_IMAGES, onReorder }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [rotation, setRotation] = useState(0);
   const [isCropping, setIsCropping] = useState(false);
   const [cropCoordinates, setCropCoordinates] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const cropStartRef = useRef({ x: 0, y: 0 });
   const imageRef = useRef(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [activeId, setActiveId] = useState(null);
+  const [draggedImage, setDraggedImage] = useState(null);
+
+  // Setup sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // For pointer devices (mouse, touch, pen)
+      activationConstraint: {
+        distance: 5, // Minimum drag distance before activation
+      },
+    }),
+    // TouchSensor is still included as a fallback for devices that might not support pointer events well
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100, // Short delay for touch devices
+        tolerance: 8, // Increased tolerance for touch devices
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
+  // Create stable item IDs for sortable context
+  const itemIds = useMemo(() => {
+    return images.map((image, index) => 
+      image.id || image.fileId || `image-${index}`
+    );
+  }, [images]);
 
   const openImageDialog = (image, index) => {
     setSelectedImage({ ...image, index });
     setRotation(0);
     setIsCropping(false);
   };
+  
+  // Handle drag start
+  const handleDragStart = (event) => {
+    const { active } = event;
+    setActiveId(active.id);
+    
+    // Find the dragged image
+    const index = itemIds.indexOf(active.id);
+    setDraggedImage({ ...images[index], index });
+  };
+  
+  // Handle drag end
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = itemIds.indexOf(active.id);
+      const newIndex = itemIds.indexOf(over.id);
+      
+      // Call the parent component's reorder function with the new array
+      if (onReorder) {
+        const newImages = arrayMove(images, oldIndex, newIndex);
+        onReorder(newImages);
+        
+        // Show toast notification for main image change if relevant
+        if (oldIndex === 0 || newIndex === 0) {
+          toast.success(newIndex === 0 
+            ? 'New main product image set' 
+            : 'Main product image changed');
+        }
+      }
+    }
+    
+    // Reset state
+    setActiveId(null);
+    setDraggedImage(null);
+  };
 
   const closeImageDialog = () => {
     setSelectedImage(null);
     setRotation(0);
     setIsCropping(false);
+  };
+  
+  const confirmDeleteImage = (image, index, e) => {
+    e.stopPropagation();
+    setImageToDelete({ image, index });
+    setShowDeleteConfirm(true);
+  };
+  
+  const cancelDeleteImage = () => {
+    setImageToDelete(null);
+    setShowDeleteConfirm(false);
+  };
+  
+  const handleDeleteImage = async () => {
+    if (!imageToDelete) return;
+    
+    const { image, index } = imageToDelete;
+    setIsDeleting(true);
+    
+    try {
+      // Delete from cloud storage
+      if (image.id || image.fileId) {
+        const imageId = image.id || image.fileId;
+        const result = await deleteProductImage(imageId);
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
+      }
+      
+      // Remove from local state
+      removeImage(index);
+      toast.success('Image deleted successfully');
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast.error('Failed to delete image');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setImageToDelete(null);
+    }
   };
 
   const rotateClockwise = () => {
@@ -86,28 +291,26 @@ const ProductImageUpload = ({ images, removeImage, handleImageChange, uploadingI
 
   return (
     <div className="mt-4">
-      <div className="flex flex-wrap gap-4">
-        {images.map((image, index) => (
-          <div key={index} className="relative w-24 h-24">
-            <Image
-              src={image.url}
-              alt={`Product image ${index + 1}`}
-              fill
-              className="object-cover rounded-lg cursor-pointer"
-              onClick={() => openImageDialog(image, index)}
-            />
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeImage(index);
-              }}
-              className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        ))}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="mb-2 text-sm text-gray-500 flex items-center">
+          <span className="mr-1">💡</span> <span className="hidden sm:inline">Drag</span><span className="sm:hidden">Touch and hold</span> images to reorder.
+        </div>
+        <SortableContext items={itemIds} strategy={rectSortingStrategy}>
+          <div className="flex flex-wrap gap-4">
+            {images.map((image, index) => (
+              <SortableImageItem
+                key={image.id || image.fileId || `image-${index}`}
+                image={image}
+                index={index}
+                onRemove={confirmDeleteImage}
+                onImageClick={openImageDialog}
+              />
+            ))}
 
         {images.length < MAX_IMAGES && (
           <label className="w-24 h-24 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400">
@@ -124,8 +327,17 @@ const ProductImageUpload = ({ images, removeImage, handleImageChange, uploadingI
               <Plus className="w-6 h-6 text-gray-400" />
             )}
           </label>
-        )}
-      </div>
+            )}
+          </div>
+        </SortableContext>
+        
+        {/* Drag overlay */}
+        <DragOverlay adjustScale={true}>
+          {draggedImage ? (
+            <DraggableImageItem image={draggedImage} index={draggedImage.index} />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Image Preview Dialog */}
       {selectedImage && (
@@ -238,6 +450,43 @@ const ProductImageUpload = ({ images, removeImage, handleImageChange, uploadingI
                   Apply
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex items-center mb-4 text-rose-600">
+              <AlertCircle className="w-6 h-6 mr-2" />
+              <h3 className="text-lg font-medium">Delete Image</h3>
+            </div>
+            <p className="mb-6 text-gray-600">Are you sure you want to delete this image? This will permanently remove the image from our storage.</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={cancelDeleteImage}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteImage}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
             </div>
           </div>
         </div>

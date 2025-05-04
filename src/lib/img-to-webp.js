@@ -15,7 +15,7 @@ export const convertToWebP = async (file) => {
                 ctx.drawImage(img, 0, 0);
                 canvas.toBlob((blob) => {
                     resolve(new File([blob], `${file.name}.webp`, { type: 'image/webp' }));
-                }, 'image/webp', 0.7);
+                }, 'image/webp', 0.65);
             };
         };
         reader.onerror = (error) => {

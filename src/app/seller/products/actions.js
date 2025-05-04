@@ -34,6 +34,9 @@ export async function getProduct(productId) {
       category: product.category,
       featured: product.featured,
       material: product.material,
+      isMultiPack: product.isMultiPack,
+      packSize: product.packSize,
+      pricePerPiece: product.pricePerPiece,
       size: product.size,
       status: product.status,
       images: product.images?.map(img => ({
@@ -119,6 +122,9 @@ export async function createProduct(formData) {
       },
       price: parseFloat(formData.get('price')),
       salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
+      isMultiPack: formData.get('isMultiPack') === 'on',
+      packSize: formData.get('packSize') ? parseInt(formData.get('packSize'), 10) : 1,
+      pricePerPiece: formData.get('pricePerPiece') ? parseFloat(formData.get('pricePerPiece')) : undefined,
       category: formData.get('category'),
       featured: formData.get('featured') === 'on',
       material: formData.get('material'),
@@ -183,7 +189,12 @@ export async function createProduct(formData) {
 
     console.log('Updated seller profile:', sellerProfile);
 
+    // Comprehensive revalidation to ensure updates are reflected across the site
     revalidatePath('/seller/products');
+    revalidatePath('/shop');
+    revalidatePath('/shop/product/[productId]', 'page');
+    revalidatePath('/shop/category/[category]', 'page');
+    revalidatePath('/', 'layout'); // Revalidate homepage which may show featured products
     
     // Revalidate sitemaps and ping search engines for new product
     if (product.status === 'active') {
@@ -228,6 +239,9 @@ export async function updateProduct(productId, formData) {
         },
         price: parseFloat(formData.get('price')),
         salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
+        isMultiPack: formData.get('isMultiPack') === 'on',
+        packSize: formData.get('packSize') ? parseInt(formData.get('packSize'), 10) : 1,
+        pricePerPiece: formData.get('pricePerPiece') ? parseFloat(formData.get('pricePerPiece')) : undefined,
         category: formData.get('category'),
         material: formData.get('material'),
         size: formData.get('size'),
@@ -295,6 +309,7 @@ export async function updateProduct(productId, formData) {
 
     revalidatePath('/seller/products');
     revalidatePath(`/shop/product/${productId}`);
+    revalidatePath(`/shop`);
     
     // Revalidate sitemaps and ping search engines for updated product
     await revalidateSitemaps();
@@ -530,5 +545,31 @@ export async function uploadProductImage(formData) {
   } catch (error) {
     console.error('Error uploading image:', error);
     return { error: 'Failed to upload image' };
+  }
+}
+
+export async function deleteProductImage(fileId) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return { error: 'Not authenticated' };
+    }
+
+    if (!fileId) {
+      return { error: 'No file ID provided' };
+    }
+
+    const { storage } = createAdminClient();
+
+    // Delete image from Appwrite storage
+    await storage.deleteFile(
+      process.env.NEXT_PUBLIC_STORAGE_ID,
+      fileId
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return { error: 'Failed to delete image' };
   }
 }

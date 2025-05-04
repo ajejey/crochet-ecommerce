@@ -27,6 +27,19 @@ const ProductSchema = new mongoose.Schema({
     type: Number,
     min: 0
   },
+  isMultiPack: {
+    type: Boolean,
+    default: false
+  },
+  pricePerPiece: {
+    type: Number,
+    min: 0
+  },
+  packSize: {
+    type: Number,
+    min: 1,
+    default: 1
+  },
   category: { 
     type: String, 
     required: true,

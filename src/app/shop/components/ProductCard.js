@@ -107,14 +107,28 @@ export default function ProductCard({ product }) {
         )}
 
         {/* Price */}
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-base sm:text-xl font-bold text-gray-900">
-            {formatPrice(product.salePrice || product.price)}
-          </span>
-          {product.salePrice && (
-            <span className="text-xs text-gray-500 line-through">
-              {formatPrice(product.price)}
+        <div className="flex flex-col mb-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base sm:text-xl font-bold text-gray-900">
+              {formatPrice(product.salePrice || product.price)}
             </span>
+            {product.salePrice && (
+              <span className="text-xs text-gray-500 line-through">
+                {formatPrice(product.price)}
+              </span>
+            )}
+          </div>
+          
+          {/* Price per piece for multi-pack products */}
+          {product.isMultiPack && product.packSize && (
+            <div className="text-xs text-gray-600 mt-0.5">
+              Set of {product.packSize} • 
+              {product.pricePerPiece ? (
+                <span>{formatPrice(product.pricePerPiece)}/piece</span>
+              ) : (
+                <span>{formatPrice((product.salePrice || product.price) / product.packSize)}/piece</span>
+              )}
+            </div>
           )}
         </div>
 

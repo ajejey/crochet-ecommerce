@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import HeaderSection from './(header)/HeaderSection';
 import { ArrowRight, Star } from 'lucide-react';
+import Footer from './components/Footer';
 
 const HomePage = () => {
   const categories = [
@@ -144,6 +145,7 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

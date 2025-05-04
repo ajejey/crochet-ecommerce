@@ -66,7 +66,7 @@ export async function getInitialProducts() {
   try {
     await dbConnect();
     const products = await Product.find({ status: 'active' })
-      .select('name price images category sellerId inventory salePrice')
+      .select('name price images category sellerId inventory salePrice isMultiPack packSize pricePerPiece')
       .sort({ createdAt: -1 })
       .limit(PRODUCTS_PER_PAGE)
       .lean();
@@ -221,19 +221,20 @@ export async function getFilteredProducts({
     pipeline.push({
       $project: {
         name: 1,
-        description: 1,
         price: 1,
         salePrice: 1,
         images: 1,
         category: 1,
-        status: 1,
-        rating: 1,
-        metadata: 1,
-        specifications: 1,
-        inventory: 1,
-        createdAt: 1,
         sellerId: 1,
-        relevanceScore: 1
+        inventory: 1,
+        rating: 1,
+        tags: 1,
+        specifications: 1,
+        featured: 1,
+        createdAt: 1,
+        isMultiPack: 1,
+        packSize: 1,
+        pricePerPiece: 1
       }
     });
 
@@ -445,6 +446,10 @@ export const getProduct = cache(async function(productId, options = { includeSel
       sellerId: product.sellerId,
       averageRating: product.rating?.average || 0,
       totalReviews: product.rating?.count || 0,
+      // Include price per piece fields
+      isMultiPack: product.isMultiPack || false,
+      packSize: product.packSize || 1,
+      pricePerPiece: product.pricePerPiece,
       inventory: {
         stockCount: product.inventory?.stockCount || 0,
         lowStockThreshold: product.inventory?.lowStockThreshold || 5,

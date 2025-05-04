@@ -104,21 +104,60 @@ export default function ProductInfo({ product, initialReviews }) {
       <div className="bg-pink-50 rounded-xl p-6">
         <div className="flex items-center gap-3">
           {product.salePrice ? (
-            <>
+            <div className="flex items-center gap-2">
               <span className="text-3xl font-bold text-gray-900">
-                ₹{product.salePrice}
+                {new Intl.NumberFormat('en-IN', {
+                  style: 'currency',
+                  currency: 'INR',
+                  maximumFractionDigits: 0
+                }).format(product.salePrice)}
               </span>
-              <span className="text-xl text-gray-500 line-through">
-                ₹{product.price}
+              <span className="text-lg text-gray-500 line-through">
+                {new Intl.NumberFormat('en-IN', {
+                  style: 'currency',
+                  currency: 'INR',
+                  maximumFractionDigits: 0
+                }).format(product.price)}
               </span>
-              <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                Save {Math.round(((product.price - product.salePrice) / product.price) * 100)}%
-              </span>
-            </>
+            </div>
           ) : (
             <span className="text-3xl font-bold text-gray-900">
-              ₹{product.price}
+              {new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+              }).format(product.price)}
             </span>
+          )}
+          
+          {/* Price per piece display for multi-pack products */}
+          {product.isMultiPack && (
+            <div className="mt-1">
+              <span className="text-sm text-gray-600">
+                {product.packSize && (
+                  <>
+                    Set of {product.packSize} pieces
+                    {product.pricePerPiece ? (
+                      <span className="ml-1">
+                        ({new Intl.NumberFormat('en-IN', {
+                          style: 'currency',
+                          currency: 'INR',
+                          maximumFractionDigits: 0
+                        }).format(product.pricePerPiece)} per piece)
+                      </span>
+                    ) : (
+                      <span className="ml-1">
+                        ({new Intl.NumberFormat('en-IN', {
+                          style: 'currency',
+                          currency: 'INR',
+                          maximumFractionDigits: 0
+                        }).format((product.salePrice || product.price) / product.packSize)} per piece)
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+            </div>
           )}
         </div>
         

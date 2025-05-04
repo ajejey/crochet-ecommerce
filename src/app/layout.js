@@ -143,7 +143,7 @@ export default function RootLayout({ children }) {
         <PostHogProvider>
           <CartProvider>
             {children}
-            <Footer />
+            
             <Toaster richColors closeButton position="bottom-right" />
             {/* <SocialProofNotifications /> */}
             <GoogleAnalytics gaId="G-1ZNXBSLP6E" />
