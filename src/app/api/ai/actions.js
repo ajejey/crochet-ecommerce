@@ -2,6 +2,8 @@
 
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { PRODUCT_CATEGORIES } from '@/constants/product';
+import { PlatformSettings } from '@/models/PlatformSettings';
+import dbConnect from '@/lib/mongodb';
 
 const productAnalysisSchema = {
   type: SchemaType.OBJECT,
@@ -175,11 +177,25 @@ async function analyzeProductImages(images, userInput = '') {
   'use server';
   console.log('Starting Google Gemini analysis...')
   try {
+    // Connect to database
+    await dbConnect();
+    
+    // Get AI model settings from database or use default
+    let modelName = "gemini-2.0-flash";
+    try {
+      const settings = await PlatformSettings.findOne();
+      if (settings && settings.ai && settings.ai.geminiModel) {
+        modelName = settings.ai.geminiModel;
+      }
+      console.log(`Using AI model: ${modelName}`);
+    } catch (settingsError) {
+      console.warn('Could not fetch AI model settings, using default:', settingsError);
+    }
+    
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
     const model = genAI.getGenerativeModel({
-      // model: "gemini-2.0-flash-exp",
-      model: "gemini-2.5-pro-exp-03-25",
+      model: modelName,
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: productAnalysisSchema,

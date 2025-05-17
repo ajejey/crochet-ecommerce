@@ -77,6 +77,11 @@ const platformSettingsSchema = new mongoose.Schema({
       sellerApproval: String,
       payoutConfirmation: String
     }
+  },
+
+  // AI Settings
+  ai: {
+    geminiModel: { type: String, default: 'gemini-2.0-flash' }
   }
 }, {
   timestamps: true,

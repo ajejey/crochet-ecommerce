@@ -1,7 +1,7 @@
 import React from 'react';
 import Card from '@/app/components/Card';
 import Link from 'next/link';
-import { Users, BarChart2, FileText, Bell, ShoppingBag } from 'lucide-react';
+import { Users, BarChart2, FileText, Bell, ShoppingBag, Instagram } from 'lucide-react';
 
 export default async function AdminDashboard() {
   return (
@@ -96,7 +96,49 @@ export default async function AdminDashboard() {
             </div>
           </Card>
         </Link>
+      <Link href="/admin/instagram" className="group">
+        <Card className="p-6 h-full transition-all duration-300 border border-gray-200 hover:border-rose-300 hover:shadow-lg group-hover:bg-rose-50/50">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900">Instagram</h2>
+              <p className="text-lg text-gray-600 mt-2">Manage Instagram posts and scheduling</p>
+            </div>
+            <div className="p-3 bg-rose-100 rounded-lg group-hover:bg-rose-200 transition-colors">
+              <Instagram className="w-6 h-6 text-rose-600" />
+            </div>
+          </div>
+          <div className="mt-6 flex items-center text-rose-600 font-medium">
+            <span>Manage posts</span>
+            <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </div>
+        </Card>
+      </Link>
+
+      <Link href="/admin/ai-settings" className="group">
+        <Card className="p-6 h-full transition-all duration-300 border border-gray-200 hover:border-rose-300 hover:shadow-lg group-hover:bg-rose-50/50">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900">AI Settings</h2>
+              <p className="text-lg text-gray-600 mt-2">Configure AI models and features</p>
+            </div>
+            <div className="p-3 bg-rose-100 rounded-lg group-hover:bg-rose-200 transition-colors">
+              <svg className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-6 flex items-center text-rose-600 font-medium">
+            <span>Configure AI</span>
+            <svg className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </div>
+        </Card>
+      </Link>
       </div>
+
 
       {/* Quick Stats Section */}
       <div>
