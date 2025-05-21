@@ -2,6 +2,7 @@
 
 import dbConnect from '@/lib/mongodb';
 import { Product } from '@/models/Product';
+import { Variant } from '@/models/Variant';
 import { SellerProfile } from '@/models/SellerProfile';
 import { getAuthUser } from '@/lib/auth-context';
 import { revalidatePath } from 'next/cache';
@@ -120,6 +121,7 @@ export async function createProduct(formData) {
         short: formData.get('shortDescription'),
         full: formData.get('fullDescription')
       },
+      baseOptionName: formData.get('baseOptionName') || 'Original',
       price: parseFloat(formData.get('price')),
       salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
       isMultiPack: formData.get('isMultiPack') === 'on',
@@ -237,6 +239,7 @@ export async function updateProduct(productId, formData) {
           short: formData.get('shortDescription'),
           full: formData.get('fullDescription')
         },
+        baseOptionName: formData.get('baseOptionName') || 'Original',
         price: parseFloat(formData.get('price')),
         salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice')) : undefined,
         isMultiPack: formData.get('isMultiPack') === 'on',
@@ -402,10 +405,17 @@ export async function getProductVariants(productId) {
     }
 
     await dbConnect();
-      
-    const variants = await Product.find({ productId: productId });
 
-    return { success: true, variants: variants };
+    // Get product to verify ownership
+    const product = await Product.findOne({ _id: productId, sellerId: user.$id });
+    if (!product) {
+      return { error: 'Product not found or not authorized' };
+    }
+
+    // Get variants
+    const variants = await Variant.find({ product: productId });
+
+    return { success: true, variants: JSON.parse(JSON.stringify(variants)) };
   } catch (error) {
     console.error('Error fetching variants:', error);
     return { error: error.message };
@@ -428,17 +438,17 @@ export async function createVariant(productId, variantData) {
     }
 
     // Create variant
-    const variant = await Product.create({
-      productId: productId,
-      name: variantData.name,
-      options: variantData.options,
-      priceAdjustment: parseFloat(variantData.priceAdjustment || 0),
-      stock: parseInt(variantData.stock || 0),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    const variant = await Variant.create({
+      product: productId,
+      name: variantData.variantName,
+      price_adjustment: parseFloat(variantData.variant_price_adjustment || 0),
+      stockCount: parseInt(variantData.variantStockCount || 0),
+      sku: variantData.variantSku || '',
+      status: variantData.variantStatus || 'active',
+      image: variantData.variantImage || null
     });
 
-    return { success: true, variant };
+    return { success: true, variant: JSON.parse(JSON.stringify(variant)) };
   } catch (error) {
     console.error('Error creating variant:', error);
     return { error: error.message };
@@ -455,36 +465,90 @@ export async function updateVariant(variantId, variantData) {
     await dbConnect();
 
     // Get variant to verify ownership
-    const variant = await Product.findOne({ _id: variantId });
+    const variant = await Variant.findOne({ _id: variantId });
     if (!variant) {
       return { error: 'Variant not found' };
     }
 
     // Get product to verify ownership
-    const product = await Product.findOne({ _id: variant.productId, sellerId: user.$id });
+    const product = await Product.findOne({ _id: variant.product, sellerId: user.$id });
     if (!product) {
       return { error: 'Not authorized to edit this variant' };
     }
 
+    // Prepare update data
+    const updateData = {
+      name: variantData.variantName,
+      price_adjustment: parseFloat(variantData.variant_price_adjustment || 0),
+      stockCount: parseInt(variantData.variantStockCount || 0),
+      sku: variantData.variantSku,
+      status: variantData.variantStatus,
+      updatedAt: new Date()
+    };
+    
+    // Add image if provided
+    if (variantData.variantImage) {
+      updateData.image = variantData.variantImage;
+    } else if (variantData.variantImage === null) {
+      // If explicitly set to null, remove the image
+      updateData.image = null;
+    }
+    
     // Update variant
-    const updatedVariant = await Product.findByIdAndUpdate(
+    const updatedVariant = await Variant.findByIdAndUpdate(
       variantId,
-      {
-        name: variantData.name,
-        options: variantData.options,
-        priceAdjustment: parseFloat(variantData.priceAdjustment || 0),
-        stock: parseInt(variantData.stock || 0),
-        updated_at: new Date().toISOString()
-      },
+      updateData,
       { new: true }
     );
 
-    return { success: true, variant: updatedVariant };
+    return { success: true, variant: JSON.parse(JSON.stringify(updatedVariant)) };
   } catch (error) {
     console.error('Error updating variant:', error);
     return { error: error.message };
   }
 }
+
+// export async function updateVariant(variantId, variantData) {
+//   try {
+//     const user = await getAuthUser();
+//     if (!user) {
+//       return { error: 'Not authenticated' };
+//     }
+
+//     await dbConnect();
+
+//     // Get variant to verify ownership
+//     const variant = await Variant.findOne({ _id: variantId });
+//     if (!variant) {
+//       return { error: 'Variant not found' };
+//     }
+
+//     // Get product to verify ownership
+//     const product = await Product.findOne({ _id: variant.product, sellerId: user.$id });
+//     if (!product) {
+//       return { error: 'Not authorized to edit this variant' };
+//     }
+
+//     // Update variant
+//     const updatedVariant = await Variant.findByIdAndUpdate(
+//       variantId,
+//       {
+//         name: variantData.name,
+//         price_adjustment: parseFloat(variantData.price_adjustment || 0),
+//         stockCount: parseInt(variantData.stockCount || 0),
+//         sku: variantData.sku,
+//         status: variantData.status,
+//         updatedAt: new Date()
+//       },
+//       { new: true }
+//     );
+
+//     return { success: true, variant: JSON.parse(JSON.stringify(updatedVariant)) };
+//   } catch (error) {
+//     console.error('Error updating variant:', error);
+//     return { error: error.message };
+//   }
+// }
 
 export async function deleteVariant(variantId) {
   try {
@@ -496,19 +560,19 @@ export async function deleteVariant(variantId) {
     await dbConnect();
 
     // Get variant to verify ownership
-    const variant = await Product.findOne({ _id: variantId });
+    const variant = await Variant.findOne({ _id: variantId });
     if (!variant) {
       return { error: 'Variant not found' };
     }
 
     // Get product to verify ownership
-    const product = await Product.findOne({ _id: variant.productId, sellerId: user.$id });
+    const product = await Product.findOne({ _id: variant.product, sellerId: user.$id });
     if (!product) {
       return { error: 'Not authorized to delete this variant' };
     }
 
     // Delete variant
-    await Product.findByIdAndDelete(variantId);
+    await Variant.findByIdAndDelete(variantId);
 
     return { success: true };
   } catch (error) {

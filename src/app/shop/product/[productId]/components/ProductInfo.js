@@ -1,30 +1,100 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Star, Minus, Plus, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield } from 'lucide-react';
+import { Star, Minus, Plus, ShoppingCart, Heart, Package, Ruler, Palette, Award, Clock, Shield, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
 import Link from 'next/link';
 import ShareButton from './ShareButton';
+import { getProductVariants } from '@/app/shop/actions';
+import useSWR from 'swr';
 
 export default function ProductInfo({ product, initialReviews }) {
   const [productUrl, setProductUrl] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [currentPrice, setCurrentPrice] = useState(product.price);
+  const [hasSelection, setHasSelection] = useState(true); // Default to true, will update after variants are fetched
   
-  // Get the current URL for sharing
+  // Fetch variants using SWR
+  const { data: variants = [], error: variantsError, isLoading: isLoadingVariants } = useSWR(
+    `/api/products/${product._id}/variants`,
+    () => getProductVariants(product._id),
+    { suspense: false, revalidateOnFocus: false }
+  );
+  
+  // Get the current URL for sharing and update hasSelection based on variants
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setProductUrl(window.location.href);
     }
-  }, []);
+    
+    // Update hasSelection based on variants availability
+    // if (variants && variants.length > 0) {
+    //   console.log("variants", variants)
+    //   console.log("variants.length", variants.length)
+    //   console.log("has no selections")
+    //   setHasSelection(false); // If variants exist, require a selection
+    // }
+  }, [variants]);
   const [quantity, setQuantity] = useState(1);
   const { addToCart, cart } = useCart();
   const [isWishlisted, setIsWishlisted] = useState(false);
 
-  const stockQuantity = product.inventory?.stockCount || 0;
+  const [stockQuantity, setStockQuantity] = useState(product.inventory?.stockCount || 0);
   const allowBackorder = product.inventory?.allowBackorder || false;
   const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
-  const currentQuantityInCart = cart.items.find(item => item._id === product._id)?.quantity || 0;
-  const remainingStock = stockQuantity - currentQuantityInCart;
+  
+  // Get current cart quantity for this product and variant
+  const currentQuantityInCart = cart.items.find(item => {
+    if (selectedVariant) {
+      return item._id === product._id && item.variantId === selectedVariant._id;
+    }
+    return item._id === product._id && !item.variantId;
+  })?.quantity || 0;
+  
+  // Calculate remaining stock based on selected variant or base product
+  const variantStock = selectedVariant ? selectedVariant.stockCount : stockQuantity;
+  const remainingStock = variantStock - currentQuantityInCart;
+  
+  // Handle variant selection
+  const handleVariantSelect = (variant) => {
+    setSelectedVariant(variant);
+    setHasSelection(true); // User has made a selection
+    
+    // Update price and stock based on variant
+    setCurrentPrice(product.price + (variant?.price_adjustment || 0));
+    setStockQuantity(variant?.stockCount || product.inventory?.stockCount || 0);
+    
+    // If variant has an image, notify the gallery component to show it
+    if (variant?.image) {
+      // Use a custom event to communicate with the gallery component
+      const event = new CustomEvent('variant-image-selected', { 
+        detail: { 
+          variantImage: variant.image,
+          variantId: variant._id
+        }
+      });
+      window.dispatchEvent(event);
+    } else {
+      // Reset to default product images
+      const event = new CustomEvent('variant-image-selected', { 
+        detail: { variantImage: null }
+      });
+      window.dispatchEvent(event);
+    }
+  };
+  
+  // Reset to base product
+  const resetToBaseProduct = () => {
+    setSelectedVariant(null);
+    setHasSelection(true); // User has selected the base product
+    setCurrentPrice(product.price);
+    setStockQuantity(product.inventory?.stockCount || 0);
+    
+    // Reset to default product images using a specific event for base product
+    const event = new CustomEvent('base-product-selected');
+    window.dispatchEvent(event);
+  };
 
   const handleQuantityChange = (change) => {
     const newQuantity = quantity + change;
@@ -34,6 +104,12 @@ export default function ProductInfo({ product, initialReviews }) {
   };
 
   const handleAddToCart = async () => {
+    // If variants exist but no selection has been made, show an error
+    if (variants.length > 0 && !hasSelection) {
+      toast.error('Please select an option');
+      return;
+    }
+    
     if (remainingStock < quantity && !allowBackorder) {
       toast.error(`Only ${remainingStock} items available`);
       return;
@@ -44,11 +120,34 @@ export default function ProductInfo({ product, initialReviews }) {
       toast.info(`${quantity - remainingStock} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
     }
 
-    const result = await addToCart(product, quantity);
-    if (result.success) {
-      toast.success('Added to cart!');
-      setQuantity(1); // Reset quantity after successful add
+    // Prepare the product data for the cart
+    const productToAdd = {
+      ...product,
+      finalPrice: currentPrice, // Use the current price which includes variant adjustments
+      baseOptionName: product.baseOptionName || 'Original', // Include the base option name
+      // Explicitly ensure sellerId is included - critical for checkout
+      sellerId: product.sellerId
+    };
+    
+    // Add variant information if a variant is selected
+    if (selectedVariant) {
+      productToAdd.variant = selectedVariant;
+      productToAdd.variantId = selectedVariant._id;
+      
+      // If the variant has an image, include it
+      if (selectedVariant.image) {
+        productToAdd.variantImage = selectedVariant.image;
+      }
     }
+
+    const result = await addToCart(productToAdd, quantity);
+    
+    if (result.success) {
+      // Success is already handled by the CartProvider
+    } else {
+      toast.error('Failed to add to cart');
+    }  
+    setQuantity(1); // Reset quantity after successful add
   };
 
   const toggleWishlist = () => {
@@ -101,65 +200,110 @@ export default function ProductInfo({ product, initialReviews }) {
       </div>
 
       {/* Price and Stock */}
-      <div className="bg-pink-50 rounded-xl p-6">
+      <div className="mt-6 space-y-4">
+        {/* Price display */}
         <div className="flex items-center gap-3">
-          {product.salePrice ? (
-            <div className="flex items-center gap-2">
-              <span className="text-3xl font-bold text-gray-900">
-                {new Intl.NumberFormat('en-IN', {
-                  style: 'currency',
-                  currency: 'INR',
-                  maximumFractionDigits: 0
-                }).format(product.salePrice)}
-              </span>
-              <span className="text-lg text-gray-500 line-through">
-                {new Intl.NumberFormat('en-IN', {
-                  style: 'currency',
-                  currency: 'INR',
-                  maximumFractionDigits: 0
-                }).format(product.price)}
-              </span>
-            </div>
-          ) : (
-            <span className="text-3xl font-bold text-gray-900">
-              {new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: 'INR',
-                maximumFractionDigits: 0
-              }).format(product.price)}
+          <span className="text-3xl font-bold text-gray-900">
+            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(currentPrice)}
+          </span>
+          
+          {product.salePrice && (
+            <span className="text-xl text-gray-500 line-through">
+              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.salePrice)}
             </span>
           )}
           
-          {/* Price per piece display for multi-pack products */}
-          {product.isMultiPack && (
-            <div className="mt-1">
-              <span className="text-sm text-gray-600">
-                {product.packSize && (
-                  <>
-                    Set of {product.packSize} pieces
-                    {product.pricePerPiece ? (
-                      <span className="ml-1">
-                        ({new Intl.NumberFormat('en-IN', {
-                          style: 'currency',
-                          currency: 'INR',
-                          maximumFractionDigits: 0
-                        }).format(product.pricePerPiece)} per piece)
-                      </span>
-                    ) : (
-                      <span className="ml-1">
-                        ({new Intl.NumberFormat('en-IN', {
-                          style: 'currency',
-                          currency: 'INR',
-                          maximumFractionDigits: 0
-                        }).format((product.salePrice || product.price) / product.packSize)} per piece)
-                      </span>
-                    )}
-                  </>
-                )}
-              </span>
-            </div>
+          {product.isMultiPack && product.packSize > 1 && (
+            <span className="text-sm text-gray-500">
+              ({product.packSize} items, {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.pricePerPiece)} each)
+            </span>
           )}
+          
+          {/* No base price display - just show the current price */}
         </div>
+        
+        {/* Variants Selection */}
+        {variants && variants.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Options</h3>
+            
+            {isLoadingVariants ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-rose-600 mr-2" />
+                <span className="text-sm text-gray-500">Loading options...</span>
+              </div>
+            ) : variantsError ? (
+              <p className="text-sm text-red-500">Error loading options</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {/* Base product option */}
+                <button
+                  type="button"
+                  onClick={resetToBaseProduct}
+                  disabled={stockQuantity === 0 && !allowBackorder}
+                  className={`px-4 py-2 rounded-md text-sm font-medium border ${!selectedVariant 
+                    ? 'border-rose-600 bg-rose-50 text-rose-700' 
+                    : stockQuantity === 0 && !allowBackorder
+                      ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                >
+                  <div className="flex items-center">
+                    <span className="mr-1 text-blue-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                        <path fillRule="evenodd" d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-2.69l-2.22-2.219a.75.75 0 00-1.06 0l-1.91 1.909.47.47a.75.75 0 11-1.06 1.06L6.53 8.091a.75.75 0 00-1.06 0l-2.97 2.97zM12 7a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                      </svg>
+                    </span>
+                    {product.baseOptionName || 'Original'}
+                  </div>
+                  {stockQuantity <= 5 && stockQuantity > 0 && (
+                    <span className="ml-1 text-xs text-amber-600">({stockQuantity} left)</span>
+                  )}
+                  {stockQuantity === 0 && (
+                    <span className="ml-1 text-xs text-red-600">(Out of stock)</span>
+                  )}
+                </button>
+                
+                {/* Variant options */}
+                {variants.map(variant => (
+                  <button
+                    key={variant._id}
+                    type="button"
+                    onClick={() => handleVariantSelect(variant)}
+                    disabled={variant.stockCount === 0 && !allowBackorder}
+                    className={`px-4 py-2 rounded-md text-sm font-medium border ${selectedVariant?._id === variant._id 
+                      ? 'border-rose-600 bg-rose-50 text-rose-700' 
+                      : variant.stockCount === 0 && !allowBackorder
+                        ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    <div className="flex items-center">
+                      {variant.image && (
+                        <span className="mr-1 text-blue-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                            <path fillRule="evenodd" d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-2.69l-2.22-2.219a.75.75 0 00-1.06 0l-1.91 1.909.47.47a.75.75 0 11-1.06 1.06L6.53 8.091a.75.75 0 00-1.06 0l-2.97 2.97zM12 7a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                      {variant.name}
+                    </div>
+                    {variant.price_adjustment > 0 && (
+                      <span className="ml-1 text-xs">+{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(variant.price_adjustment)}</span>
+                    )}
+                    {variant.price_adjustment < 0 && (
+                      <span className="ml-1 text-xs">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(variant.price_adjustment)}</span>
+                    )}
+                    {variant.stockCount <= 5 && variant.stockCount > 0 && (
+                      <span className="ml-1 text-xs text-amber-600">({variant.stockCount} left)</span>
+                    )}
+                    {variant.stockCount === 0 && (
+                      <span className="ml-1 text-xs text-red-600">(Out of stock)</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Stock Status */}
         <div className="mt-2 flex items-center text-sm">
@@ -250,11 +394,17 @@ export default function ProductInfo({ product, initialReviews }) {
 
         {/* Add to cart, wishlist, and share buttons */}
         <div className="mt-4 flex space-x-4">
+          {console.log("remainingStock", remainingStock)}
+          {console.log("allowBackorder", allowBackorder)}
+          {console.log("variants", variants)}
+          {console.log("hasSelection", hasSelection)}
+          {console.log("(remainingStock < 1 && !allowBackorder)", remainingStock < 1 && !allowBackorder)}
+          {console.log("(variants.length > 0 && !hasSelection)", variants.length > 0 && !hasSelection)}
           <button
             onClick={handleAddToCart}
-            disabled={remainingStock < 1 && !allowBackorder}
-            className={`flex-1 flex items-center justify-center px-8 py-3 rounded-md text-base font-medium ${
-              remainingStock < 1 && !allowBackorder
+            disabled={(remainingStock < 1 && !allowBackorder) || (variants.length > 0 && !hasSelection)}
+            className={`flex-1 flex items-center justify-center px-8 py-3 rounded-md text-base font-medium ${(
+              remainingStock < 1 && !allowBackorder) || (variants.length > 0 && !hasSelection)
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 : 'bg-rose-600 text-white hover:bg-rose-700'
             }`}

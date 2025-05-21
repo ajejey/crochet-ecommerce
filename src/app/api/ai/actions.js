@@ -71,6 +71,9 @@ const productAnalysisSchema = {
     "fullDescription",
     "seoKeywords",
     "colors",
+    "patterns",
+    "suggestedSize",
+    "suggestedMaterials",
   ],
 };
 

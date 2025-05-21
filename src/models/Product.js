@@ -57,6 +57,10 @@ const ProductSchema = new mongoose.Schema({
   size: { 
     type: String, 
   },
+  baseOptionName: {
+    type: String,
+    default: 'Original'
+  },
   sellerId: {
     type: String,
     required: true,

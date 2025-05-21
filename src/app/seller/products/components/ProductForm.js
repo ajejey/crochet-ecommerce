@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, AlertCircle, Loader2, X, Plus } from 'lucide-react';
+import { Upload, AlertCircle, Loader2, X, Plus, Edit, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { uploadProductImage } from '../actions';
+import { uploadProductImage, getProductVariants, createVariant, updateVariant, deleteVariant } from '../actions';
 import { PRODUCT_CATEGORIES, PRODUCT_STATUSES } from '@/constants/product';
 import { useAIAssist } from '@/lib/hooks/useAIAssist';
 import RichTextEditor, { RichTextEditorStyles } from '@/app/components/RichTextEditor';
@@ -25,6 +25,20 @@ export default function ProductForm({
   const [fullDescription, setFullDescription] = useState(product?.description?.full || '');
   const [aiGuidance, setAiGuidance] = useState('');
   const [showAiGuidanceInput, setShowAiGuidanceInput] = useState(false);
+  
+  // Variants state
+  const [variants, setVariants] = useState([]);
+  const [isLoadingVariants, setIsLoadingVariants] = useState(false);
+  const [currentVariant, setCurrentVariant] = useState(null);
+  const [isEditingVariant, setIsEditingVariant] = useState(false);
+  const [variantFormData, setVariantFormData] = useState({
+    variantName: '',
+    variant_price_adjustment: 0,
+    variantStockCount: 0,
+    variantSku: '',
+    variantStatus: 'active',
+    variantImage: null
+  });
   const router = useRouter();
   const { 
     generateProductContent, 
@@ -38,6 +52,139 @@ export default function ProductForm({
     console.log('ProductForm: Full Description Initial Value', product?.description?.full);
     console.log('ProductForm: Full Description State', fullDescription);
   }, [product?.description?.full, fullDescription]);
+  
+  // Load variants when product is available
+  useEffect(() => {
+    if (product?._id) {
+      loadVariants(product._id);
+    }
+  }, [product?._id]);
+  
+  // Load variants for the product
+  async function loadVariants(productId) {
+    setIsLoadingVariants(true);
+    try {
+      const result = await getProductVariants(productId);
+      if (result.success) {
+        setVariants(result.variants);
+      } else {
+        toast.error(result.error || 'Failed to load variants');
+      }
+    } catch (error) {
+      console.error('Error loading variants:', error);
+      toast.error('Failed to load variants');
+    } finally {
+      setIsLoadingVariants(false);
+    }
+  }
+  
+  // Handle variant form input changes
+  function handleVariantInputChange(e) {
+    const { name, value } = e.target;
+    console.log(`Changing ${name} to ${value}`);
+    setVariantFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }
+  
+  // Reset variant form
+  function resetVariantForm() {
+    setVariantFormData({
+      variantName: '',
+      variant_price_adjustment: 0,
+      variantStockCount: 0,
+      variantSku: '',
+      variantStatus: 'active',
+      variantImage: null
+    });
+    setCurrentVariant(null);
+    setIsEditingVariant(false);
+  }
+  
+  // Edit variant
+  function handleEditVariant(variant, e) {
+    // Prevent event propagation to avoid triggering the main form
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    setCurrentVariant(variant);
+    setVariantFormData({
+      variantName: variant.name,
+      variant_price_adjustment: variant.price_adjustment,
+      variantStockCount: variant.stockCount,
+      variantSku: variant.sku || '',
+      variantStatus: variant.status,
+      variantImage: variant.image || null
+    });
+    setIsEditingVariant(true);
+  }
+  
+  // Save variant (create or update)
+  async function handleSaveVariant(e) {
+    if (e) e.preventDefault();
+    console.log("adding variant");
+    
+    if (!product?._id) {
+      toast.error('Please save the product first before adding variants');
+      return;
+    }
+    
+    try {
+      let result;
+      
+      if (isEditingVariant && currentVariant) {
+        // Update existing variant
+        result = await updateVariant(currentVariant._id, variantFormData);
+      } else {
+        // Create new variant
+        result = await createVariant(product._id, variantFormData);
+      }
+      
+      if (result.success) {
+        toast.success(isEditingVariant ? 'Variant updated' : 'Variant added');
+        resetVariantForm();
+        loadVariants(product._id);
+      } else {
+        toast.error(result.error || 'Failed to save variant');
+      }
+    } catch (error) {
+      console.error('Error saving variant:', error);
+      toast.error('Failed to save variant');
+    }
+  }
+  
+  // Delete variant
+  async function handleDeleteVariant(variantId, e) {
+    // Prevent event propagation to avoid triggering the main form
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (!confirm('Are you sure you want to delete this variant?')) {
+      return;
+    }
+    
+    try {
+      const result = await deleteVariant(variantId);
+      
+      if (result.success) {
+        toast.success('Variant deleted');
+        loadVariants(product._id);
+        if (currentVariant?._id === variantId) {
+          resetVariantForm();
+        }
+      } else {
+        toast.error(result.error || 'Failed to delete variant');
+      }
+    } catch (error) {
+      console.error('Error deleting variant:', error);
+      toast.error('Failed to delete variant');
+    }
+  }
 
   useEffect(() => {
     if (jobResult) {
@@ -277,6 +424,304 @@ export default function ProductForm({
           Upload up to {MAX_IMAGES} images. First image will be the main product image.
         </p>
       </div>
+
+      {/* Variants Section */}
+      {product?._id && (
+      <div id="variants" className="mt-8 p-6 bg-white rounded-lg shadow">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Product Variants</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Add variants for different options like color, size, or material. Each variant can have its own price adjustment and stock count.
+        </p>
+        
+        {/* Base Option Name */}
+        <div className="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+          <h4 className="text-md font-medium mb-3">Base Option Name</h4>
+          <p className="text-sm text-gray-500 mb-3">
+            Specify what the default option should be called (e.g., "Natural", "Classic", "Original"). 
+          </p>
+          <div>
+            <label htmlFor="baseOptionName" className="block text-sm font-medium text-gray-700 mb-1">Base Option Name</label>
+            <input
+              type="text"
+              id="baseOptionName"
+              name="baseOptionName"
+              defaultValue={product?.baseOptionName || 'Original'}
+              placeholder="e.g., Natural, Classic, Original"
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+            />
+          </div>
+        </div>
+        
+        {/* Variant Form */}
+        <div className="mb-6 p-4 border border-gray-200 rounded-md">
+          <h4 className="text-md font-medium mb-3">{isEditingVariant ? 'Edit Variant' : 'Add New Variant'}</h4>
+          <div className="space-y-4">{/* Using div instead of form to avoid default form submission */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="variant-name" className="block text-sm font-medium text-gray-700 mb-1">Variant Name</label>
+                <input
+                  type="text"
+                  id="variant-name"
+                  name="variantName"
+                  value={variantFormData.variantName}
+                  onChange={handleVariantInputChange}
+                  placeholder="e.g., Red, Small, Cotton"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label htmlFor="variant-price-adjustment" className="block text-sm font-medium text-gray-700 mb-1">Price Adjustment (₹)</label>
+                <input
+                  type="number"
+                  id="variant-price-adjustment"
+                  name="variant_price_adjustment"
+                  value={variantFormData.variant_price_adjustment}
+                  onChange={handleVariantInputChange}
+                  placeholder="0"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter positive value to increase price, negative to decrease</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="variant-stock" className="block text-sm font-medium text-gray-700 mb-1">Stock Count</label>
+                <input
+                  type="number"
+                  id="variant-stock"
+                  name="variantStockCount"
+                  value={variantFormData.variantStockCount}
+                  onChange={handleVariantInputChange}
+                  min="0"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="variant-sku" className="block text-sm font-medium text-gray-700 mb-1">SKU (Optional)</label>
+                <input
+                  type="text"
+                  id="variant-sku"
+                  name="variantSku"
+                  value={variantFormData.variantSku}
+                  onChange={handleVariantInputChange}
+                  placeholder="SKU-VAR-001"
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label htmlFor="variant-status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  id="variant-status"
+                  name="variantStatus"
+                  value={variantFormData.variantStatus}
+                  onChange={handleVariantInputChange}
+                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Variant Image Upload */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Variant Image (Optional)</label>
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0 w-24 h-24 border rounded-md overflow-hidden bg-gray-50 flex items-center justify-center">
+                  {variantFormData.variantImage ? (
+                    <Image 
+                      src={variantFormData.variantImage.url} 
+                      width={96} 
+                      height={96} 
+                      alt="Variant preview" 
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <div className="text-gray-400 text-xs text-center p-2">
+                      No image<br/>selected
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-grow">
+                  <div className="flex items-center">
+                    <label htmlFor="variant-image-upload" className="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                      {variantFormData.variantImage ? 'Change Image' : 'Upload Image'}
+                      <input
+                        id="variant-image-upload"
+                        name="variantImage"
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={async (e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const file = e.target.files[0];
+                            const webpFile = await convertToWebP(file);
+                            
+                            // Create FormData
+                            const formData = new FormData();
+                            formData.append('image', webpFile);
+                            
+                            try {
+                              // Upload the image
+                              const result = await uploadProductImage(formData);
+                              
+                              if (result.success) {
+                                // Update form data with the image info
+                                setVariantFormData(prev => ({
+                                  ...prev,
+                                  variantImage: {
+                                    url: result.fileUrl,
+                                    id: result.fileId
+                                  }
+                                }));
+                                toast.success('Variant image uploaded');
+                              } else {
+                                toast.error(result.error || 'Failed to upload image');
+                              }
+                            } catch (error) {
+                              console.error('Error uploading variant image:', error);
+                              toast.error('Failed to upload image');
+                            }
+                          }
+                        }}
+                      />
+                    </label>
+                    
+                    {variantFormData.variantImage && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setVariantFormData(prev => ({
+                            ...prev,
+                            variantImage: null
+                          }));
+                        }}
+                        className="ml-2 px-2 py-2 text-sm font-medium text-red-600 hover:text-red-800 focus:outline-none"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  
+                  <p className="mt-1 text-xs text-gray-500">
+                    Upload an image specific to this variant. If not provided, the main product images will be used.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-4">
+              {isEditingVariant && (
+                <button
+                  type="button"
+                  onClick={resetVariantForm}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleSaveVariant}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                disabled={!product?._id}
+              >
+                {isEditingVariant ? 'Update Variant' : 'Add Variant'}
+              </button>
+            </div>
+          </div>{/* Closing div instead of form */}
+        </div>
+        
+        {/* Variants List */}
+        <div className="mt-4">
+          <h4 className="text-md font-medium mb-3">Product Variants</h4>
+          
+          {isLoadingVariants ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin h-6 w-6 mr-2" />
+              <span>Loading variants...</span>
+            </div>
+          ) : variants.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price Adjustment</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {variants.map((variant) => (
+                    <tr key={variant._id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-10 w-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+                          {variant.image ? (
+                            <Image 
+                              src={variant.image.url} 
+                              width={40} 
+                              height={40} 
+                              alt={variant.name} 
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <div className="text-gray-400 text-xs">No img</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{variant.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {variant.price_adjustment > 0 ? '+' : ''}{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(variant.price_adjustment)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{variant.stockCount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{variant.sku || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variant.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {variant.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={(e) => handleEditVariant(variant, e)}
+                            className="text-blue-600 hover:text-blue-900"
+                            type="button"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteVariant(variant._id, e)}
+                            className="text-red-600 hover:text-red-900"
+                            type="button"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8 border border-dashed border-gray-300 rounded-md">
+              <p className="text-gray-500">No variants added yet</p>
+              {!product?._id && (
+                <p className="text-sm text-gray-400 mt-2">Save the product first to add variants</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      )}
 
       {/* Basic Information */}
       <div className="space-y-4 sm:space-y-6">

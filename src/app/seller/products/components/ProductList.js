@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Loader2, Layers } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
@@ -68,7 +68,7 @@ export default function ProductList({ initialProducts }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {products ? (
         products.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
@@ -140,22 +140,30 @@ export default function ProductList({ initialProducts }) {
                           } transition-colors`}
                         >
                           {updatingStatus === product._id ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-6 h-6 mr-2 animate-spin" />
                           ) : product.status === 'active' ? (
-                            <ToggleRight className="w-4 h-4 mr-2" />
+                            <ToggleRight className="w-6 h-6 mr-2" />
                           ) : (
-                            <ToggleLeft className="w-4 h-4 mr-2" />
+                            <ToggleLeft className="w-6 h-6 mr-2" />
                           )}
                           {product.status === 'active' ? 'Active' : 'Out of Stock'}
                         </button>
                       </td>
-                      <td className="py-4 pl-3 pr-6 text-right space-x-3">
+                      <td className="py-4 pl-3 pr-6 text-right space-x-2">
                         <Link
                           href={`/seller/products/edit/${product._id}`}
                           className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
                         >
                           <Edit2 className="h-4 w-4 mr-1" />
                           Edit
+                        </Link>
+                        <Link
+                          href={`/seller/products/edit/${product._id}#variants`}
+                          className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Manage product variants"
+                        >
+                          <Layers className="h-4 w-4 mr-1" />
+                          Variants
                         </Link>
                         <button
                           onClick={() => handleDelete(product._id)}
@@ -177,7 +185,7 @@ export default function ProductList({ initialProducts }) {
             {/* Mobile view */}
             <div className="md:hidden divide-y divide-gray-200">
               {products.map((product) => (
-                <div key={product._id} className="p-4 space-y-4">
+                <div key={product._id} className="p-4 space-y-2">
                   <div className="flex items-start gap-4">
                     <div className="h-20 w-20 flex-shrink-0 rounded-lg overflow-hidden">
                       <img
@@ -193,7 +201,7 @@ export default function ProductList({ initialProducts }) {
                       </p>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-base font-medium text-gray-900">₹{product.price}</span>
-                        <span className="text-sm text-gray-500">• {product.inventory?.quantity || 0} units</span>
+                        <span className="text-sm text-gray-500">• {product.inventory?.stockCount || 0} units</span>
                       </div>
                     </div>
                   </div>
@@ -209,23 +217,30 @@ export default function ProductList({ initialProducts }) {
                       } transition-colors`}
                     >
                       {updatingStatus === product._id ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
                       ) : product.status === 'active' ? (
-                        <ToggleRight className="w-4 h-4 mr-2" />
+                        <ToggleRight className="w-6 h-6 mr-2" />
                       ) : (
-                        <ToggleLeft className="w-4 h-4 mr-2" />
+                        <ToggleLeft className="w-6 h-6 mr-2" />
                       )}
                       {product.status === 'active' ? 'Active' : 'Out of Stock'}
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  <div className="flex items-center justify-end gap-3 pt-1">
                     <Link
                       href={`/seller/products/edit/${product._id}`}
                       className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <Edit2 className="h-4 w-4 mr-2" />
                       Edit
+                    </Link>
+                    <Link
+                      href={`/seller/products/edit/${product._id}#variants`}
+                      className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Layers className="h-4 w-4 mr-2" />
+                      Variants
                     </Link>
                     <button
                       onClick={() => handleDelete(product._id)}

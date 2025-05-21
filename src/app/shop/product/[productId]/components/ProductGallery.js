@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Maximize2 } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -16,12 +16,58 @@ import 'swiper/css/zoom';
 export default function ProductGallery({ images, name }) {
   const [isZoomed, setIsZoomed] = useState(false);
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [displayImages, setDisplayImages] = useState(images);
+  const [variantImage, setVariantImage] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  
+  // Listen for variant image selection events
+  useEffect(() => {
+    const handleVariantImageSelected = (event) => {
+      const { variantImage, variantId } = event.detail;
+      setVariantImage(variantImage);
+      
+      if (variantImage && variantImage.url) {
+        // If a variant image is selected, add it as the first image but keep original images
+        const variantImageObj = { 
+          url: variantImage.url, 
+          id: `variant-${variantId || 'custom'}`,
+          isVariantImage: true
+        };
+        
+        // Create a new array with variant image first, followed by original images
+        const newImages = [variantImageObj, ...images.filter(img => !img.isVariantImage)];
+        setDisplayImages(newImages);
+        setActiveIndex(0); // Reset to first slide (the variant image)
+      } else {
+        // Reset to original product images
+        setDisplayImages(images.filter(img => !img.isVariantImage));
+        setActiveIndex(0); // Reset to first slide
+      }
+    };
+    
+    // Custom event for when variant is selected
+    window.addEventListener('variant-image-selected', handleVariantImageSelected);
+    
+    // Custom event for when returning to base product
+    const handleBaseProductSelected = () => {
+      setVariantImage(null);
+      setDisplayImages(images.filter(img => !img.isVariantImage));
+      setActiveIndex(0);
+    };
+    
+    window.addEventListener('base-product-selected', handleBaseProductSelected);
+    
+    return () => {
+      window.removeEventListener('variant-image-selected', handleVariantImageSelected);
+      window.removeEventListener('base-product-selected', handleBaseProductSelected);
+    };
+  }, [images]);
 
   const handleZoomToggle = () => {
     setIsZoomed(!isZoomed);
   };
 
-  if (!images || !images.length) {
+  if (!displayImages || !displayImages.length) {
     return (
       <div className="aspect-square w-full bg-gray-100 rounded-lg flex items-center justify-center">
         <p className="text-gray-500">No image available</p>
@@ -52,7 +98,7 @@ export default function ProductGallery({ images, name }) {
           }}
           className="h-full w-full"
         >
-          {images.map((image, index) => (
+          {displayImages.map((image, index) => (
             <SwiperSlide key={image.id || index} className="flex items-center justify-center">
               <div className="swiper-zoom-container">
                 <div className="relative w-full h-full flex items-center justify-center">
@@ -90,7 +136,7 @@ export default function ProductGallery({ images, name }) {
       </div>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {displayImages.length > 1 && (
         <div className="mt-4 h-20">
           <Swiper
             modules={[Thumbs]}
@@ -100,7 +146,7 @@ export default function ProductGallery({ images, name }) {
             spaceBetween={8}
             className="h-full"
           >
-            {images.map((image, index) => (
+            {displayImages.map((image, index) => (
               <SwiperSlide 
                 key={image.id || index} 
                 className="!w-auto h-full aspect-square cursor-pointer"

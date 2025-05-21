@@ -1,12 +1,11 @@
 'use client';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Minus, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCart } from '@/app/components/CartProvider';
 import Link from 'next/link';
 import useBreakpoint from '@/hooks/useBreakpoint';
+import CartItemVariant from './components/CartItemVariant';
 
 export default function CartPage() {
   const router = useRouter();
@@ -15,16 +14,20 @@ export default function CartPage() {
   
   console.log("Cart:", cart);
 
-  const handleQuantityChange = async (productId, newQuantity) => {
-    const result = await updateQuantity(productId, newQuantity);
-    if (!result.success) {
+  const handleQuantityChange = async (productId, newQuantity, variantId = null) => {
+    try {
+      await updateQuantity(productId, newQuantity, variantId);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
       toast.error('Failed to update quantity');
     }
   };
 
-  const handleRemove = async (productId) => {
-    const result = await removeFromCart(productId);
-    if (!result.success) {
+  const handleRemove = async (productId, variantId = null) => {
+    try {
+      await removeFromCart(productId, variantId);
+    } catch (error) {
+      console.error('Error removing item:', error);
       toast.error('Failed to remove item');
     }
   };
@@ -79,68 +82,12 @@ export default function CartPage() {
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6">Shopping Cart</h2>
                 <div className="divide-y divide-gray-200">
                   {cart.items.map((item) => (
-                    <div key={item._id} className="py-6 flex">
-                      <div className="flex-shrink-0 w-24 h-24 relative">
-                        <Image
-                          src={item.image_urls[0].url}
-                          alt={item.name}
-                          fill
-                          className="rounded-md object-cover"
-                        />
-                      </div>
-                      <div className="ml-4 flex-1 flex flex-col">
-                        <div>
-                          <div className="flex justify-between">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              <Link href={`/shop/product/${item._id}`} className="hover:text-rose-600">
-                                {item.name}
-                              </Link>
-                            </h3>
-                            <p className="ml-4 text-lg font-medium text-gray-900">
-                              ₹{(item.salePrice || item.price) * item.quantity}
-                            </p>
-                          </div>
-                          {item.salePrice && (
-                            <p className="mt-1 text-sm text-gray-500 line-through">
-                              ₹{item.price * item.quantity}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex-1 flex items-end justify-between">
-                          <div className="flex items-center space-x-3">
-                            <button
-                              onClick={() => handleQuantityChange(item._id, item.quantity - 1)}
-                              disabled={item.quantity <= 1}
-                              className={`p-1 rounded-full ${
-                                item.quantity <= 1
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                              }`}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <span className="text-gray-900 text-lg font-medium">{item.quantity}</span>
-                            <button
-                              onClick={() => handleQuantityChange(item._id, item.quantity + 1)}
-                              disabled={item.quantity >= (item.inventory?.stockCount || 0)}
-                              className={`p-1 rounded-full ${
-                                item.quantity >= (item.inventory?.stockCount || 0)
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                              }`}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <button
-                            onClick={() => handleRemove(item._id)}
-                            className="text-gray-500 hover:text-rose-600"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    <CartItemVariant
+                      key={item._id + (item.variantId || '')}
+                      item={item}
+                      onQuantityChange={handleQuantityChange}
+                      onRemove={handleRemove}
+                    />
                   ))}
                 </div>
               </div>

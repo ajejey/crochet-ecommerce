@@ -15,6 +15,7 @@ export default function EditProductPage({ params }) {
     async function fetchProduct() {
       try {
         const result = await getProduct(params.id);
+        console.log("result in edit product page ", result)
         if (result.error) {
           toast.error(result.error);
           router.push('/seller/products');

@@ -5,6 +5,7 @@ import { Product } from '@/models/Product';
 import { Review } from '@/models/Review';
 import { SellerProfile } from '@/models/SellerProfile';
 import { SearchLog } from '@/models/SearchLog';
+import { Variant } from '@/models/Variant';
 import { getAuthUser } from '@/lib/auth-context';
 import { revalidatePath } from 'next/cache';
 
@@ -444,6 +445,7 @@ export const getProduct = cache(async function(productId, options = { includeSel
       ...product,
       _id: product._id.toString(),
       sellerId: product.sellerId,
+      baseOptionName: product.baseOptionName || 'Original',
       averageRating: product.rating?.average || 0,
       totalReviews: product.rating?.count || 0,
       // Include price per piece fields
@@ -573,3 +575,30 @@ async function updateProductRating(productId) {
     }
   });
 }
+
+// Fetch product variants
+export const getProductVariants = cache(async function(productId) {
+  try {
+    await dbConnect();
+    
+    // Find all active variants for the product
+    const variants = await Variant.find({
+      product: productId,
+      status: 'active'
+    }).lean();
+    
+    // Transform the variants for client use
+    return variants.map(variant => ({
+      _id: variant._id.toString(),
+      name: variant.name,
+      price_adjustment: variant.price_adjustment,
+      stockCount: variant.stockCount,
+      sku: variant.sku || '',
+      status: variant.status,
+      image: variant.image || null
+    }));
+  } catch (error) {
+    console.error('Error fetching product variants:', error);
+    return [];
+  }
+})

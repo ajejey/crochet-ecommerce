@@ -64,6 +64,7 @@ export function CartProvider({ children }) {
     return {
       totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
       totalAmount: items.reduce((sum, item) => {
+        // Use the item price which already includes variant adjustments if any
         const price = item.salePrice || item.price;
         return sum + (price * item.quantity);
       }, 0)
@@ -72,14 +73,21 @@ export function CartProvider({ children }) {
 
   const addToCart = async (product, quantity = 1) => {
     try {
-      // Check if we have enough inventory or if backorder is allowed
-      const stockCount = product.inventory?.stockCount || 0;
+      // Check if we have a variant or using base product
+      const hasVariant = !!product.variant;
+      const variantId = product.variantId || null;
+      
+      // Determine which stock count to use (variant or base product)
+      const stockCount = hasVariant 
+        ? product.variant.stockCount 
+        : product.inventory?.stockCount || 0;
+      
       const allowBackorder = product.inventory?.allowBackorder || false;
       const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
       
       if (stockCount < quantity && !allowBackorder) {
         toast.error(`Sorry, only ${stockCount} items available`);
-        return false;
+        return { success: false };
       }
       
       // If made-to-order is allowed but there's not enough stock, show a made-to-order message
@@ -88,12 +96,26 @@ export function CartProvider({ children }) {
       }
 
       setCart(prevCart => {
-        const existingItem = prevCart.items.find(item => item._id === product._id);
+        // Find existing item - now we need to match both product ID and variant ID
+        const existingItem = prevCart.items.find(item => {
+          if (product.variantId) {
+            // If adding a product with variant, match both product and variant
+            return item._id === product._id && item.variantId === product.variantId;
+          } else {
+            // If adding a product without variant, make sure we match only items without variants
+            return item._id === product._id && !item.variantId;
+          }
+        });
         
         if (existingItem) {
           // Check if adding more would exceed inventory, unless backorder is allowed
           const newQuantity = existingItem.quantity + quantity;
-          const stockCount = product.inventory?.stockCount || 0;
+          
+          // Use the correct stock count based on whether we have a variant
+          const stockCount = existingItem.variantId && existingItem.variant
+            ? existingItem.variant.stockCount
+            : product.inventory?.stockCount || 0;
+            
           const allowBackorder = product.inventory?.allowBackorder || false;
           const madeToOrderDays = product.inventory?.madeToOrderDays || 7;
           
@@ -106,32 +128,55 @@ export function CartProvider({ children }) {
           if (newQuantity > stockCount && allowBackorder) {
             toast.info(`${newQuantity - stockCount} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
           }
-
-          // Update existing item
-          const updatedItems = prevCart.items.map(item =>
-            item._id === product._id
-              ? { ...item, quantity: newQuantity }
-              : item
-          );
-
+          const updatedItems = prevCart.items.map(item => {
+            if ((product.variantId && item._id === product._id && item.variantId === product.variantId) || 
+                (!product.variantId && item._id === product._id && !item.variantId)) {
+              return { ...item, quantity: item.quantity + quantity };
+            }
+            return item;
+          });
+          
           const totals = calculateTotals(updatedItems);
-
+          
           return {
             items: updatedItems,
             ...totals
           };
         } else {
           // Add new item
+          // Prepare the item to add to cart
           const newItem = {
             _id: product._id,
             name: product.name,
-            price: product.price,
+            price: product.finalPrice || product.price,
             salePrice: product.salePrice,
-            image_urls: product.images,
-            quantity,
-            inventory: product.inventory,
+            image_urls: product.images || [],
+            quantity: quantity,
+            inventory: {
+              stockCount,
+              allowBackorder,
+              madeToOrderDays
+            },
+            slug: product.slug,
+            // Include seller information - critical for checkout
             sellerId: product.sellerId
           };
+          
+          // Add variant information if present
+          if (product.variant) {
+            newItem.variantId = product.variantId;
+            newItem.variant = product.variant;
+            // If variant has an image, use it as the primary image
+            if (product.variant.image && product.variant.image.url) {
+              newItem.variantImage = product.variant.image;
+              // Keep original images as a backup
+              newItem.originalImages = product.images || [];
+            }
+            // Store the variant name for display
+            newItem.variantName = product.variant.name;
+            // Store the base option name for display
+            newItem.baseOptionName = product.baseOptionName || 'Original';
+          }
 
           const updatedItems = [...prevCart.items, newItem];
           const totals = calculateTotals(updatedItems);
@@ -144,75 +189,99 @@ export function CartProvider({ children }) {
       });
 
       toast.success('Added to cart');
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add to cart');
-      return false;
+      return { success: false, error: error.message };
     }
   };
 
-  const updateQuantity = (productId, newQuantity) => {
-    setCart(prevCart => {
-      const item = prevCart.items.find(item => item._id === productId);
-      
-      if (!item) {
-        return prevCart;
+  const updateQuantity = async (productId, newQuantity, variantId = null) => {
+    try {
+      if (newQuantity <= 0) {
+        return removeFromCart(productId, variantId);
       }
 
-      // Check if new quantity is within inventory limits or if backorder is allowed
-      const stockCount = item.inventory?.stockCount || 0;
-      const allowBackorder = item.inventory?.allowBackorder || false;
-      const madeToOrderDays = item.inventory?.madeToOrderDays || 7;
+      setCart(prevCart => {
+        // Find the existing item - match both product ID and variant ID if present
+        const existingItem = prevCart.items.find(item => {
+          if (variantId) {
+            return item._id === productId && item.variantId === variantId;
+          } else {
+            return item._id === productId && !item.variantId;
+          }
+        });
+        
+        if (!existingItem) {
+          return prevCart;
+        }
+        
+        // Determine which stock count to use based on whether we have a variant
+        const stockCount = existingItem.variantId && existingItem.variant
+          ? existingItem.variant.stockCount
+          : (existingItem.inventory?.stockCount || 0);
+          
+        const allowBackorder = existingItem.inventory?.allowBackorder || false;
+        const madeToOrderDays = existingItem.inventory?.madeToOrderDays || 7;
+        
+        if (newQuantity > stockCount && !allowBackorder) {
+          toast.error(`Sorry, only ${stockCount} items available`);
+          return prevCart;
+        }
+        
+        // If made-to-order is allowed but there's not enough stock, show a made-to-order message
+        if (newQuantity > stockCount && allowBackorder) {
+          toast.info(`${newQuantity - stockCount} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
+        }
+        
+        const updatedItems = prevCart.items.map(item => {
+          if ((variantId && item._id === productId && item.variantId === variantId) || 
+              (!variantId && item._id === productId && !item.variantId)) {
+            return { ...item, quantity: newQuantity };
+          }
+          return item;
+        });
+        
+        const totals = calculateTotals(updatedItems);
+        
+        return {
+          items: updatedItems,
+          ...totals
+        };
+      });
       
-      if (newQuantity > stockCount && !allowBackorder) {
-        toast.error(`Sorry, only ${stockCount} items available`);
-        return prevCart;
-      }
-      
-      // If made-to-order is allowed but there's not enough stock, show a made-to-order message
-      if (newQuantity > stockCount && allowBackorder) {
-        toast.info(`${newQuantity - stockCount} item(s) will be made to order and delivered in ${madeToOrderDays} days`);
-      }
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      return { success: false, error };
+    }
+  };
 
-      if (newQuantity < 1) {
-        // Remove item if quantity is less than 1
-        const updatedItems = prevCart.items.filter(item => item._id !== productId);
+  const removeFromCart = async (productId, variantId = null) => {
+    try {
+      setCart(prevCart => {
+        // Remove the specific item with matching product ID and variant ID (if provided)
+        const updatedItems = prevCart.items.filter(item => {
+          if (variantId) {
+            return !(item._id === productId && item.variantId === variantId);
+          } else {
+            return !(item._id === productId && !item.variantId);
+          }
+        });
         const totals = calculateTotals(updatedItems);
 
         return {
           items: updatedItems,
           ...totals
         };
-      }
-
-      // Update quantity
-      const updatedItems = prevCart.items.map(item =>
-        item._id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      );
-
-      const totals = calculateTotals(updatedItems);
-
-      return {
-        items: updatedItems,
-        ...totals
-      };
-    });
-  };
-
-  const removeFromCart = (productId) => {
-    setCart(prevCart => {
-      const updatedItems = prevCart.items.filter(item => item._id !== productId);
-      const totals = calculateTotals(updatedItems);
-
-      return {
-        items: updatedItems,
-        ...totals
-      };
-    });
-    toast.success('Removed from cart');
+      });
+      toast.success('Removed from cart');
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      return { success: false, error };
+    }
   };
 
   const clearCart = () => {
@@ -232,7 +301,17 @@ export function CartProvider({ children }) {
     removeFromCart,
     clearCart,
     itemCount: cart.totalItems,
-    totalAmount: cart.totalAmount
+    totalAmount: cart.totalAmount,
+    // Helper function to check if a product+variant is in cart
+    isInCart: (productId, variantId = null) => {
+      return cart.items.some(item => {
+        if (variantId) {
+          return item._id === productId && item.variantId === variantId;
+        } else {
+          return item._id === productId && !item.variantId;
+        }
+      });
+    }
   };
 
   return (

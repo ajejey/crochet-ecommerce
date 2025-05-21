@@ -24,7 +24,7 @@ const HomePage = () => {
     { 
       name: 'Home Decor', 
       image: '/images/crochet-home-decor.jpg',
-      href: '/shop?category=home-decor'
+      href: '/shop?category=home'
     },
     { 
       name: 'Amigurumi', 

@@ -23,6 +23,13 @@ const variantSchema = new mongoose.Schema({
   sku: {
     type: String
   },
+  image: {
+    type: {
+      url: String,
+      id: String
+    },
+    required: false
+  },
   status: {
     type: String,
     enum: ['active', 'inactive', 'deleted'],
