@@ -12,7 +12,8 @@ import useSWR from 'swr';
 export default function ProductInfo({ product, initialReviews }) {
   const [productUrl, setProductUrl] = useState('');
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [currentPrice, setCurrentPrice] = useState(product.price);
+  // Initialize with the correct price - use sale price if available, otherwise regular price
+  const [currentPrice, setCurrentPrice] = useState(product.salePrice || product.price);
   const [hasSelection, setHasSelection] = useState(true); // Default to true, will update after variants are fetched
   
   // Fetch variants using SWR
@@ -62,7 +63,10 @@ export default function ProductInfo({ product, initialReviews }) {
     setHasSelection(true); // User has made a selection
     
     // Update price and stock based on variant
-    setCurrentPrice(product.price + (variant?.price_adjustment || 0));
+    // If product has a sale price, apply the adjustment to the sale price
+    // Otherwise apply it to the regular price
+    const basePrice = product.salePrice || product.price;
+    setCurrentPrice(basePrice + (variant?.price_adjustment || 0));
     setStockQuantity(variant?.stockCount || product.inventory?.stockCount || 0);
     
     // If variant has an image, notify the gallery component to show it
@@ -88,7 +92,7 @@ export default function ProductInfo({ product, initialReviews }) {
   const resetToBaseProduct = () => {
     setSelectedVariant(null);
     setHasSelection(true); // User has selected the base product
-    setCurrentPrice(product.price);
+    setCurrentPrice(product.salePrice || product.price); // Use sale price if available
     setStockQuantity(product.inventory?.stockCount || 0);
     
     // Reset to default product images using a specific event for base product
@@ -203,13 +207,22 @@ export default function ProductInfo({ product, initialReviews }) {
       <div className="mt-6 space-y-4">
         {/* Price display */}
         <div className="flex items-center gap-3">
+          {/* Display the current price (which includes variant adjustments if any) */}
           <span className="text-3xl font-bold text-gray-900">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(currentPrice)}
           </span>
           
-          {product.salePrice && (
+          {/* If there's a sale, show the original price with strikethrough */}
+          {product.salePrice && !selectedVariant && (
             <span className="text-xl text-gray-500 line-through">
-              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.salePrice)}
+              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.price)}
+            </span>
+          )}
+          
+          {/* If a variant is selected and there's a price adjustment, show the base product price */}
+          {selectedVariant && selectedVariant.price_adjustment !== 0 && (
+            <span className="text-xl text-gray-500 line-through">
+              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(product.salePrice || product.price)}
             </span>
           )}
           
