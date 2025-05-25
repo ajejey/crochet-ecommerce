@@ -81,7 +81,7 @@ export default function CheckoutPage() {
 
       // Calculate totals
       const subtotal = cart.totalAmount;
-      const shipping = subtotal >= 1000 ? 0 : 100;
+      const shipping = subtotal >= 1000 ? 0 : 0;
       const total = subtotal + shipping;
 
       // Create order
@@ -139,7 +139,7 @@ export default function CheckoutPage() {
 
   // Calculate totals for display
   const subtotal = cart.totalAmount;
-  const shipping = subtotal >= 1000 ? 0 : 100;
+  const shipping = subtotal >= 1000 ? 0 : 0;
   const total = subtotal + shipping;
 
   // Check inventory status when cart changes

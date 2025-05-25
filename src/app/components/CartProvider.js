@@ -55,7 +55,11 @@ export function CartProvider({ children }) {
     // Only save to localStorage if:
     // 1. The component has been initialized (loaded from localStorage)
     // 2. The cart has items OR we explicitly cleared the cart (not just empty on initial load)
-    if (isInitialized && (cart.items.length > 0 || cart.explicitlyClearedFlag)) {
+    console.log("Saving cart to localStorage:", cart);
+    console.log("cart isInitialized:", isInitialized);
+    console.log("cart.items.length:", cart.items.length);
+    console.log("cart.explicitlyClearedFlag:", cart.explicitlyClearedFlag);
+    if (isInitialized && (cart.items.length >= 0 || cart.explicitlyClearedFlag)) {
       localStorage.setItem('cart', JSON.stringify(cart));
     }
   }, [cart, isInitialized]);

@@ -104,12 +104,12 @@ export default function CartPage() {
                     <dt className="text-gray-600">Subtotal</dt>
                     <dd className="font-medium text-gray-900">₹{cart.totalAmount}</dd>
                   </div>
-                  <div className="py-4 flex items-center justify-between">
+                  {/* <div className="py-4 flex items-center justify-between">
                     <dt className="text-gray-600">Shipping</dt>
                     <dd className="font-medium text-gray-900">
                       {cart.totalAmount >= 1000 ? 'Free' : '₹100'}
                     </dd>
-                  </div>
+                  </div> */}
                   <div className="py-4 flex items-center justify-between">
                     <dt className="text-base font-medium text-gray-900">Order total</dt>
                     <dd className="text-base font-medium text-gray-900">
@@ -139,12 +139,12 @@ export default function CartPage() {
                     <dt className="text-gray-600">Subtotal</dt>
                     <dd className="font-medium text-gray-900">₹{cart.totalAmount}</dd>
                   </div>
-                  <div className="py-4 flex items-center justify-between">
+                  {/* <div className="py-4 flex items-center justify-between">
                     <dt className="text-gray-600">Shipping</dt>
                     <dd className="font-medium text-gray-900">
                       {cart.totalAmount >= 1000 ? 'Free' : '₹100'}
                     </dd>
-                  </div>
+                  </div> */}
                   <div className="py-4 flex items-center justify-between">
                     <dt className="text-base font-medium text-gray-900">Order total</dt>
                     <dd className="text-base font-medium text-gray-900">

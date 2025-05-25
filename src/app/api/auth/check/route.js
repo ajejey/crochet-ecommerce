@@ -23,7 +23,7 @@ export async function GET() {
       .select('role')
       .lean();
 
-    console.log('Authenticated user:', { ...user, role: mongoUser?.role });
+    // console.log('Authenticated user:', { ...user, role: mongoUser?.role });
 
     return Response.json({ 
       authenticated: true, 
