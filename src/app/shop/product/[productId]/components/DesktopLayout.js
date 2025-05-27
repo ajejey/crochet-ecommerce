@@ -104,7 +104,7 @@ export default function DesktopLayout({
             {/* Reviews Section */}
             <section>
               <h2 className="text-2xl font-medium mb-6">Customer Reviews</h2>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8">
                 <Suspense fallback={<LoadingSpinner />}>
                   {children[2]} {/* Reviews Component */}
                 </Suspense>

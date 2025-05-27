@@ -35,21 +35,29 @@ export default function ReviewSection({ productId, initialReviews }) {
     setIsSubmitting(true);
 
     try {
+      console.log("submitting review ", productId, newReview.rating, newReview.comment)
+      // Call the server action to create a review
       const result = await createReview(
         productId,
         newReview.rating,
         newReview.comment
       );
 
+      console.log("review result ", result)
+
       if (result.success) {
+        // Add the new review to the top of the list
         setReviews(prev => [result.review, ...prev]);
+        // Reset the form
         setNewReview({ rating: 5, comment: '' });
         toast.success('Review submitted successfully!');
       } else {
-        throw new Error(result.message);
+        // Show error message from the server
+        toast.error(result.message || 'Failed to submit review');
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to submit review');
+      console.error('Review submission error:', error);
+      toast.error('Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -65,7 +73,7 @@ export default function ReviewSection({ productId, initialReviews }) {
       <h2 className="text-2xl font-bold">Customer Reviews</h2>
 
       {/* Review Form */}
-      <form onSubmit={handleSubmitReview} className="bg-white p-6 rounded-lg shadow-sm">
+      <div className="bg-white p-6 rounded-lg shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Write a Review</h3>
         
         {/* Rating Selection */}
@@ -110,13 +118,20 @@ export default function ReviewSection({ productId, initialReviews }) {
 
         {/* Submit Button */}
         <button
-          type="submit"
+          onClick={handleSubmitReview}
           disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          className="w-full bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 disabled:opacity-50 flex items-center justify-center"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Review'}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Submitting...
+            </>
+          ) : (
+            'Submit Review'
+          )}
         </button>
-      </form>
+      </div>
 
       {/* Reviews List */}
       <div className="space-y-6">

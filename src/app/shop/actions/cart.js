@@ -169,7 +169,7 @@ export async function addToCart(data) {
         quantity: populatedItem.quantity
       };
 
-      return { success: true, item: transformedItem };
+      return { success: true, item: JSON.parse(JSON.stringify(transformedItem)) };
     }
 
     // Add new item to cart
@@ -213,7 +213,7 @@ export async function addToCart(data) {
         seller: productData.seller || {}
       }, quantity);
       
-      return { success: true, item: transformedItem };
+      return { success: true, item: JSON.parse(JSON.stringify(transformedItem)) };
     }
 
     // Otherwise, populate the new item from DB
@@ -247,7 +247,7 @@ export async function addToCart(data) {
       quantity: populatedItem.quantity
     };
 
-    return { success: true, item: transformedItem };
+    return { success: true, item: JSON.parse(JSON.stringify(transformedItem)) };
   } catch (error) {
     console.error('Error adding to cart:', error);
     return { success: false, error: error.message };

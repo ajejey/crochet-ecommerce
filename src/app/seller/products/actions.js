@@ -68,7 +68,7 @@ export async function getProduct(productId) {
       updatedAt: product.updatedAt?.toISOString()
     };
 
-    return { success: true, product: plainProduct };
+    return { success: true, product: JSON.parse(JSON.stringify(plainProduct)) };
   } catch (error) {
     console.error('Error fetching product:', error);
     return { error: 'Failed to fetch product' };
@@ -320,7 +320,7 @@ export async function updateProduct(productId, formData) {
       await pingSearchEngines();
     }
     
-    return { success: true, product: plainProduct };
+    return { success: true, product: JSON.parse(JSON.stringify(plainProduct)) };
   } catch (error) {
     console.error('Error updating product:', error);
     return { error: 'Failed to update product' };

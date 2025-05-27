@@ -560,9 +560,11 @@ export async function createReview(productId, rating, comment) {
   try {
     await dbConnect();
     const user = await getAuthUser();
+
+    console.log("user ", user)
     
     if (!user) {
-      throw new Error('You must be logged in to leave a review');
+      return { success: false, message: 'You must be logged in to leave a review' };
     }
 
     // Check if user has already reviewed this product
@@ -572,7 +574,7 @@ export async function createReview(productId, rating, comment) {
     });
 
     if (existingReview) {
-      throw new Error('You have already reviewed this product');
+      return { success: false, message: 'You have already reviewed this product' };
     }
 
     // Create the review
@@ -591,17 +593,29 @@ export async function createReview(productId, rating, comment) {
     // Revalidate the product page
     revalidatePath(`/shop/product/${productId}`);
 
-    return {
+    // Convert MongoDB document to plain object and stringify/parse to handle ObjectId
+    const reviewObj = JSON.parse(JSON.stringify({
       ...review.toObject(),
       _id: review._id.toString(),
+      createdAt: review.createdAt,
+      userName: user.name || 'Anonymous User',
       user: {
         id: user.$id, // Use Appwrite user ID
         name: user.name || 'Anonymous User'
       }
+    }));
+
+    return {
+      success: true,
+      message: 'Review submitted successfully',
+      review: reviewObj
     };
   } catch (error) {
     console.error('Error creating review:', error);
-    throw error;
+    return { 
+      success: false, 
+      message: error.message || 'Failed to submit review' 
+    };
   }
 }
 
