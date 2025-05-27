@@ -9,12 +9,8 @@ import { Suspense } from 'react';
 export default async function ShopPage({
   searchParams
 }) {
-  const hasFilters = searchParams.category || 
-                    searchParams.sort || 
-                    searchParams.minPrice || 
-                    searchParams.maxPrice || 
-                    searchParams.search ||
-                    searchParams.page;
+  // Check if any search parameters are present
+  const hasFilters = Object.keys(searchParams).length > 0;
 
   // Use simpler query for initial load
   const { products, pagination } = hasFilters 

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search as SearchIcon, X, Clock } from 'lucide-react';
+import { Search as SearchIcon, X, Clock, Tag, Percent } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
-import { getSearchSuggestions } from '../actions/search';
+import { getSearchSuggestions, logSearchClick } from '../actions/search';
+import Image from 'next/image';
 
 const RECENT_SEARCHES_KEY = 'recentSearches';
 const MAX_RECENT_SEARCHES = 5;
@@ -33,10 +34,22 @@ export default function SearchBar() {
   // Fetch suggestions
   useEffect(() => {
     async function fetchSuggestions() {
+      console.log("Searching for:", debouncedQuery);
       if (debouncedQuery.length >= 2) {
         setIsLoading(true);
         try {
           const results = await getSearchSuggestions(debouncedQuery);
+          console.log("Search suggestions results:", results);
+          
+          // Validate that results is an array and has valid data
+          if (Array.isArray(results) && results.length > 0) {
+            // Check if any result is missing a phrase
+            const hasInvalidResults = results.some(item => !item.phrase);
+            if (hasInvalidResults) {
+              console.error('Invalid search results detected:', results);
+            }
+          }
+          
           setSuggestions(results);
         } catch (error) {
           console.error('Error fetching suggestions:', error);
@@ -78,8 +91,18 @@ export default function SearchBar() {
   const handleSearch = (searchQuery) => {
     if (searchQuery?.trim()) {
       setIsOpen(false);
-      addToRecentSearches(searchQuery.trim());
-      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      const trimmedQuery = searchQuery.trim();
+      addToRecentSearches(trimmedQuery);
+      
+      // Log the search click for improving future suggestions
+      logSearchClick(trimmedQuery).catch(console.error);
+      
+      // Clear the input field after search
+      setQuery('');
+      setSuggestions([]);
+      
+      // Navigate to shop page with search query
+      router.push(`/shop?search=${encodeURIComponent(trimmedQuery)}`);
     }
   };
 
@@ -187,11 +210,58 @@ export default function SearchBar() {
                     <button
                       key={suggestion.phrase}
                       onClick={() => handleSearch(suggestion.phrase)}
-                      className={`w-full flex items-center px-4 py-2 text-left ${
+                      className={`w-full flex items-start px-4 py-3 text-left ${
                         index === selectedIndex ? 'bg-gray-50' : 'hover:bg-gray-50'
                       }`}
                     >
-                      <span className="text-sm text-gray-900">{suggestion.phrase}</span>
+                      {suggestion.type === 'product_match' && suggestion.productDetails?.thumbnailImage ? (
+                        <div className="relative h-12 w-12 flex-shrink-0 rounded-md overflow-hidden mr-3 border border-gray-200">
+                          <Image 
+                            src={suggestion.productDetails.thumbnailImage}
+                            alt={suggestion.phrase}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <SearchIcon className="h-5 w-5 mr-3 text-gray-400 mt-1" />
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {suggestion.phrase || 'Unnamed product'}
+                          </span>
+                          {suggestion.type === 'product_match' && (
+                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-rose-50 text-rose-600 rounded flex items-center gap-1">
+                              <Tag className="h-3 w-3" />
+                              Product
+                            </span>
+                          )}
+                        </div>
+                        
+                        {suggestion.type === 'product_match' && suggestion.productDetails && (
+                          <div className="mt-1 flex items-center">
+                            <span className="text-sm font-medium text-gray-900">
+                              {suggestion.productDetails.price}
+                            </span>
+                            {suggestion.productDetails.salePrice && (
+                              <span className="ml-2 text-xs text-gray-500 line-through">
+                                {suggestion.productDetails.salePrice}
+                              </span>
+                            )}
+                            {suggestion.productDetails.salePrice && (
+                              <span className="ml-2 text-xs text-green-600 flex items-center">
+                                <Percent className="h-3 w-3 mr-0.5" />
+                                Sale
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {suggestion.matchType === 'exact' && (
+                        <span className="ml-auto text-xs text-green-600">Exact Match</span>
+                      )}
                     </button>
                   ))}
                 </div>

@@ -80,7 +80,7 @@ export async function getSellers({ status, search, page = 1, limit = 10 }) {
     }));
 
     return {
-      sellers: sellersWithUsers,
+      sellers: JSON.parse(JSON.stringify(sellersWithUsers)),
       page,
       pages: totalPages,
       total: totalDocs
