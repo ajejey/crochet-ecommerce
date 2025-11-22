@@ -21,24 +21,24 @@ export async function sendEmail({ from, to, subject, html }) {
       subject,
       transporterConfigured: !!process.env.GMAIL_USERNAME && !!process.env.GMAIL_PASSWORD
     });
-    
+
     // Check if email configuration is available
     if (!process.env.GMAIL_USERNAME || !process.env.GMAIL_PASSWORD) {
       console.error('Email configuration missing. Please set GMAIL_USERNAME and GMAIL_PASSWORD environment variables.');
-      return { 
-        success: false, 
-        error: 'Email configuration missing', 
-        configError: true 
+      return {
+        success: false,
+        error: 'Email configuration missing',
+        configError: true
       };
     }
-    
+
     const info = await transporter.sendMail({
       from,
       to,
       subject,
       html,
     });
-    
+
     console.log('Email sent successfully:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
@@ -49,8 +49,8 @@ export async function sendEmail({ from, to, subject, html }) {
       responseCode: error.responseCode,
       stack: error.stack
     });
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.message,
       errorCode: error.code,
       errorCommand: error.command,
@@ -72,7 +72,7 @@ export async function sendWelcomeEmail(userEmail, userName) {
 // Send order confirmation email function
 export async function sendOrderConfirmationEmail(orderData) {
   console.log('Preparing order confirmation email for:', orderData._id);
-  
+
   try {
     // Extract required data with fallbacks
     const buyerEmail = orderData.buyerEmail;
@@ -80,17 +80,17 @@ export async function sendOrderConfirmationEmail(orderData) {
     const orderId = orderData._id?.toString() || 'unknown';
     const items = Array.isArray(orderData.items) ? orderData.items : [];
     const totalAmount = orderData.totalAmount || 0;
-    
+
     // Validate required data
     if (!buyerEmail) {
       console.error('Missing buyer email for order:', orderId);
       return { success: false, error: 'Missing buyer email', orderId };
     }
-    
+
     if (items.length === 0) {
       console.warn('No items found for order:', orderId);
     }
-    
+
     console.log('Order confirmation email data:', {
       orderId,
       buyerEmail,
@@ -100,7 +100,7 @@ export async function sendOrderConfirmationEmail(orderData) {
     });
 
     console.log("items[0]:", items[0]?.productId);
-    
+
     // Format items for email template
     const formattedItems = items.map(item => ({
       name: item.productId?.name || 'Product',
@@ -115,7 +115,7 @@ export async function sendOrderConfirmationEmail(orderData) {
       from: `"Knitkart.in Orders" <${process.env.GMAIL_USERNAME}>`,
       to: buyerEmail,
       subject: `Order Confirmation #${orderId.slice(-8)}`,
-      html: orderConfirmationTemplate({ 
+      html: orderConfirmationTemplate({
         userName: buyerName,
         orderNumber: orderId.slice(-8),
         items: formattedItems,
@@ -131,7 +131,7 @@ export async function sendOrderConfirmationEmail(orderData) {
 // Send order notification email to seller
 export async function sendSellerOrderNotificationEmail(orderData) {
   console.log('Preparing seller notification email for order:', orderData._id);
-  
+
   try {
     // Extract required data with fallbacks
     const sellerEmail = orderData.sellerEmail;
@@ -142,17 +142,17 @@ export async function sendSellerOrderNotificationEmail(orderData) {
     const buyerName = orderData.buyerName || 'Customer';
     const sellerAmount = orderData.sellerAmount || totalAmount * 0.9; // Default to 90% if not specified
     const platformFee = orderData.platformFee || totalAmount * 0.1; // Default to 10% if not specified
-    
+
     // Validate required data
     if (!sellerEmail) {
       console.error('Missing seller email for order:', orderId);
       return { success: false, error: 'Missing seller email', orderId };
     }
-    
+
     if (items.length === 0) {
       console.warn('No items found for order:', orderId);
     }
-    
+
     console.log('Seller notification email data:', {
       orderId,
       sellerEmail,
@@ -163,7 +163,7 @@ export async function sendSellerOrderNotificationEmail(orderData) {
       sellerAmount,
       platformFee
     });
-    
+
     // Format items for email template
     const formattedItems = items.map(item => ({
       name: item.productId?.name || 'Product',
@@ -186,7 +186,7 @@ export async function sendSellerOrderNotificationEmail(orderData) {
       from: `"Knitkart.in Seller Orders" <${process.env.GMAIL_USERNAME}>`,
       to: sellerEmail,
       subject: `New Order Received #${orderId.slice(-8)}`,
-      html: sellerOrderNotificationTemplate({ 
+      html: sellerOrderNotificationTemplate({
         sellerName: sellerName,
         orderNumber: orderId.slice(-8),
         items: formattedItems,
@@ -206,20 +206,20 @@ export async function sendSellerOrderNotificationEmail(orderData) {
 // Send contact form email function
 export async function sendContactFormEmail(formData) {
   console.log('Preparing contact form email with data:', formData);
-  
+
   try {
     // Extract form data
     const { name, email, phone, subject, message } = formData;
-    
+
     // Validate required data
     if (!name || !email || !subject || !message) {
       console.error('Missing required contact form fields');
-      return { 
-        success: false, 
-        error: 'Missing required contact form fields' 
+      return {
+        success: false,
+        error: 'Missing required contact form fields'
       };
     }
-    
+
     // Create HTML content for the email
     const htmlContent = `
       <!DOCTYPE html>
@@ -263,7 +263,7 @@ export async function sendContactFormEmail(formData) {
       </body>
       </html>
     `;
-    
+
     // Send the email to the admin
     return await sendEmail({
       from: `"Knitkart.in Contact Form" <${process.env.GMAIL_USERNAME}>`,
@@ -273,6 +273,42 @@ export async function sendContactFormEmail(formData) {
     });
   } catch (error) {
     console.error('Error sending contact form email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send seller welcome email function (when seller registers)
+export async function sendSellerWelcomeEmail(sellerEmail, sellerName, businessName) {
+  try {
+    // Import seller templates dynamically
+    const { sellerWelcomeEmailTemplate } = await import('./seller-email-templates.js');
+
+    return await sendEmail({
+      from: `"KnitKart Seller Support" <${process.env.GMAIL_USERNAME}>`,
+      to: sellerEmail,
+      subject: '🎉 Welcome to KnitKart Seller Community!',
+      html: sellerWelcomeEmailTemplate({ sellerName, businessName }),
+    });
+  } catch (error) {
+    console.error('Error sending seller welcome email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Send seller approval email function (when seller is approved)
+export async function sendSellerApprovalEmail(sellerEmail, sellerName, businessName, shopSlug) {
+  try {
+    // Import seller templates dynamically
+    const { sellerApprovalEmailTemplate } = await import('./seller-email-templates.js');
+
+    return await sendEmail({
+      from: `"KnitKart Seller Support" <${process.env.GMAIL_USERNAME}>`,
+      to: sellerEmail,
+      subject: '🎊 You\'re Approved! Start selling on KnitKart',
+      html: sellerApprovalEmailTemplate({ sellerName, businessName, shopSlug }),
+    });
+  } catch (error) {
+    console.error('Error sending seller approval email:', error);
     return { success: false, error: error.message };
   }
 }

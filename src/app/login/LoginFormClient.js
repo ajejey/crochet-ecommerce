@@ -15,18 +15,18 @@ export default function LoginFormClient({ createSession, redirectTo }) {
   async function onSubmit(data) {
     setIsSubmitting(true);
     setError('');
-    
+
     try {
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         formData.append(key, value);
       });
-      
+
       // Pass the FormData object to the server action
       await createSession(formData);
     } catch (err) {
       setIsSubmitting(false);
-      setError('Something went wrong. Please try again.');
+      setError(err.message);
       console.error(err);
     }
   }
@@ -37,7 +37,7 @@ export default function LoginFormClient({ createSession, redirectTo }) {
         <div className="absolute inset-0 bg-[url('/pattern-bg.svg')] opacity-5"></div>
         <div className="relative px-6 sm:px-8 py-8 sm:py-10">
           <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl text-gray-900 mb-6 text-center">Welcome Back</h1>
-          
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-4">
               <div>
@@ -54,7 +54,7 @@ export default function LoginFormClient({ createSession, redirectTo }) {
                     type="email"
                     name="email"
                     placeholder="Enter your email address"
-                    {...register("email", { 
+                    {...register("email", {
                       required: "Email is required",
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -81,8 +81,8 @@ export default function LoginFormClient({ createSession, redirectTo }) {
                     type={showPassword ? "text" : "password"}
                     name="password"
                     placeholder="Enter your password"
-                    {...register("password", { 
-                      required: "Password is required", 
+                    {...register("password", {
+                      required: "Password is required",
                       minLength: {
                         value: 6,
                         message: "Password must be at least 6 characters"

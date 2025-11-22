@@ -14,6 +14,20 @@ const nextConfig = {
     domains: ["images.unsplash.com", "firebasestorage.googleapis.com", "cloud.appwrite.io", "cloud.appwrite.io"],
   },
   skipTrailingSlashRedirect: true,
+  // Fix for bcrypt/node-pre-gyp HTML file issue
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        'bcrypt': 'commonjs bcrypt'
+      });
+    }
+    // Ignore HTML files in node_modules
+    config.module.rules.push({
+      test: /\.html$/,
+      loader: 'ignore-loader'
+    });
+    return config;
+  },
   // Add rewrites for sitemap URLs and PostHog integration
   async rewrites() {
     return [

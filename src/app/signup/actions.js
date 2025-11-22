@@ -1,7 +1,5 @@
 'use server';
 
-import { createAdminClient } from '@/appwrite/config';
-import { ID } from 'node-appwrite';
 import { cookies } from 'next/headers';
 import { User } from '@/models/User';
 import dbConnect from '@/lib/mongodb';
@@ -43,7 +41,7 @@ export async function createAccount(formData) {
 
     // Create session
     const session = await account.createEmailPasswordSession(email, password);
-    
+
     cookies().set('session', session.secret, {
       httpOnly: true,
       sameSite: 'strict',

@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createAdminClient } from '@/appwrite/config';
-import { ID } from 'node-appwrite';
 import AccountStep from './components/AccountStep';
 import ShopDetailsStep from './components/ShopDetailsStep';
 import VerificationStep from './components/VerificationStep';
@@ -49,25 +47,24 @@ export default function SellerRegistrationForm({ currentUser }) {
 
       // If on account step and user is not logged in, handle signup/login
       if (step === 1 && !currentUser) {
-        const { account } = createAdminClient();
         const email = currentStepData.email;
         const password = currentStepData.password;
         const name = currentStepData.name;
 
         try {
           if (currentStepData.isLogin === 'true') {
-            // Handle login
-            const session = await account.createEmailPasswordSession(email, password);
-            // Store session in cookie using server action
-            const response = await fetch('/api/auth/session', {
+            // Handle login via API
+            const response = await fetch('/api/auth/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ session }),
+              body: JSON.stringify({ email, password }),
             });
-            if (!response.ok) {
-              throw new Error('Failed to store session');
+
+            const result = await response.json();
+            if (!result.success) {
+              throw new Error(result.error || 'Login failed');
             }
           } else {
             // Handle signup using server action
@@ -90,7 +87,7 @@ export default function SellerRegistrationForm({ currentUser }) {
         Object.entries(updatedFormData).forEach(([key, value]) => {
           finalFormData.append(key, value);
         });
-        
+
         const result = await registerSeller(finalFormData);
         if (result.error) {
           setError(result.error);
@@ -132,11 +129,10 @@ export default function SellerRegistrationForm({ currentUser }) {
                 <div className="w-full flex items-center">
                   <div className={`flex-1 ${i === 0 ? 'hidden' : ''} h-0.5 bg-gray-200`}></div>
                   <div
-                    className={`relative w-10 h-10 flex items-center justify-center rounded-full border-2 ${
-                      step >= s.number
+                    className={`relative w-10 h-10 flex items-center justify-center rounded-full border-2 ${step >= s.number
                         ? 'bg-rose-600 border-rose-600 text-white'
                         : 'border-gray-300 bg-white text-gray-500'
-                    }`}
+                      }`}
                   >
                     {s.number}
                   </div>
@@ -163,16 +159,16 @@ export default function SellerRegistrationForm({ currentUser }) {
       )}
 
       {step === 2 && (
-        <ShopDetailsStep 
-          onBack={handleBack} 
+        <ShopDetailsStep
+          onBack={handleBack}
           initialData={formData}
         />
       )}
 
       {step === 3 && (
-        <VerificationStep 
-          onBack={handleBack} 
-          isSubmitting={isSubmitting} 
+        <VerificationStep
+          onBack={handleBack}
+          isSubmitting={isSubmitting}
           initialData={formData}
         />
       )}

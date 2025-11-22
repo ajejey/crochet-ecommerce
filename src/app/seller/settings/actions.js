@@ -1,10 +1,10 @@
 'use server';
 
-import { createAdminClient } from '@/appwrite/config';
-import { requireSeller } from '@/lib/auth-context';
+import { getAuthUser } from '@/lib/auth-context';
 import dbConnect, { getMongoDb } from '@/lib/mongodb';
 import { SellerProfile } from '@/models/SellerProfile';
-import { ID } from 'node-appwrite';
+import { User } from '@/models/User';
+// Removed Appwrite imports - migrated to new auth
 
 // Constants for image validation
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -27,15 +27,15 @@ export async function uploadProfileImage(formData) {
 
     // Validate file type
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return { 
-        error: 'Invalid file type. Please upload a JPEG, PNG, or WebP image' 
+      return {
+        error: 'Invalid file type. Please upload a JPEG, PNG, or WebP image'
       };
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return { 
-        error: `File size too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` 
+      return {
+        error: `File size too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
       };
     }
 
@@ -54,7 +54,7 @@ export async function uploadProfileImage(formData) {
     return { success: true, fileUrl, fileId: uploadedFile.$id };
   } catch (error) {
     console.error('Error uploading image:', error);
-    
+
     // Handle specific Appwrite errors
     if (error.code) {
       switch (error.code) {
@@ -66,7 +66,7 @@ export async function uploadProfileImage(formData) {
           return { error: error.message || 'Failed to upload image. Please try again.' };
       }
     }
-    
+
     return { error: 'Failed to upload image. Please try again.' };
   }
 }
@@ -96,7 +96,7 @@ export async function updateSellerProfile(formData) {
     const bannerImage = formData.get('bannerImage') ? JSON.parse(formData.get('bannerImage')) : null;
     const socialLinks = formData.get('socialLinks') ? JSON.parse(formData.get('socialLinks')) : {};
     const shopPolicies = formData.get('shopPolicies') ? JSON.parse(formData.get('shopPolicies')) : {};
-    
+
     // Handle specialties - convert comma-separated string to array
     const specialtiesStr = formData.get('specialties') || '';
     const specialties = specialtiesStr
@@ -148,12 +148,12 @@ export async function updateSellerProfile(formData) {
     return { success: true };
   } catch (error) {
     console.error('Error updating seller profile:', error);
-    
+
     // Handle specific MongoDB errors
     if (error.code === 11000) {
       return { error: 'A seller with this business name already exists' };
     }
-    
+
     return { error: 'Failed to update profile. Please try again.' };
   }
 }

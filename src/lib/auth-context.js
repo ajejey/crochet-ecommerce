@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
-import { createSessionClient } from '@/appwrite/config';
+import { verifyToken } from '@/lib/auth';
 import { User } from '@/models/User';
 import { SellerProfile } from '@/models/SellerProfile';
 import dbConnect from '@/lib/mongodb';
@@ -13,43 +13,33 @@ export const getAuthUser = cache(async () => {
 
   try {
     await dbConnect();
-    
-    // Get Appwrite user
-    const { account } = await createSessionClient(sessionCookie.value);
-    const appwriteUser = await account.get();
 
-    console.log("APPWRITE USER ------------------ ", appwriteUser)
+    // Verify JWT token
+    const decoded = verifyToken(sessionCookie.value);
+    if (!decoded) return null;
 
-    // Get or create MongoDB user
-    let mongoUser = await User.findOne({ appwriteId: appwriteUser.$id })
+    // Get MongoDB user
+    let mongoUser = await User.findById(decoded.userId)
       .populate('sellerProfile');
-    
+
     if (!mongoUser) {
-      // Create new user in MongoDB
-      mongoUser = await User.create({
-        appwriteId: appwriteUser.$id,
-        email: appwriteUser.email,
-        name: appwriteUser.name,
-        role: 'user',
-        lastSync: new Date(),
-        metadata: {
-          lastLogin: new Date(),
-          loginCount: 1
-        }
-      });
-    } else {
-      // Update login metadata
-      await User.findByIdAndUpdate(mongoUser._id, {
-        $set: { 'metadata.lastLogin': new Date() },
-        $inc: { 'metadata.loginCount': 1 }
-      });
+      return null;
     }
 
-    // Merge Appwrite and MongoDB user data
+    // Update login metadata
+    await User.findByIdAndUpdate(mongoUser._id, {
+      $set: { 'metadata.lastLogin': new Date() },
+      $inc: { 'metadata.loginCount': 1 }
+    });
+
+    // Return user data in format compatible with existing code
     return {
-      ...appwriteUser,
-      _id: JSON.parse(JSON.stringify(mongoUser._id)),
+      $id: mongoUser._id.toString(), // Keep $id for backward compatibility
+      id: mongoUser._id.toString(),
+      email: mongoUser.email,
+      name: mongoUser.name,
       role: mongoUser.role || 'user',
+      _id: JSON.parse(JSON.stringify(mongoUser._id)),
       sellerProfile: mongoUser.sellerProfile,
       metadata: mongoUser.metadata
     };
@@ -73,7 +63,7 @@ export const requireSeller = async () => {
   const user = await requireAuth('/login');
 
   // console.log("user in requireSeller", user)
-  
+
   if (user.role !== 'seller' && user.role !== 'admin') {
     redirect('/become-seller');
   }
@@ -83,7 +73,7 @@ export const requireSeller = async () => {
   const sellerProfile = await SellerProfile.findOne({ userId: user.$id });
 
   console.log("sellerProfile in requireSeller", sellerProfile)
-  
+
   if (!sellerProfile) {
     redirect('/become-seller');
   }
@@ -109,7 +99,7 @@ export const requireSeller = async () => {
 // Helper to check if user is admin
 export async function requireAdmin() {
   const user = await getAuthUser();
-  
+
   if (!user || user.role !== 'admin') {
     redirect('/');
   }
@@ -129,13 +119,13 @@ export function withAdmin(handler) {
 export const withAuth = (handler, options = {}) => {
   return async function authWrapper(...args) {
     try {
-      const user = options.requireSeller 
+      const user = options.requireSeller
         ? await requireSeller()
         : await requireAuth();
-      
+
       return handler(user, ...args);
     } catch (error) {
-      return { 
+      return {
         error: error.message || 'Authentication failed',
         status: error.message.includes('required') ? 401 : 403
       };

@@ -1,5 +1,7 @@
-import { createAdminClient } from "@/appwrite/config";
-import { ID } from "node-appwrite";
+// NOTE: This is a legacy Appwrite setup file
+// TODO: Remove or migrate to new system
+// import { createAdminClient } from "@/appwrite/config";
+// import { ID } from "node-appwrite";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -80,24 +82,24 @@ export async function GET() {
                 ['product_id', 'variant_id']
             );
 
-            return NextResponse.json({ 
-                success: true, 
-                message: 'Cart collection initialized successfully' 
+            return NextResponse.json({
+                success: true,
+                message: 'Cart collection initialized successfully'
             });
         } catch (error) {
             if (error.code === 409) {
-                return NextResponse.json({ 
-                    success: true, 
-                    message: 'Cart collection already exists' 
+                return NextResponse.json({
+                    success: true,
+                    message: 'Cart collection already exists'
                 });
             }
             throw error;
         }
     } catch (error) {
         console.error('Error initializing cart collection:', error);
-        return NextResponse.json({ 
-            success: false, 
-            error: error.message 
+        return NextResponse.json({
+            success: false,
+            error: error.message
         }, { status: 500 });
     }
 }

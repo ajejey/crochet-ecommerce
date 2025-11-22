@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createAdminClient } from '@/appwrite/config';
-import { Query } from 'node-appwrite';
+// NOTE: This file uses old Appwrite code and may not be in use
+// TODO: Remove or migrate to new auth system
+// import { createAdminClient } from '@/appwrite/config';
+// import { Query } from 'node-appwrite';
 
 const CART_ITEMS_COLLECTION = process.env.NEXT_PUBLIC_COLLECTION_CART_ITEMS;
 

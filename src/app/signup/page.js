@@ -1,9 +1,13 @@
 import SignupForm from "./SignupForm";
+import HeaderSection from "../(header)/HeaderSection";
 
 export default function SignupPage({ searchParams }) {
   return (
-    <div className="min-h-screen py-12 bg-gradient-to-b from-rose-50 to-white">
-      <SignupForm searchParams={searchParams} />
-    </div>
+    <main className="flex items-center justify-center h-screen">
+      <HeaderSection />
+      <div className="relative mx-auto flex w-full max-w-[400px] flex-col space-y-2.5 p-4 md:-mt-32">
+        <SignupForm searchParams={searchParams} />
+      </div>
+    </main>
   );
 }

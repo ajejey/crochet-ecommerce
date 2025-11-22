@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSessionClient } from "./appwrite/config";
+import { verifyToken } from "./lib/auth-edge";
 
 // Define protected paths that require authentication
 const protectedPaths = ['/seller', '/shop/checkout', '/shop/orders', '/admin', '/profile', '/account'];
@@ -11,9 +11,9 @@ async function getUser(request) {
   if (!sessionCookie?.value) return null;
 
   try {
-    const { account } = await createSessionClient(sessionCookie.value);
-    const user = await account.get();
-    return user;
+    // Verify JWT token
+    const decoded = verifyToken(sessionCookie.value);
+    return decoded;
   } catch (error) {
     console.error('Middleware auth error:', error);
     return null;
@@ -22,7 +22,7 @@ async function getUser(request) {
 
 function isProtectedRoute(pathname) {
   // Check if the path starts with any of the protected paths
-  return protectedPaths.some(protectedPath => 
+  return protectedPaths.some(protectedPath =>
     pathname === protectedPath || pathname.startsWith(`${protectedPath}/`)
   );
 }
@@ -36,7 +36,7 @@ export async function middleware(request) {
   }
 
   const user = await getUser(request);
-  
+
   if (!user) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', request.nextUrl.pathname);
@@ -45,7 +45,7 @@ export async function middleware(request) {
 
   // Add user info to headers for server components
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-user-id', user.$id);
+  requestHeaders.set('x-user-id', user.userId);
 
   // For seller paths, add seller requirement header
   if (path.startsWith('/seller')) {

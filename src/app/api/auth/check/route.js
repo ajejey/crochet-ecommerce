@@ -1,7 +1,6 @@
-'use server';
-
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { createSessionClient } from '@/appwrite/config';
+import { verifyToken, shouldRefreshToken, generateToken, setAuthCookie } from '@/lib/auth';
 import { User } from '@/models/User';
 import dbConnect from '@/lib/mongodb';
 
@@ -9,33 +8,46 @@ import dbConnect from '@/lib/mongodb';
 export async function GET() {
   try {
     const sessionCookie = cookies().get('session');
-    
+
     if (!sessionCookie?.value) {
-      return Response.json({ authenticated: false });
+      return NextResponse.json({ authenticated: false });
     }
 
-    const { account } = await createSessionClient(sessionCookie.value);
-    const user = await account.get();
+    // Verify JWT token
+    const decoded = verifyToken(sessionCookie.value);
 
-    // Get user role from MongoDB
+    if (!decoded) {
+      return NextResponse.json({ authenticated: false });
+    }
+
+    // Get user from MongoDB
     await dbConnect();
-    const mongoUser = await User.findOne({ appwriteId: user.$id })
-      .select('role')
+    const user = await User.findById(decoded.userId)
+      .select('email name role')
       .lean();
 
-    // console.log('Authenticated user:', { ...user, role: mongoUser?.role });
+    if (!user) {
+      return NextResponse.json({ authenticated: false });
+    }
 
-    return Response.json({ 
-      authenticated: true, 
+    // Sliding session: Refresh token if it's expiring soon (less than 30 days remaining)
+    if (shouldRefreshToken(decoded)) {
+      const newToken = generateToken(user._id.toString(), user.email, user.role);
+      setAuthCookie(newToken);
+    }
+
+    return NextResponse.json({
+      authenticated: true,
       user: {
-        $id: user.$id,
+        $id: user._id.toString(), // Keep $id for backward compatibility
+        id: user._id.toString(),
         name: user.name,
         email: user.email,
-        role: mongoUser?.role || 'user', // Default to 'user' if not found in MongoDB
+        role: user.role || 'user',
       }
     });
   } catch (error) {
     console.error('Auth check error:', error);
-    return Response.json({ authenticated: false });
+    return NextResponse.json({ authenticated: false });
   }
 }

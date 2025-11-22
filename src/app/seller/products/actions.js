@@ -8,8 +8,7 @@ import { getAuthUser } from '@/lib/auth-context';
 import { revalidatePath } from 'next/cache';
 import slugify from 'slugify';
 import { revalidateSitemaps, pingSearchEngines } from '@/lib/sitemap-utils';
-import { createAdminClient } from '@/appwrite/config';
-import { ID } from 'node-appwrite';
+
 
 export async function getProduct(productId) {
   try {
@@ -180,9 +179,9 @@ export async function createProduct(formData) {
     // Update seller's product count
     await SellerProfile.updateOne(
       { userId: user.$id },
-      { 
+      {
         $inc: { 'metadata.productsCount': 1 },
-        $set: { 
+        $set: {
           updatedAt: new Date(),
           ...(product.status === 'active' ? { 'metadata.activeProductsCount': { $inc: 1 } } : {})
         }
@@ -197,13 +196,13 @@ export async function createProduct(formData) {
     revalidatePath('/shop/product/[productId]', 'page');
     revalidatePath('/shop/category/[category]', 'page');
     revalidatePath('/', 'layout'); // Revalidate homepage which may show featured products
-    
+
     // Revalidate sitemaps and ping search engines for new product
     if (product.status === 'active') {
       await revalidateSitemaps();
       await pingSearchEngines();
     }
-    
+
     return { success: true, productId: product._id };
   } catch (error) {
     console.error('Error creating product:', error);
@@ -219,7 +218,7 @@ export async function updateProduct(productId, formData) {
     }
 
     await dbConnect();
-    
+
     const product = await Product.findOne({ _id: productId, sellerId: user.$id });
     if (!product) {
       return { error: 'Product not found or unauthorized' };
@@ -313,13 +312,13 @@ export async function updateProduct(productId, formData) {
     revalidatePath('/seller/products');
     revalidatePath(`/shop/product/${productId}`);
     revalidatePath(`/shop`);
-    
+
     // Revalidate sitemaps and ping search engines for updated product
     await revalidateSitemaps();
     if (updatedProduct.status === 'active') {
       await pingSearchEngines();
     }
-    
+
     return { success: true, product: JSON.parse(JSON.stringify(plainProduct)) };
   } catch (error) {
     console.error('Error updating product:', error);
@@ -383,8 +382,8 @@ export async function updateProductStatus(productId, newStatus) {
       await revalidateSitemaps();
       await pingSearchEngines();
     }
-    
-    return { 
+
+    return {
       success: true,
       product: {
         _id: product._id.toString(),
@@ -485,7 +484,7 @@ export async function updateVariant(variantId, variantData) {
       status: variantData.variantStatus,
       updatedAt: new Date()
     };
-    
+
     // Add image if provided
     if (variantData.variantImage) {
       updateData.image = variantData.variantImage;
@@ -493,7 +492,7 @@ export async function updateVariant(variantId, variantData) {
       // If explicitly set to null, remove the image
       updateData.image = null;
     }
-    
+
     // Update variant
     const updatedVariant = await Variant.findByIdAndUpdate(
       variantId,

@@ -1,5 +1,6 @@
-import { createAdminClient } from "@/appwrite/config";
-import { ID } from "node-appwrite";
+// NOTE: Legacy Appwrite setup file - not in use
+// import { createAdminClient } from "@/appwrite/config";
+// import { ID } from "node-appwrite";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -86,25 +87,25 @@ export async function GET() {
                 ['sku']
             );
 
-            return NextResponse.json({ 
-                success: true, 
+            return NextResponse.json({
+                success: true,
                 message: 'Variants collection initialized successfully',
                 collectionId: collection.$id
             });
         } catch (error) {
             if (error.code === 409) {
-                return NextResponse.json({ 
-                    success: true, 
-                    message: 'Variants collection already exists' 
+                return NextResponse.json({
+                    success: true,
+                    message: 'Variants collection already exists'
                 });
             }
             throw error;
         }
     } catch (error) {
         console.error('Error initializing variants collection:', error);
-        return NextResponse.json({ 
-            success: false, 
-            error: error.message 
+        return NextResponse.json({
+            success: false,
+            error: error.message
         }, { status: 500 });
     }
 }

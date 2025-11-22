@@ -5,8 +5,6 @@ import { User } from '@/models/User';
 import { SellerProfile } from '@/models/SellerProfile';
 import dbConnect from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
-import { createAdminClient } from '@/appwrite/config';
-import { ID } from 'node-appwrite';
 
 // Utility function to generate a unique slug
 const generateUniqueSlug = async (businessName) => {
@@ -15,16 +13,16 @@ const generateUniqueSlug = async (businessName) => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  
+
   let slug = baseSlug;
   let counter = 1;
-  
+
   // Check if slug already exists, if so, append a number
   while (await SellerProfile.findOne({ slug })) {
     slug = `${baseSlug}-${counter}`;
     counter++;
   }
-  
+
   return slug;
 };
 
@@ -43,9 +41,9 @@ export async function registerSeller(formData) {
     if (existingProfile) {
       // If already a seller, just redirect to the seller dashboard
       if (existingProfile.status === 'active') {
-        return { 
-          success: true, 
-          message: 'You are already registered as a seller', 
+        return {
+          success: true,
+          message: 'You are already registered as a seller',
           sellerProfile: {
             businessName: existingProfile.businessName,
             slug: existingProfile.slug,
@@ -55,9 +53,9 @@ export async function registerSeller(formData) {
       }
       // If pending approval, let them know
       else if (existingProfile.status === 'pending') {
-        return { 
-          success: true, 
-          message: 'Your seller application is pending approval', 
+        return {
+          success: true,
+          message: 'Your seller application is pending approval',
           sellerProfile: {
             businessName: existingProfile.businessName,
             slug: existingProfile.slug,
@@ -110,19 +108,28 @@ export async function registerSeller(formData) {
         // Update user role to seller
         await User.findOneAndUpdate(
           { appwriteId: user.$id },
-          { 
+          {
             role: 'seller',
             sellerProfile: sellerProfile._id
           }
         );
       });
 
+      // Send seller welcome email (don't fail registration if email fails)
+      try {
+        const { sendSellerWelcomeEmail } = await import('@/lib/email-auth');
+        await sendSellerWelcomeEmail(user.email, user.name, sellerProfile.businessName);
+      } catch (emailError) {
+        console.error('Failed to send seller welcome email:', emailError);
+        // Continue with registration even if email fails
+      }
+
       // Revalidate the seller path to ensure latest data
       revalidatePath('/seller');
 
-      return { 
-        success: true, 
-        message: 'Seller registration successful', 
+      return {
+        success: true,
+        message: 'Seller registration successful',
         sellerProfile: {
           businessName: sellerProfile.businessName,
           slug: sellerProfile.slug
@@ -137,47 +144,5 @@ export async function registerSeller(formData) {
   } catch (error) {
     console.error('Seller registration error:', error);
     return { error: error.message || 'Failed to register as seller' };
-  }
-}
-
-export async function createSellerAccount(formData) {
-  try {
-    const { email, password, name } = Object.fromEntries(formData);
-    const { account } = createAdminClient();
-
-    // Create Appwrite account
-    const appwriteUser = await account.create(
-      ID.unique(),
-      email,
-      password,
-      name
-    );
-
-    // Connect to MongoDB
-    await dbConnect();
-
-    // Create MongoDB user
-    await User.create({
-      appwriteId: appwriteUser.$id,
-      email,
-      name,
-      role: 'user',
-      lastSync: new Date(),
-      metadata: {
-        lastLogin: new Date(),
-        loginCount: 0,
-        preferences: {
-          newsletter: false,
-          notifications: true
-        }
-      }
-    });
-
-    // Create session
-    const session = await account.createEmailPasswordSession(email, password);
-    return { success: true, session };
-  } catch (error) {
-    console.error('Error creating account:', error);
-    return { error: error.message || 'Failed to create account' };
   }
 }

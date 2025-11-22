@@ -1,19 +1,29 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  appwriteId: { 
-    type: String, 
+  appwriteId: {
+    type: String,
     unique: true,
-    required: true,
+    sparse: true, // Allow null values, makes it optional
     index: true
   },
   email: {
     type: String,
-    required: true
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  password: {
+    type: String,
+    required: function () {
+      // Password required if no appwriteId (for new users)
+      return !this.appwriteId;
+    }
   },
   name: String,
-  role: { 
-    type: String, 
+  role: {
+    type: String,
     enum: ['user', 'seller', 'admin'],
     default: 'user',
     index: true
@@ -31,6 +41,12 @@ const userSchema = new mongoose.Schema({
       pincode: String
     }
   ],
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
   lastSync: Date,
   metadata: {
     lastLogin: Date,

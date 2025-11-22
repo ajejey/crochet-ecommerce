@@ -1,68 +1,60 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { createAdminClient, createSessionClient } from '@/appwrite/config';
-import SignupFormClient from './SignupFormClient';
+import { getAuthUser } from '@/lib/auth-context';
+import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth';
 import { User } from '@/models/User';
-import dbConnect from '@/lib/mongodb';
-import { ID } from 'node-appwrite';
 import { CartItem } from '@/models/CartItem';
 import { Product } from '@/models/Product';
+import dbConnect from '@/lib/mongodb';
 import { sendWelcomeEmail } from '@/lib/email-auth';
-
-async function getUser() {
-  const sessionCookie = cookies().get('session');
-  if (!sessionCookie?.value) return null;
-
-  try {
-    const { account } = await createSessionClient(sessionCookie.value);
-    return await account.get();
-  } catch (error) {
-    console.error('Error getting user:', error);
-    return null;
-  }
-}
+import { cookies } from 'next/headers';
+import SignupFormClient from './SignupFormClient';
 
 async function createAccount(formData) {
   "use server";
-  
+
   try {
     const data = Object.fromEntries(formData);
     const { name, email, password } = data;
 
+    // Validate input
+    if (!name || !email || !password) {
+      return { error: 'Name, email, and password are required' };
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return { error: 'Password must be at least 8 characters long' };
+    }
+
+    // Connect to database
+    await dbConnect();
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+
+    if (existingUser) {
+      return { error: 'An account with this email already exists' };
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
     // Get guest cart ID before creating account
     const guestCartId = cookies().get('cartId')?.value;
 
-    const { account } = await createAdminClient();
-    
-    // Create Appwrite account
-    const appwriteUser = await account.create(
-      ID.unique(),
-      email,
-      password,
-      name
-    );
-
-    // Send welcome email
-    await sendWelcomeEmail(email, name).catch(error => {
-      // Log error but don't fail signup if email fails
-      console.error('Error sending welcome email:', error);
-    });
-
-    // Connect to MongoDB
-    await dbConnect();
-
-    // Create MongoDB user
-    await User.create({
-      appwriteId: appwriteUser.$id,
-      email,
+    // Create new user
+    const newUser = await User.create({
+      email: email.toLowerCase(),
+      password: hashedPassword,
       name,
       role: 'user',
+      emailVerified: false,
       lastSync: new Date(),
       metadata: {
         lastLogin: new Date(),
-        loginCount: 0,
+        loginCount: 1,
         preferences: {
           newsletter: false,
           notifications: true
@@ -70,21 +62,15 @@ async function createAccount(formData) {
       }
     });
 
-    // Create session immediately after account creation
-    const session = await account.createEmailPasswordSession(email, password);
-    
-    // Set the session cookie
-    cookies().set('session', session.secret, {
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/',
-      expires: new Date(session.expire),
+    // Send welcome email (don't fail registration if email fails)
+    sendWelcomeEmail(email, name).catch(error => {
+      console.error('Error sending welcome email:', error);
     });
 
-    // If there was a guest cart, migrate the items to the user's cart
+    // Migrate guest cart if exists
     if (guestCartId) {
       try {
-        // Get the guest cart items with complete product data to avoid future lookups
+        // Get the guest cart items with complete product data
         const guestCartItems = await CartItem.find({ cartId: guestCartId })
           .populate({
             path: 'product',
@@ -101,9 +87,8 @@ async function createAccount(formData) {
 
           // Only migrate items that are still in stock
           if (stockCount >= requestedQuantity) {
-            // Create cart item with complete product data to avoid future lookups
             await CartItem.create({
-              userId: appwriteUser.$id,
+              userId: newUser._id.toString(),
               product: item.product._id,
               quantity: requestedQuantity,
               variant: item.variant,
@@ -130,15 +115,20 @@ async function createAccount(formData) {
         // Delete the guest cart items
         await CartItem.deleteMany({ cartId: guestCartId });
 
-        // Clear the guest cart cookie since items are now associated with the user
+        // Clear the guest cart cookie
         cookies().delete('cartId');
       } catch (error) {
         console.error('Error migrating guest cart:', error);
-        // Don't throw error, allow signup to complete even if cart migration fails
+        // Don't fail registration if cart migration fails
       }
     }
 
-    // Redirect will be handled by the server component after this returns
+    // Generate JWT token
+    const token = generateToken(newUser._id.toString(), newUser.email, newUser.role);
+
+    // Set auth cookie
+    setAuthCookie(token);
+
     return { success: true };
   } catch (error) {
     console.error('Signup error:', error);
@@ -147,7 +137,7 @@ async function createAccount(formData) {
 }
 
 export default async function SignupForm({ searchParams }) {
-  const user = await getUser();
+  const user = await getAuthUser();
   const redirectTo = searchParams?.from || '/';
 
   if (user) {
@@ -158,13 +148,13 @@ export default async function SignupForm({ searchParams }) {
   // and we'll redirect the user to their intended destination
   async function handleCreateAccount(formData) {
     "use server";
-    
+
     const result = await createAccount(formData);
-    
+
     if (result.success) {
       redirect(redirectTo);
     }
-    
+
     return result;
   }
 

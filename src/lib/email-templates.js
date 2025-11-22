@@ -1,5 +1,5 @@
 // Email-safe styles that work across different email clients
-const styles = {
+export const styles = {
   body: `
     margin: 0;
     padding: 0;
@@ -125,7 +125,7 @@ const styles = {
 };
 
 // Base email template that uses table-based layout for better email client compatibility
-const baseTemplate = (content) => `
+export const baseTemplate = (content) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -146,55 +146,190 @@ const baseTemplate = (content) => `
 </html>
 `;
 
-// Welcome email template
+// Welcome email template - Enhanced version
 export const welcomeEmailTemplate = ({ userName }) => {
   const content = `
     <!-- Header -->
-    <table cellpadding="0" cellspacing="0" border="0" width="100%">
-      <tr>
-        <td align="center">
-          <h1 style="${styles.mainHeading}">Welcome to Knitkart.in! 🧶</h1>
-        </td>
-      </tr>
-    </table>
-
-    <!-- Content -->
-    <table cellpadding="0" cellspacing="0" border="0" width="100%">
-      <tr>
-        <td>
-          <p style="${styles.bodyText}">Dear ${userName},</p>
-          
-          <p style="${styles.bodyText}">Welcome to Knitkart.in! We're thrilled to have you join our community of crochet enthusiasts.</p>
-          
-          <h2 style="${styles.subHeading}">At Knitkart.in, you'll find:</h2>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr>
-              <td style="padding-left: 20px;">
-                <p style="${styles.featureText}">• Handcrafted crochet products made with love</p>
-                <p style="${styles.featureText}">• Unique designs and patterns</p>
-                <p style="${styles.featureText}">• High-quality materials</p>
-                <p style="${styles.featureText}">• Personalized customer service</p>
-              </td>
-            </tr>
-          </table>
-          
-          <p style="${styles.bodyText}">Start exploring our collection and find something special that speaks to you.</p>
-          
-          <p style="${styles.bodyText}">Happy shopping!</p>
-          
-          <p style="${styles.bodyText}">Best regards,<br>The Knitkart.in Team</p>
-        </td>
-      </tr>
-    </table>
-
+    <tr>
+      <td style="${styles.header}">
+        <h1 style="${styles.headerText}">KnitKart.in</h1>
+      </td>
+    </tr>
+    
+    <!-- Main content area -->
+    <tr>
+      <td style="padding: 40px 30px;">
+        <!-- Welcome heading -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td align="center">
+              <h1 style="${styles.mainHeading}; margin-top: 0;">Welcome to KnitKart! 🧶</h1>
+              <p style="${styles.bodyText}; text-align: center;">We're thrilled to have you join our community of crochet enthusiasts</p>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- Personalized greeting -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 20px;">
+          <tr>
+            <td>
+              <p style="${styles.bodyText}">Dear ${userName},</p>
+              <p style="${styles.bodyText}">
+                Welcome to the KnitKart family! You've just joined India's premier marketplace for 
+                beautiful, handcrafted crochet creations. Every piece you'll find here is made with 
+                love by talented Indian artisans.
+              </p>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- What makes us special -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0 20px;">
+          <tr>
+            <td>
+              <h2 style="${styles.sectionHeading}">What Makes KnitKart Special</h2>
+            </td>
+          </tr>
+        </table>
+        
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td style="padding-left: 20px;">
+              <p style="${styles.featureText}">✨ <strong>Handmade by Real Artists</strong> - Every item is crafted with care and attention to detail</p>
+              <p style="${styles.featureText}">🇮🇳 <strong>Support Indian Artisans</strong> - Your purchase directly supports creative entrepreneurs</p>
+              <p style="${styles.featureText}">🎨 <strong>Unique, One-of-a-Kind Pieces</strong> - Find items you won't see anywhere else</p>
+              <p style="${styles.featureText}">💝 <strong>Made with Love</strong> - Each creation tells a story</p>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- Quick start guide -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0 20px;">
+          <tr>
+            <td>
+              <h2 style="${styles.sectionHeading}">Get Started</h2>
+            </td>
+          </tr>
+        </table>
+        
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td>
+              <p style="${styles.bodyText}">Here's how to make the most of your KnitKart experience:</p>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 16px;">
+                <tr>
+                  <td style="padding: 16px; background-color: #FDF2F8; border-radius: 8px; margin-bottom: 12px;">
+                    <p style="${styles.featureText}; margin: 0;"><strong>1. Browse Our Collection</strong></p>
+                    <p style="font-size: 14px; color: #6B7280; margin: 4px 0 0 0;">Discover beautiful crochet items from home decor to fashion accessories</p>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background-color: #FDF2F8; border-radius: 8px; margin-bottom: 12px;">
+                    <p style="${styles.featureText}; margin: 0;"><strong>2. Meet Our Creators</strong></p>
+                    <p style="font-size: 14px; color: #6B7280; margin: 4px 0 0 0;">Follow your favorite artists and see their latest creations</p>
+                  </td>
+                </tr>
+                <tr><td style="height: 12px;"></td></tr>
+                <tr>
+                  <td style="padding: 16px; background-color: #FDF2F8; border-radius: 8px;">
+                    <p style="${styles.featureText}; margin: 0;"><strong>3. Save Your Favorites</strong></p>
+                    <p style="font-size: 14px; color: #6B7280; margin: 4px 0 0 0;">Create a wishlist of items you love</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- CTA Button -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0;">
+          <tr>
+            <td align="center">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://knitkart.in'}/shop" style="${styles.button}">
+                Start Shopping
+              </a>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- Join Community -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0 20px;">
+          <tr>
+            <td>
+              <h2 style="${styles.sectionHeading}">Join Our Community</h2>
+            </td>
+          </tr>
+        </table>
+        
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td>
+              <p style="${styles.bodyText}">Connect with us and stay updated on new arrivals, creator stories, and crochet inspiration:</p>
+              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 16px;">
+                <tr>
+                  <td align="center" style="padding: 12px;">
+                    <a href="https://www.instagram.com/knitkart.in/" style="display: inline-block; margin: 0 8px; text-decoration: none;">
+                      <span style="display: inline-block; background-color: #E11D48; color: white; padding: 8px 16px; border-radius: 6px; font-size: 14px;">
+                        📸 Follow on Instagram
+                      </span>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding: 12px;">
+                    <a href="https://www.facebook.com/people/Knitkartin/61574881434675/" style="display: inline-block; margin: 0 8px; text-decoration: none;">
+                      <span style="display: inline-block; background-color: #E11D48; color: white; padding: 8px 16px; border-radius: 6px; font-size: 14px;">
+                        👍 Like on Facebook
+                      </span>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding: 12px;">
+                    <a href="https://www.youtube.com/@knitkart" style="display: inline-block; margin: 0 8px; text-decoration: none;">
+                      <span style="display: inline-block; background-color: #E11D48; color: white; padding: 8px 16px; border-radius: 6px; font-size: 14px;">
+                        ▶️ Subscribe on YouTube
+                      </span>
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+        
+        <!-- Support -->
+        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin: 30px 0;">
+          <tr>
+            <td>
+              <p style="${styles.bodyText}">
+                Have questions? Simply reply to this email and we'll be happy to help!
+              </p>
+              <p style="${styles.bodyText}; margin-top: 30px;">
+                Happy shopping, and thank you for supporting handmade!
+              </p>
+              <p style="${styles.bodyText}">
+                Warm regards,<br>
+                <span style="font-weight: 600;">The KnitKart Team</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    
     <!-- Footer -->
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 40px; border-top: 1px solid #E5E7EB;">
-      <tr>
-        <td align="center" style="padding-top: 20px;">
-          <p style="font-size: 12px; color: #6B7280;">This email was sent to you because you signed up at Knitkart.in.</p>
-        </td>
-      </tr>
-    </table>
+    <tr>
+      <td style="${styles.footer}; padding: 20px 30px 40px;">
+        <p style="${styles.footerText}">
+          Questions? Simply reply to this email or contact us at <a href="mailto:knottedwithlove0@gmail.com" style="${styles.footerLink}">knottedwithlove0@gmail.com</a>
+        </p>
+        <p style="${styles.footerText}">
+          © ${new Date().getFullYear()} KnitKart.in. All rights reserved.
+        </p>
+      </td>
+    </tr>
   `;
 
   return baseTemplate(content);
